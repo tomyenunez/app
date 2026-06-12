@@ -1,0 +1,16 @@
+⚠️ ESTE PROYECTO SE MOVIÓ ⚠️
+
+La copia activa de "Kit del Día" ahora está en:
+
+    C:\Users\tomye\Proyectos\APP DIARIA
+
+¿Por qué? Esta carpeta (el Escritorio) está sincronizada con OneDrive,
+y OneDrive convierte los archivos de node_modules en "placeholders"
+de nube, lo que rompe el bundler de la app (Metro) de forma aleatoria.
+
+Para trabajar en la app:
+
+    cd "C:\Users\tomye\Proyectos\APP DIARIA"
+    npx.cmd expo start
+
+Esta carpeta vieja se puede borrar cuando quieras (la nueva ya tiene todo).

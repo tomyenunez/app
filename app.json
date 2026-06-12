@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Kit del Día",
+    "slug": "kitdeldia",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#F7F7F5"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.kitdeldia.app"
+    },
+    "android": {
+      "package": "com.kitdeldia.app",
+      "softwareKeyboardLayoutMode": "pan"
+    },
+    "plugins": [
+      "expo-asset"
+    ]
+  }
+}
