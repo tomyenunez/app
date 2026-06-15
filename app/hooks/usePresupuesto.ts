@@ -5,6 +5,8 @@ import { getTxs, saveTxs } from '../services/storage';
 import { todayKey } from '../utils/dateUtils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { awardXPOnce } from '../services/xpService';
+import { XP_VALUES } from '../constants/xpValues';
 
 export function usePresupuesto() {
   const [txs, setTxs] = useState<Transaction[]>([]);
@@ -17,7 +19,13 @@ export function usePresupuesto() {
     }, [])
   );
 
-  const add = useCallback(async (desc: string, monto: number, tipo: Transaction['tipo']) => {
+  const add = useCallback(async (
+    desc: string,
+    monto: number,
+    tipo: Transaction['tipo'],
+    categoria?: string,
+    metodo?: string,
+  ) => {
     const now = new Date();
     const next: Transaction = {
       id: Date.now().toString(),
@@ -26,10 +34,13 @@ export function usePresupuesto() {
       tipo,
       fecha: todayKey(),
       fechaStr: format(now, "d 'de' MMMM", { locale: es }),
+      ...(categoria ? { categoria } : {}),
+      ...(metodo ? { metodo } : {}),
     };
     const updated = [next, ...txs];
     setTxs(updated);
     await saveTxs(updated);
+    awardXPOnce(`tx-${next.id}`, XP_VALUES.LOG_TRANSACTION, 'Movimiento registrado');
   }, [txs]);
 
   const remove = useCallback(async (id: string) => {

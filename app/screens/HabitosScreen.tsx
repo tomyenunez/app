@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   TextInput, KeyboardAvoidingView, Platform,
@@ -7,31 +7,29 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
+import { AppColors } from '../constants/colors';
 import { useHabitos } from '../hooks/useHabitos';
 import { EmptyState } from '../components/shared/EmptyState';
 import { Habito } from '../types';
-import { todayIdx, weekDays, isSameDay } from '../utils/dateUtils';
+import { weekDays, isSameDay } from '../utils/dateUtils';
 
 const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 const DAY_NAMES = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
+const BONUS_COLOR = '#FF9F43';
 
 function HabitCard({
-  habito,
-  onToggleToday,
-  onRemove,
-  isDoneToday,
-  isDoneOnDate,
-  weekStats,
+  habito, onToggleToday, onRemove, isDoneToday, isDoneOnDate, weekStats, styles,
 }: {
   habito: Habito;
   onToggleToday: () => void;
   onRemove: () => void;
   isDoneToday: boolean;
   isDoneOnDate: (id: string, date: Date) => boolean;
-  weekStats: { applies: number; done: number };
+  weekStats: { applies: number; done: number; bonus: number };
+  styles: Styles;
 }) {
-  const todayI = todayIdx();
+  const { colors } = useTheme();
   const weekDaysList = weekDays();
   const pct = weekStats.applies > 0 ? weekStats.done / weekStats.applies : 0;
   const appliesLabels = habito.days.map((d) => DAY_NAMES[d]).join(' · ');
@@ -48,15 +46,20 @@ function HabitCard({
           <View style={styles.streakBadge}>
             <Text style={styles.streakText}>🔥 {weekStats.done}/{weekStats.applies}</Text>
           </View>
+          {weekStats.bonus > 0 && (
+            <View style={styles.bonusBadge}>
+              <Text style={styles.bonusText}>★ +{weekStats.bonus}</Text>
+            </View>
+          )}
           <TouchableOpacity onPress={onRemove} style={{ padding: 4 }}>
-            <Ionicons name="close" size={16} color={Colors.textSecondary} />
+            <Ionicons name="close" size={16} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Progress bar */}
       <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${pct * 100}%` }]} />
+        <View style={[styles.progressFill, { width: `${Math.min(pct, 1) * 100}%` }]} />
       </View>
 
       {/* Days row */}
@@ -65,34 +68,39 @@ function HabitCard({
           const dayI = (day.getDay() + 6) % 7;
           const applies = habito.days.includes(dayI);
           const isToday = isSameDay(day, new Date());
-          const isPast = day < new Date() && !isToday;
-          const isFuture = day > new Date() && !isToday;
           const done = isToday ? isDoneToday : isDoneOnDate(habito.id, day);
 
           const circleStyle: StyleProp<ViewStyle>[] = [styles.dayCircle];
           const textStyle: StyleProp<TextStyle>[] = [styles.dayCircleText];
-          let tappable = false;
+          // HOY siempre se puede tocar: si no aplica, cuenta como bonus
+          const tappable = isToday;
+          let content: string = day.getDate().toString();
 
-          if (!applies) {
-            circleStyle.push(styles.dayNA);
-            textStyle.push(styles.dayNAText);
-          } else if (isToday && !done) {
-            circleStyle.push(styles.dayTodayPending);
-            textStyle.push(styles.dayTodayPendingText);
-            tappable = true;
-          } else if (isToday && done) {
-            circleStyle.push(styles.dayDone);
-            textStyle.push(styles.dayDoneText);
-            tappable = true;
-          } else if (isPast && done) {
-            circleStyle.push(styles.dayDone);
-            textStyle.push(styles.dayDoneText);
-          } else if (isPast && !done) {
-            circleStyle.push(styles.dayPastMissed);
-            textStyle.push(styles.dayPastMissedText);
-          } else if (isFuture && applies) {
-            circleStyle.push(styles.dayFuture);
-            textStyle.push(styles.dayFutureText);
+          if (applies) {
+            if (isToday && !done) {
+              circleStyle.push(styles.dayTodayPending);
+              textStyle.push(styles.dayTodayPendingText);
+            } else if (done) {
+              circleStyle.push(styles.dayDone);
+              textStyle.push(styles.dayDoneText);
+              content = '✓';
+            } else {
+              circleStyle.push(styles.dayPending);
+              textStyle.push(styles.dayPendingText);
+            }
+          } else {
+            if (done) {
+              circleStyle.push(styles.dayBonusDone);
+              textStyle.push(styles.dayBonusDoneText);
+              content = '★';
+            } else if (isToday) {
+              circleStyle.push(styles.dayBonusPending);
+              textStyle.push(styles.dayBonusPendingText);
+              content = '+';
+            } else {
+              circleStyle.push(styles.dayNA);
+              textStyle.push(styles.dayNAText);
+            }
           }
 
           return (
@@ -103,11 +111,7 @@ function HabitCard({
                 activeOpacity={tappable ? 0.7 : 1}
                 disabled={!tappable}
               >
-                {done && applies ? (
-                  <Text style={textStyle}>✓</Text>
-                ) : (
-                  <Text style={textStyle}>{day.getDate()}</Text>
-                )}
+                <Text style={textStyle}>{content}</Text>
               </TouchableOpacity>
               <Text style={styles.dayShortLabel}>{isToday ? 'HOY' : DAY_NAMES[dayI]}</Text>
             </View>
@@ -119,7 +123,9 @@ function HabitCard({
 }
 
 export function HabitosScreen() {
-  const { habitos, todayHabits, completadosHoy, add, remove, toggleToday, isDoneToday, isDoneOnDate, weekStats } = useHabitos();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { habitos, todayHabits, completadosHoy, bonusHoy, add, remove, toggleToday, isDoneToday, isDoneOnDate, weekStats } = useHabitos();
   const [name, setName] = useState('');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
 
@@ -140,23 +146,23 @@ export function HabitosScreen() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
+  const subtitle = habitos.length === 0
+    ? 'Agregá tu primer hábito abajo'
+    : todayHabits.length === 0 && bonusHoy === 0
+    ? 'Sin hábitos para hoy — podés sumar bonus ★'
+    : `${completadosHoy}/${todayHabits.length} completados hoy${bonusHoy > 0 ? ` · ★ +${bonusHoy} bonus` : ''}`;
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.iconWrap}>
-            <Ionicons name="flame-outline" size={22} color={Colors.orange} />
+            <Ionicons name="flame-outline" size={22} color={colors.orange} />
           </View>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.title}>Hábitos</Text>
-            <Text style={styles.sub}>
-              {habitos.length === 0
-                ? 'Agregá tu primer hábito abajo'
-                : todayHabits.length === 0
-                ? 'Sin hábitos para hoy'
-                : `${completadosHoy}/${todayHabits.length} completados hoy`}
-            </Text>
+            <Text style={styles.sub}>{subtitle}</Text>
           </View>
         </View>
 
@@ -164,13 +170,12 @@ export function HabitosScreen() {
           data={habitos}
           keyExtractor={(h) => h.id}
           ListHeaderComponent={
-            /* Add form */
             <View style={styles.form}>
               <Text style={styles.formLabel}>NOMBRE DEL HÁBITO</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Ej: Leer 30 minutos..."
-                placeholderTextColor={Colors.textSecondary}
+                placeholderTextColor={colors.textSecondary}
                 value={name}
                 onChangeText={setName}
               />
@@ -207,6 +212,7 @@ export function HabitosScreen() {
               isDoneToday={isDoneToday(item.id)}
               isDoneOnDate={isDoneOnDate}
               weekStats={weekStats(item)}
+              styles={styles}
             />
           )}
           contentContainerStyle={{ paddingBottom: 24 }}
@@ -217,30 +223,30 @@ export function HabitosScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg },
+const createStyles = (colors: AppColors) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: Colors.card,
+    backgroundColor: colors.card,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: colors.border,
   },
   iconWrap: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: Colors.orangeLight,
+    backgroundColor: colors.orangeLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { fontSize: 18, fontFamily: 'Inter_700Bold', color: Colors.orange },
-  sub: { fontSize: 12, fontFamily: 'Inter_400Regular', color: Colors.textSecondary, marginTop: 2 },
+  title: { fontSize: 18, fontFamily: 'Inter_700Bold', color: colors.orange },
+  sub: { fontSize: 12, fontFamily: 'Inter_400Regular', color: colors.textSecondary, marginTop: 2 },
   form: {
-    backgroundColor: Colors.card,
+    backgroundColor: colors.card,
     margin: 14,
     borderRadius: 14,
     padding: 14,
@@ -253,38 +259,38 @@ const styles = StyleSheet.create({
   formLabel: {
     fontSize: 11,
     fontFamily: 'Inter_700Bold',
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     letterSpacing: 0.5,
     marginBottom: 8,
     textTransform: 'uppercase',
   },
   input: {
-    backgroundColor: Colors.grayVeryLight,
+    backgroundColor: colors.inputBg,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 11,
     fontSize: 15,
     fontFamily: 'Inter_400Regular',
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
   },
   daySelector: { flexDirection: 'row', gap: 6 },
   daySelectorBtn: {
     flex: 1,
     aspectRatio: 1,
     borderRadius: 8,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colors.grayVeryLight,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  daySelectorBtnActive: { backgroundColor: Colors.orange, borderColor: Colors.orange },
-  daySelectorText: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: Colors.textSecondary },
+  daySelectorBtnActive: { backgroundColor: colors.orange, borderColor: colors.orange },
+  daySelectorText: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: colors.textSecondary },
   daySelectorTextActive: { color: '#fff' },
   addBtn: {
-    backgroundColor: Colors.orange,
+    backgroundColor: colors.orange,
     borderRadius: 10,
     paddingVertical: 13,
     alignItems: 'center',
@@ -293,13 +299,13 @@ const styles = StyleSheet.create({
   addBtnDisabled: { opacity: 0.5 },
   addBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
   habitCard: {
-    backgroundColor: Colors.card,
+    backgroundColor: colors.card,
     marginHorizontal: 14,
     marginBottom: 10,
     borderRadius: 14,
     padding: 14,
     borderLeftWidth: 4,
-    borderLeftColor: Colors.orange,
+    borderLeftColor: colors.orange,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -307,24 +313,31 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   habitHeader: { flexDirection: 'row', alignItems: 'flex-start' },
-  habitName: { fontSize: 15, fontFamily: 'Inter_600SemiBold', color: Colors.textPrimary },
-  habitDaysLabel: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textSecondary, marginTop: 2 },
+  habitName: { fontSize: 15, fontFamily: 'Inter_600SemiBold', color: colors.textPrimary },
+  habitDaysLabel: { fontSize: 11, fontFamily: 'Inter_400Regular', color: colors.textSecondary, marginTop: 2 },
   habitRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   streakBadge: {
-    backgroundColor: Colors.orangeLight,
+    backgroundColor: colors.orangeLight,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  streakText: { fontSize: 12, fontFamily: 'Inter_600SemiBold', color: Colors.orange },
+  streakText: { fontSize: 12, fontFamily: 'Inter_600SemiBold', color: colors.orange },
+  bonusBadge: {
+    backgroundColor: colors.yellowLight,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  bonusText: { fontSize: 12, fontFamily: 'Inter_600SemiBold', color: BONUS_COLOR },
   progressTrack: {
     height: 4,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: colors.grayLight,
     borderRadius: 2,
     marginVertical: 10,
     overflow: 'hidden',
   },
-  progressFill: { height: 4, backgroundColor: Colors.orange, borderRadius: 2 },
+  progressFill: { height: 4, backgroundColor: colors.orange, borderRadius: 2 },
   daysRow: { flexDirection: 'row', justifyContent: 'space-between' },
   dayCol: { alignItems: 'center', gap: 4 },
   dayCircle: {
@@ -335,24 +348,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dayCircleText: { fontSize: 12, fontFamily: 'Inter_500Medium' },
-  dayNA: { backgroundColor: '#F0F0F0', opacity: 0.4 },
-  dayNAText: { color: Colors.textSecondary },
+  dayNA: { backgroundColor: colors.grayLight, opacity: 0.4 },
+  dayNAText: { color: colors.textSecondary },
   dayTodayPending: {
-    backgroundColor: Colors.orangeLight,
+    backgroundColor: colors.orangeLight,
     borderWidth: 2,
-    borderColor: Colors.orange,
-    shadowColor: Colors.orange,
+    borderColor: colors.orange,
+    shadowColor: colors.orange,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.4,
     shadowRadius: 6,
     elevation: 4,
   },
-  dayTodayPendingText: { color: Colors.orange },
-  dayDone: { backgroundColor: Colors.orange },
+  dayTodayPendingText: { color: colors.orange },
+  dayDone: { backgroundColor: colors.orange },
   dayDoneText: { color: '#fff', fontFamily: 'Inter_700Bold' },
-  dayPastMissed: { borderWidth: 1.5, borderColor: Colors.orange, opacity: 0.75 },
-  dayPastMissedText: { color: Colors.orange },
-  dayFuture: { borderWidth: 1.5, borderColor: Colors.orange, opacity: 0.75 },
-  dayFutureText: { color: Colors.orange },
-  dayShortLabel: { fontSize: 8, fontFamily: 'Inter_500Medium', color: Colors.textSecondary, letterSpacing: 0.3 },
+  dayPending: { borderWidth: 1.5, borderColor: colors.orange, opacity: 0.75 },
+  dayPendingText: { color: colors.orange },
+  // Bonus: hábito hecho un día que no tocaba — dorado
+  dayBonusPending: {
+    borderWidth: 2,
+    borderColor: BONUS_COLOR,
+    borderStyle: 'dashed',
+    backgroundColor: colors.yellowLight,
+  },
+  dayBonusPendingText: { color: BONUS_COLOR, fontSize: 16, fontFamily: 'Inter_700Bold' },
+  dayBonusDone: { backgroundColor: BONUS_COLOR },
+  dayBonusDoneText: { color: '#fff', fontFamily: 'Inter_700Bold' },
+  dayShortLabel: { fontSize: 8, fontFamily: 'Inter_500Medium', color: colors.textSecondary, letterSpacing: 0.3 },
 });
+
+type Styles = ReturnType<typeof createStyles>;

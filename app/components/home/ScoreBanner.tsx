@@ -1,10 +1,11 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import { Colors } from '../../constants/colors';
 import Svg, { Circle } from 'react-native-svg';
+import { useTheme } from '../../context/ThemeContext';
+import { AppColors } from '../../constants/colors';
 
 interface Props {
-  score: number; // 0-100
+  score: number; // puede superar 100 con bonus
   completed: number;
   total: number;
 }
@@ -15,11 +16,14 @@ const R = (SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * R;
 
 export function ScoreBanner({ score, completed, total }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const animVal = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // El score puede pasar de 100 con bonus; el anillo se llena hasta 100 como máximo
     Animated.timing(animVal, {
-      toValue: score / 100,
+      toValue: Math.min(score, 100) / 100,
       duration: 800,
       useNativeDriver: false,
     }).start();
@@ -71,9 +75,9 @@ export function ScoreBanner({ score, completed, total }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   banner: {
-    backgroundColor: Colors.violet,
+    backgroundColor: colors.scoreBg,
     borderRadius: 16,
     marginHorizontal: 14,
     padding: 20,

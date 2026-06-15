@@ -3,6 +3,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Evento } from '../types';
 import { getEventos, saveEventos } from '../services/storage';
 import { isSameDay, isPast } from '../utils/dateUtils';
+import { awardXPOnce } from '../services/xpService';
+import { XP_VALUES } from '../constants/xpValues';
 
 export function useAgenda() {
   const [eventos, setEventos] = useState<Evento[]>([]);
@@ -26,6 +28,7 @@ export function useAgenda() {
     const updated = [...eventos, next].sort((a, b) => a.fecha.localeCompare(b.fecha));
     setEventos(updated);
     await saveEventos(updated);
+    awardXPOnce(`event-${next.id}`, XP_VALUES.ADD_EVENT, 'Evento agregado');
   }, [eventos]);
 
   const remove = useCallback(async (id: string) => {

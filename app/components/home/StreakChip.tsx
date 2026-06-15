@@ -1,14 +1,19 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
+import { AppColors } from '../../constants/colors';
 
 interface Props {
   streak: number;
   habitosHoy: number;
   totalHoy: number;
+  bonus?: number;
 }
 
-export function StreakChips({ streak, habitosHoy, totalHoy }: Props) {
+export function StreakChips({ streak, habitosHoy, totalHoy, bonus = 0 }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.row}>
       <View style={styles.chipDark}>
@@ -19,11 +24,17 @@ export function StreakChips({ streak, habitosHoy, totalHoy }: Props) {
         <Text style={styles.chipYellowText}>⚡ Hábitos hoy</Text>
         <Text style={styles.habitNum}>{habitosHoy}/{totalHoy}</Text>
       </View>
+      {bonus > 0 && (
+        <View style={styles.chipBonus}>
+          <Text style={styles.chipBonusText}>★</Text>
+          <Text style={styles.bonusNum}>+{bonus}</Text>
+        </View>
+      )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     gap: 10,
@@ -34,13 +45,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.textPrimary,
+    backgroundColor: colors.chipDark,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
   chipDarkText: {
-    color: '#fff',
+    color: colors.chipDarkText,
     fontSize: 13,
     fontFamily: 'Inter_500Medium',
   },
@@ -53,19 +64,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.yellowLight,
+    backgroundColor: colors.yellowLight,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
   chipYellowText: {
-    color: '#7A5C00',
+    color: colors.familia.amarillo.fg,
     fontSize: 13,
     fontFamily: 'Inter_500Medium',
   },
   habitNum: {
-    color: '#E17055',
+    color: colors.orange,
     fontSize: 14,
     fontFamily: 'Inter_700Bold',
+  },
+  // Chip de puntos bonus: dorado, solo aparece cuando hay extras
+  chipBonus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FF9F43',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  chipBonusText: {
+    color: '#fff',
+    fontSize: 13,
+    fontFamily: 'Inter_700Bold',
+  },
+  bonusNum: {
+    color: '#fff',
+    fontSize: 14,
+    fontFamily: 'Inter_800ExtraBold',
   },
 });

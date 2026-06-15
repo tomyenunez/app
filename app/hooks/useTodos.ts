@@ -3,6 +3,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Todo } from '../types';
 import { getTodos, saveTodos } from '../services/storage';
 import { todayKey } from '../utils/dateUtils';
+import { awardXPOnce, incrementTodoRecord } from '../services/xpService';
+import { XP_VALUES } from '../constants/xpValues';
 
 export function useTodos() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -29,9 +31,15 @@ export function useTodos() {
   }, [todos]);
 
   const toggle = useCallback(async (id: string) => {
+    const target = todos.find((t) => t.id === id);
     const updated = todos.map((t) => t.id === id ? { ...t, done: !t.done } : t);
     setTodos(updated);
     await saveTodos(updated);
+    // XP solo al completar (nunca resta); una vez por tarea
+    if (target && !target.done) {
+      incrementTodoRecord();
+      awardXPOnce(`todo-${id}`, XP_VALUES.COMPLETE_TODO, 'Tarea completada');
+    }
   }, [todos]);
 
   const remove = useCallback(async (id: string) => {

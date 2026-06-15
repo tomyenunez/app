@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 
 interface Props {
   icon: keyof typeof Ionicons.glyphMap;
@@ -9,25 +9,13 @@ interface Props {
 }
 
 export function EmptyState({ icon, text }: Props) {
+  const { colors } = useTheme();
   return (
-    <View style={styles.container}>
-      <Ionicons name={icon} size={52} color={Colors.grayLight} />
-      <Text style={styles.text}>{text}</Text>
+    <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 48, gap: 12 }}>
+      <Ionicons name={icon} size={52} color={colors.grayLight} />
+      <Text style={{ fontSize: 15, color: colors.textSecondary, fontFamily: 'Inter_400Regular', textAlign: 'center' }}>
+        {text}
+      </Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 48,
-    gap: 12,
-  },
-  text: {
-    fontSize: 15,
-    color: Colors.textSecondary,
-    fontFamily: 'Inter_400Regular',
-    textAlign: 'center',
-  },
-});

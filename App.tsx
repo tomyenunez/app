@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import React, { useEffect, useRef } from 'react';
+import { View, ActivityIndicator, StyleSheet, Animated } from 'react-native';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -12,19 +12,46 @@ import {
   Inter_800ExtraBold,
 } from '@expo-google-fonts/inter';
 import { AppNavigator } from './app/navigation/AppNavigator';
-import { Colors } from './app/constants/colors';
+import { LunaBubble } from './app/components/luna/LunaBubble';
+import { GameOverlay } from './app/components/game/GameOverlay';
+import { ThemeProvider, useTheme } from './app/context/ThemeContext';
+import { GameProvider } from './app/context/GameContext';
 
-const navTheme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    background: Colors.bg,
-    card: Colors.card,
-    text: Colors.textPrimary,
-    primary: Colors.violet,
-    border: Colors.border,
-  },
-};
+function AppContent() {
+  const { colors, isDark } = useTheme();
+  const fade = useRef(new Animated.Value(1)).current;
+
+  // Transición suave al cambiar de tema
+  useEffect(() => {
+    fade.setValue(0.7);
+    Animated.timing(fade, { toValue: 1, duration: 180, useNativeDriver: true }).start();
+  }, [isDark]);
+
+  const navTheme = {
+    ...(isDark ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(isDark ? DarkTheme : DefaultTheme).colors,
+      background: colors.bg,
+      card: colors.card,
+      text: colors.textPrimary,
+      primary: colors.violet,
+      border: colors.border,
+    },
+  };
+
+  return (
+    <Animated.View style={{ flex: 1, opacity: fade, backgroundColor: colors.bg }}>
+      <NavigationContainer theme={navTheme}>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <AppNavigator />
+        {/* Luna flota encima de toda la app, en todas las pantallas */}
+        <LunaBubble />
+        {/* Toasts de XP, badges y modal de subida de nivel */}
+        <GameOverlay />
+      </NavigationContainer>
+    </Animated.View>
+  );
+}
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -38,17 +65,18 @@ export default function App() {
   if (!fontsLoaded) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color={Colors.violet} />
+        <ActivityIndicator size="large" color="#6C5CE7" />
       </View>
     );
   }
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer theme={navTheme}>
-        <StatusBar style="dark" />
-        <AppNavigator />
-      </NavigationContainer>
+      <ThemeProvider>
+        <GameProvider>
+          <AppContent />
+        </GameProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
@@ -56,7 +84,7 @@ export default function App() {
 const styles = StyleSheet.create({
   loading: {
     flex: 1,
-    backgroundColor: Colors.bg,
+    backgroundColor: '#F7F7F5',
     alignItems: 'center',
     justifyContent: 'center',
   },

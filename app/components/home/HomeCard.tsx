@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TouchableOpacity, View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
+import { AppColors } from '../../constants/colors';
 
 interface Props {
   bg: string;
@@ -18,6 +19,9 @@ interface Props {
 }
 
 export function HomeCard({ bg, iconName, iconColor, title, value, sub, onPress, wide, style, chevron, chevronColor }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -25,11 +29,11 @@ export function HomeCard({ bg, iconName, iconColor, title, value, sub, onPress, 
       style={[styles.card, { backgroundColor: bg }, wide && styles.wide, style]}
     >
       <View style={styles.row}>
-        <View style={styles.iconWrap}>
+        <View>
           <Ionicons name={iconName} size={20} color={iconColor} />
         </View>
         {chevron && (
-          <Ionicons name="chevron-forward" size={18} color={chevronColor ?? Colors.textSecondary} />
+          <Ionicons name="chevron-forward" size={18} color={chevronColor ?? colors.textSecondary} />
         )}
       </View>
       <Text style={styles.title}>{title}</Text>
@@ -39,7 +43,7 @@ export function HomeCard({ bg, iconName, iconColor, title, value, sub, onPress, 
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   card: {
     flex: 1,
     borderRadius: 14,
@@ -49,11 +53,10 @@ const styles = StyleSheet.create({
   },
   wide: { flex: 1 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  iconWrap: {},
   title: {
     fontSize: 11,
     fontFamily: 'Inter_600SemiBold',
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -65,6 +68,6 @@ const styles = StyleSheet.create({
   sub: {
     fontSize: 11,
     fontFamily: 'Inter_400Regular',
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 });

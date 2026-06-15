@@ -1,6 +1,7 @@
-import React from 'react';
-import { ScrollView, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Colors } from '../../constants/colors';
+import React, { useMemo } from 'react';
+import { ScrollView, View, Text, StyleSheet } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
+import { AppColors } from '../../constants/colors';
 import { weekStrip, formatShortDay, isSameDay } from '../../utils/dateUtils';
 
 interface Props {
@@ -8,6 +9,8 @@ interface Props {
 }
 
 export function WeekStrip({ hasEventOnDay }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const days = weekStrip();
   const today = new Date();
 
@@ -40,14 +43,14 @@ export function WeekStrip({ hasEventOnDay }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  wrapper: { backgroundColor: Colors.card },
+const createStyles = (colors: AppColors) => StyleSheet.create({
+  wrapper: { backgroundColor: colors.card },
   container: { paddingHorizontal: 14, paddingVertical: 12, gap: 4 },
   dayCol: { alignItems: 'center', width: 44, gap: 4 },
   dayLabel: {
     fontSize: 10,
     fontFamily: 'Inter_600SemiBold',
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     letterSpacing: 0.5,
   },
   circle: {
@@ -57,14 +60,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  circleToday: { backgroundColor: Colors.textPrimary },
+  circleToday: { backgroundColor: colors.chipDark },
   dayNum: {
     fontSize: 15,
     fontFamily: 'Inter_500Medium',
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   dayNumToday: {
-    color: '#fff',
+    color: colors.chipDarkText,
     fontFamily: 'Inter_800ExtraBold',
   },
   dot: {
@@ -73,7 +76,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: '#C8C4FF',
   },
-  dotToday: { backgroundColor: Colors.violet },
+  dotToday: { backgroundColor: colors.violet },
   dotPlaceholder: { width: 5, height: 5 },
-  border: { height: 1, backgroundColor: Colors.border, marginHorizontal: 14 },
+  border: { height: 1, backgroundColor: colors.border, marginHorizontal: 14 },
 });

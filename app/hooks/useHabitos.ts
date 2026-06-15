@@ -3,6 +3,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Habito } from '../types';
 import { getHabitos, saveHabitos, getHabitDone, saveHabitDone } from '../services/storage';
 import { todayKey, todayIdx, weekDays, dateKey } from '../utils/dateUtils';
+import { awardXPOnce, incrementHabitRecord, weeklyStarsCount } from '../services/xpService';
+import { XP_VALUES } from '../constants/xpValues';
 
 export function useHabitos() {
   const [habitos, setHabitos] = useState<Habito[]>([]);
@@ -36,10 +38,35 @@ export function useHabitos() {
   // Toggle only today
   const toggleToday = useCallback(async (habitId: string) => {
     const key = `${todayKey()}-${habitId}`;
-    const updated = { ...habitDone, [key]: !habitDone[key] };
+    const wasDone = !!habitDone[key];
+    const updated = { ...habitDone, [key]: !wasDone };
     setHabitDone(updated);
     await saveHabitDone(updated);
-  }, [habitDone]);
+
+    // XP solo al marcar (nunca resta); una vez por hábito por día
+    if (!wasDone) {
+      const habito = habitos.find((h) => h.id === habitId);
+      const aplicaHoy = habito?.days.includes(todayIdx()) ?? false;
+      const isStar = !aplicaHoy; // día que no tocaba → estrella dorada
+      const hour = new Date().getHours();
+      const stars = await weeklyStarsCount(updated, habitos);
+      incrementHabitRecord(isStar);
+      awardXPOnce(
+        `habit-${key}`,
+        isStar ? XP_VALUES.COMPLETE_HABIT_EXTRA_DAY : XP_VALUES.COMPLETE_HABIT,
+        isStar ? 'Hábito extra ⭐' : 'Hábito completado',
+        {
+          isStar,
+          isBonus: isStar,
+          stats: {
+            weeklyStars: stars,
+            completedAfter23: hour >= 23,
+            completedBefore7: hour < 7,
+          },
+        }
+      );
+    }
+  }, [habitDone, habitos]);
 
   const isDoneToday = useCallback((habitId: string) => {
     return !!habitDone[`${todayKey()}-${habitId}`];
@@ -60,19 +87,29 @@ export function useHabitos() {
     [todayHabits, isDoneToday]
   );
 
-  // Week stats for a habit
+  // Bonus: hábitos completados hoy aunque hoy NO les tocaba (suman puntos extra)
+  const bonusHoy = useMemo(() =>
+    habitos.filter((h) => !h.days.includes(todayIdx()) && isDoneToday(h.id)).length,
+    [habitos, isDoneToday]
+  );
+
+  // Week stats for a habit: done = días que tocaban y se hicieron, bonus = extras
   const weekStats = useCallback((habito: Habito) => {
     const days = weekDays();
     let applies = 0;
     let done = 0;
+    let bonus = 0;
     days.forEach((day) => {
       const idx = (day.getDay() + 6) % 7;
+      const completed = isDoneOnDate(habito.id, day);
       if (habito.days.includes(idx)) {
         applies++;
-        if (isDoneOnDate(habito.id, day)) done++;
+        if (completed) done++;
+      } else if (completed) {
+        bonus++;
       }
     });
-    return { applies, done };
+    return { applies, done, bonus };
   }, [isDoneOnDate]);
 
   return {
@@ -81,6 +118,7 @@ export function useHabitos() {
     loading,
     todayHabits,
     completadosHoy,
+    bonusHoy,
     add,
     remove,
     toggleToday,

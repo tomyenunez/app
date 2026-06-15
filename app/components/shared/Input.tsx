@@ -1,42 +1,47 @@
 import React from 'react';
-import { TextInput, StyleSheet, TextInputProps, View, Text } from 'react-native';
-import { Colors } from '../../constants/colors';
+import { TextInput, TextInputProps, View, Text } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
 
 interface Props extends TextInputProps {
   label?: string;
 }
 
 export function Input({ label, style, ...props }: Props) {
+  const { colors } = useTheme();
   return (
     <View>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && (
+        <Text
+          style={{
+            fontSize: 11,
+            fontFamily: 'Inter_600SemiBold',
+            color: colors.textSecondary,
+            letterSpacing: 0.5,
+            marginBottom: 6,
+            textTransform: 'uppercase',
+          }}
+        >
+          {label}
+        </Text>
+      )}
       <TextInput
-        style={[styles.input, style]}
-        placeholderTextColor={Colors.textSecondary}
+        style={[
+          {
+            backgroundColor: colors.inputBg,
+            borderRadius: 10,
+            paddingHorizontal: 14,
+            paddingVertical: 12,
+            fontSize: 15,
+            fontFamily: 'Inter_400Regular',
+            color: colors.textPrimary,
+            borderWidth: 1,
+            borderColor: colors.border,
+          },
+          style,
+        ]}
+        placeholderTextColor={colors.textSecondary}
         {...props}
       />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  label: {
-    fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
-    color: Colors.textSecondary,
-    letterSpacing: 0.5,
-    marginBottom: 6,
-    textTransform: 'uppercase',
-  },
-  input: {
-    backgroundColor: Colors.grayVeryLight,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    fontFamily: 'Inter_400Regular',
-    color: Colors.textPrimary,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-});
