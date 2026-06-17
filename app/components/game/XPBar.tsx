@@ -37,9 +37,9 @@ export function XPBar({ onPress }: { onPress?: () => void }) {
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
   wrap: {
-    backgroundColor: colors.card,
+    backgroundColor: colors.bg,
     paddingHorizontal: 16,
-    paddingTop: 4,
+    paddingTop: 8,
     paddingBottom: 12,
   },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
@@ -47,7 +47,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   levelIcon: { fontSize: 16 },
   levelName: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: colors.textPrimary },
   xpTotal: { fontSize: 13, fontFamily: 'Inter_700Bold', color: colors.textSecondary },
-  track: { height: 8, backgroundColor: colors.grayVeryLight, borderRadius: 4, overflow: 'hidden' },
+  track: { height: 8, backgroundColor: colors.grayLight, borderRadius: 4, overflow: 'hidden' },
   fill: { height: 8, borderRadius: 4 },
   toNext: { fontSize: 10, fontFamily: 'Inter_400Regular', color: colors.textSecondary, marginTop: 4 },
 });

@@ -17,13 +17,14 @@ export function useTodos() {
     }, [])
   );
 
-  const add = useCallback(async (text: string, tag: Todo['tag']) => {
+  const add = useCallback(async (text: string, tag: Todo['tag'], fecha?: Date) => {
     const next: Todo = {
       id: Date.now().toString(),
       text,
       done: false,
       tag,
       created: todayKey(),
+      ...(fecha ? { fecha: fecha.toISOString() } : {}),
     };
     const updated = [next, ...todos];
     setTodos(updated);
@@ -48,8 +49,22 @@ export function useTodos() {
     await saveTodos(updated);
   }, [todos]);
 
+  const update = useCallback(async (id: string, text: string, tag: Todo['tag'], fecha?: Date) => {
+    const updated = todos.map((t) => t.id === id
+      ? { ...t, text, tag, fecha: fecha ? fecha.toISOString() : undefined }
+      : t);
+    setTodos(updated);
+    await saveTodos(updated);
+  }, [todos]);
+
+  const togglePin = useCallback(async (id: string) => {
+    const updated = todos.map((t) => t.id === id ? { ...t, pinned: !t.pinned } : t);
+    setTodos(updated);
+    await saveTodos(updated);
+  }, [todos]);
+
   const pending = todos.filter((t) => !t.done);
   const done = todos.filter((t) => t.done);
 
-  return { todos, pending, done, loading, add, toggle, remove };
+  return { todos, pending, done, loading, add, update, toggle, remove, togglePin };
 }

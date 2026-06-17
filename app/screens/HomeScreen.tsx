@@ -1,211 +1,150 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal
+  View, Text, ScrollView, StyleSheet, TouchableOpacity
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, ThemeMode } from '../context/ThemeContext';
+import { useTheme } from '../context/ThemeContext';
 import { AppColors } from '../constants/colors';
-import { greeting, formatFullDate, capitalizeFirst } from '../utils/dateUtils';
-import { formatARS } from '../utils/formatters';
+import { formatMonth, isSameDay } from '../utils/dateUtils';
 import { ScoreBanner } from '../components/home/ScoreBanner';
 import { WeekStrip } from '../components/home/WeekStrip';
-import { HomeCard } from '../components/home/HomeCard';
-import { StreakChips } from '../components/home/StreakChip';
-import { XPBar } from '../components/game/XPBar';
-import { TemperatureChip } from '../components/game/TemperatureChip';
-import { MissionsSection } from '../components/game/MissionsSection';
+import { PendientesSection } from '../components/home/PendientesSection';
+import { HabitosSection } from '../components/home/HabitosSection';
+import { SideMenu } from '../components/home/SideMenu';
+import { CalendarModal } from '../components/agenda/CalendarModal';
 import { useGame } from '../context/GameContext';
 import { useTodos } from '../hooks/useTodos';
-import { useDeudas } from '../hooks/useDeudas';
+import { useFamilias } from '../hooks/useFamilias';
 import { useHabitos } from '../hooks/useHabitos';
-import { usePresupuesto } from '../hooks/usePresupuesto';
 import { useAgenda } from '../hooks/useAgenda';
 import { useStreak } from '../hooks/useStreak';
 
-const USER_NAME = 'Eladio';
-
-const THEME_OPTIONS: { mode: ThemeMode; label: string; icon: string }[] = [
-  { mode: 'light', label: 'Claro', icon: '☀️' },
-  { mode: 'dark', label: 'Oscuro', icon: '🌙' },
-  { mode: 'system', label: 'Seguir al sistema', icon: '📱' },
-];
-
 export function HomeScreen() {
   const nav = useNavigation<any>();
-  const { colors, isDark, themeMode, setThemeMode } = useTheme();
+  const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { profile } = useGame();
-  const { pending, todos } = useTodos();
-  const { balance } = useDeudas();
-  const { habitos, todayHabits, completadosHoy, bonusHoy } = useHabitos();
-  const { saldo } = usePresupuesto();
-  const { nextEvento, hasEvents } = useAgenda();
+  const { todos, add: addTodo, update: updateTodo, toggle: toggleTodo, remove: removeTodo, togglePin: togglePinTodo } = useTodos();
+  const { familias, getFamilia } = useFamilias();
+  const {
+    habitos, todayHabits, completadosHoy,
+    add: addHabito, update: updateHabito, remove: removeHabito, togglePin: togglePinHabito, toggleToday,
+    isDoneToday, isDoneOnDate, weekStats,
+  } = useHabitos();
+  const { hasEvents, eventosForDay, add: addEvento, remove: removeEvento } = useAgenda();
   const streak = useStreak();
-  const [themeModalVisible, setThemeModalVisible] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [calVisible, setCalVisible] = useState(false);
+  const [calDay, setCalDay] = useState<Date | null>(null);
 
-  // Los bonus (hábitos hechos en días que no tocaban) suman extra: puede superar 100%
-  const score = useMemo(() => {
-    const total = todayHabits.length + todos.length;
-    if (total === 0) return bonusHoy > 0 ? 100 : 0;
-    const done = completadosHoy + bonusHoy + todos.filter((t) => t.done).length;
-    return Math.round((done / total) * 100);
-  }, [todayHabits, todos, completadosHoy, bonusHoy]);
+  const openCalendar = (day: Date | null) => {
+    setCalDay(day);
+    setCalVisible(true);
+  };
 
-  const completed = completadosHoy + bonusHoy + todos.filter((t) => t.done).length;
-  const total = todayHabits.length + todos.length;
+  // Pendientes con fecha asignada para un día puntual (se marcan en el calendario)
+  const todosForDay = useCallback((date: Date) =>
+    todos.filter((t) => t.fecha && isSameDay(new Date(t.fecha), date)), [todos]);
 
-  const balanceLabel = balance > 0 ? 'a tu favor' : balance < 0 ? 'en contra' : 'sin deudas';
+  // Un día se marca en el calendario si tiene un evento o un pendiente con fecha
+  const hasMark = useCallback((date: Date) =>
+    hasEvents(date) || todos.some((t) => t.fecha && isSameDay(new Date(t.fecha), date)),
+    [hasEvents, todos]);
+
+  // Score del día: hábitos de hoy + pendientes con fecha de hoy
+  const todayTodos = useMemo(() =>
+    todos.filter((t) => t.fecha && isSameDay(new Date(t.fecha), new Date())), [todos]);
+  const totalScore = todayHabits.length + todayTodos.length;
+  const doneScore = completadosHoy + todayTodos.filter((t) => t.done).length;
+  const score = totalScore === 0 ? 0 : Math.round((doneScore / totalScore) * 100);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Header */}
+        {/* Header: menú · título · avatar */}
         <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.greeting}>{greeting()}, {USER_NAME}</Text>
-            <Text style={styles.date}>{capitalizeFirst(formatFullDate(new Date()))}</Text>
-          </View>
-          <TouchableOpacity onPress={() => setThemeModalVisible(true)} style={styles.themeBtn}>
-            <Ionicons name={isDark ? 'moon-outline' : 'sunny-outline'} size={20} color={colors.textPrimary} />
+          <TouchableOpacity style={styles.iconBtn} onPress={() => setMenuVisible(true)}>
+            <Ionicons name="menu" size={22} color={colors.textPrimary} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => nav.navigate('Profile')} style={[styles.avatar, { backgroundColor: profile.avatarColor }]}>
-            <Text style={[styles.avatarText, { color: '#fff' }]}>{profile.username.slice(0, 2).toUpperCase()}</Text>
+          <Text style={styles.headerTitle}>Inicio</Text>
+          <TouchableOpacity
+            style={[styles.avatarBtn, { backgroundColor: profile.avatarColor }]}
+            onPress={() => nav.navigate('Profile')}
+          >
+            <Text style={styles.avatarBtnText}>{profile.username.slice(0, 2).toUpperCase()}</Text>
           </TouchableOpacity>
         </View>
 
-        {/* XP Bar */}
-        <XPBar onPress={() => nav.navigate('Profile')} />
-
-        {/* Week Strip */}
-        <WeekStrip hasEventOnDay={hasEvents} />
+        {/* Burbuja: avatar + nombre + mes + calendario semanal */}
+        <View style={styles.profileBubble}>
+          <View style={styles.profileTop}>
+            <View style={styles.profileAvatar}>
+              <Ionicons name="person" size={28} color={colors.violet} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.profileName}>{profile.username}</Text>
+              <Text style={styles.profileMonth}>{formatMonth(new Date())}</Text>
+            </View>
+            <View style={styles.streakChip}>
+              <Text style={styles.streakLabel}>Racha</Text>
+              <Text style={styles.streakEmoji}>🔥</Text>
+              <Text style={styles.streakNum}>{streak}</Text>
+            </View>
+          </View>
+          <WeekStrip hasEventOnDay={hasMark} onDayPress={openCalendar} />
+        </View>
 
         {/* Score Banner */}
         <View style={{ marginTop: 14 }}>
-          <ScoreBanner score={score} completed={completed} total={total} />
+          <ScoreBanner score={score} completed={doneScore} total={totalScore} />
         </View>
 
-        {/* Temperatura del día */}
-        <TemperatureChip />
-
-        {/* Streak Chips */}
-        <StreakChips
-          streak={streak}
-          habitosHoy={completadosHoy}
-          totalHoy={todayHabits.length}
-          bonus={bonusHoy}
+        {/* Pendientes */}
+        <PendientesSection
+          todos={todos}
+          familias={familias}
+          getFamilia={getFamilia}
+          onAdd={addTodo}
+          onUpdate={updateTodo}
+          onToggle={toggleTodo}
+          onRemove={removeTodo}
+          onTogglePin={togglePinTodo}
         />
 
-        {/* Grid */}
-        <View style={styles.grid}>
-          <View style={styles.row}>
-            <HomeCard
-              bg={colors.violetLight}
-              iconName="checkmark-circle-outline"
-              iconColor={colors.violet}
-              title="Pendientes"
-              value={pending.length.toString()}
-              sub="tareas activas"
-              onPress={() => nav.navigate('Todo')}
-            />
-            <HomeCard
-              bg={colors.greenLight}
-              iconName="cash-outline"
-              iconColor={colors.green}
-              title="Entre amigos"
-              value={`${balance >= 0 ? '+' : '-'}${formatARS(Math.abs(balance))}`}
-              sub={balanceLabel}
-              onPress={() => nav.navigate('Deudas')}
-            />
-          </View>
-          <View style={styles.row}>
-            <HomeCard
-              bg={colors.orangeLight}
-              iconName="flame-outline"
-              iconColor={colors.orange}
-              title="Hábitos"
-              value={habitos.length.toString()}
-              sub="configurados"
-              onPress={() => nav.navigate('Habitos')}
-            />
-            <HomeCard
-              bg={colors.blueLight}
-              iconName="wallet-outline"
-              iconColor={colors.blue}
-              title="Saldo"
-              value={formatARS(Math.abs(saldo))}
-              sub="acumulado"
-              onPress={() => nav.navigate('Plata')}
-            />
-          </View>
-          {/* Wide card */}
-          <TouchableOpacity
-            style={styles.wideCard}
-            activeOpacity={0.85}
-            onPress={() => nav.navigate('Agenda')}
-          >
-            <View style={styles.wideLeft}>
-              <View style={styles.wideIconWrap}>
-                <Text style={{ fontSize: 18 }}>📅</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.wideLabel}>PRÓXIMO EVENTO</Text>
-                <Text style={styles.wideValue} numberOfLines={1}>
-                  {nextEvento ? nextEvento.titulo : 'Sin eventos próximos'}
-                </Text>
-                {nextEvento ? (
-                  <Text style={styles.wideSub}>
-                    {capitalizeFirst(formatFullDate(new Date(nextEvento.fecha)))}
-                    {nextEvento.hora ? ` · ${nextEvento.hora}` : ''}
-                  </Text>
-                ) : null}
-              </View>
-            </View>
-            <Text style={styles.chevron}>›</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Hábitos */}
+        <HabitosSection
+          habitos={habitos}
+          onAdd={addHabito}
+          onUpdate={updateHabito}
+          onRemove={removeHabito}
+          onTogglePin={togglePinHabito}
+          onToggleToday={toggleToday}
+          isDoneToday={isDoneToday}
+          isDoneOnDate={isDoneOnDate}
+          weekStats={weekStats}
+        />
 
-        {/* Misiones */}
-        <MissionsSection />
-
-        <View style={{ height: 24 }} />
+        <View style={{ height: 96 }} />
       </ScrollView>
 
-      {/* Selector de tema */}
-      <Modal
-        visible={themeModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setThemeModalVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.themeOverlay}
-          activeOpacity={1}
-          onPress={() => setThemeModalVisible(false)}
-        >
-          <View style={styles.themeSheet}>
-            <Text style={styles.themeTitle}>Apariencia</Text>
-            {THEME_OPTIONS.map((opt) => {
-              const active = themeMode === opt.mode;
-              return (
-                <TouchableOpacity
-                  key={opt.mode}
-                  style={styles.themeOption}
-                  onPress={() => {
-                    setThemeMode(opt.mode);
-                    setThemeModalVisible(false);
-                  }}
-                >
-                  <Text style={styles.themeOptionEmoji}>{opt.icon}</Text>
-                  <Text style={styles.themeOptionLabel}>{opt.label}</Text>
-                  {active && <Ionicons name="checkmark" size={20} color={colors.violet} />}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </TouchableOpacity>
-      </Modal>
+      {/* Menú lateral (incluye Misiones adentro) */}
+      <SideMenu visible={menuVisible} onClose={() => setMenuVisible(false)} />
+
+      {/* Calendario (popup) */}
+      <CalendarModal
+        visible={calVisible}
+        onClose={() => setCalVisible(false)}
+        initialDay={calDay}
+        familias={familias}
+        getFamilia={getFamilia}
+        onAdd={addEvento}
+        onRemove={removeEvento}
+        hasEvents={hasMark}
+        eventosForDay={eventosForDay}
+        todosForDay={todosForDay}
+      />
     </SafeAreaView>
   );
 }
@@ -217,109 +156,88 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 14,
-    backgroundColor: colors.card,
+    paddingTop: 8,
+    paddingBottom: 6,
+    backgroundColor: colors.bg,
     gap: 10,
   },
-  headerLeft: { flex: 1 },
-  greeting: {
-    fontSize: 20,
-    fontFamily: 'Inter_700Bold',
-    color: colors.textPrimary,
-  },
-  date: {
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  themeBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.grayVeryLight,
+  iconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.border,
   },
-  avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 18,
+    fontFamily: 'Inter_700Bold',
+    color: colors.textPrimary,
+  },
+  avatarBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarBtnText: {
+    color: '#fff',
+    fontSize: 15,
+    fontFamily: 'Inter_700Bold',
+  },
+  profileBubble: {
+    backgroundColor: colors.card,
+    borderRadius: 22,
+    marginHorizontal: 14,
+    marginTop: 8,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  profileTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 16,
+  },
+  profileAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: colors.violetLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 15,
-    fontFamily: 'Inter_700Bold',
-    color: colors.violet,
-  },
-  grid: {
-    marginHorizontal: 14,
-    marginTop: 14,
-    gap: 10,
-  },
-  row: { flexDirection: 'row', gap: 10 },
-  wideCard: {
-    backgroundColor: colors.pinkLight,
-    borderRadius: 14,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  wideLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 10 },
-  wideIconWrap: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  wideLabel: {
-    fontSize: 10,
-    fontFamily: 'Inter_600SemiBold',
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  wideValue: {
-    fontSize: 15,
-    fontFamily: 'Inter_600SemiBold',
+  profileName: {
+    fontSize: 20,
+    fontFamily: 'Inter_800ExtraBold',
     color: colors.textPrimary,
-    marginTop: 2,
   },
-  wideSub: {
-    fontSize: 11,
-    fontFamily: 'Inter_400Regular',
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  chevron: { fontSize: 22, color: colors.pink, fontFamily: 'Inter_400Regular' },
-  themeOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'center',
-    paddingHorizontal: 40,
-  },
-  themeSheet: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 16,
-  },
-  themeTitle: {
-    fontSize: 16,
-    fontFamily: 'Inter_700Bold',
-    color: colors.textPrimary,
-    marginBottom: 10,
-  },
-  themeOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 12,
-  },
-  themeOptionEmoji: { fontSize: 18 },
-  themeOptionLabel: {
-    flex: 1,
-    fontSize: 15,
+  profileMonth: {
+    fontSize: 13,
     fontFamily: 'Inter_500Medium',
-    color: colors.textPrimary,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
+  streakChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.orangeLight,
+    borderRadius: 14,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+  },
+  streakEmoji: { fontSize: 14 },
+  streakLabel: { fontSize: 12, fontFamily: 'Inter_600SemiBold', color: colors.orange },
+  streakNum: { fontSize: 15, fontFamily: 'Inter_800ExtraBold', color: colors.orange },
 });
+

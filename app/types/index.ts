@@ -13,6 +13,8 @@ export interface Todo {
   done: boolean;
   tag: string; // id de Familia
   created: string; // "YYYY-M-D"
+  fecha?: string; // ISO — fecha asignada por el usuario (opcional); se marca en el calendario
+  pinned?: boolean; // fijado arriba de la lista
 }
 
 export interface Deuda {
@@ -28,6 +30,7 @@ export interface Habito {
   id: string;
   name: string;
   days: number[]; // 0=Lunes ... 6=Domingo
+  pinned?: boolean; // fijado arriba de la lista
 }
 
 // Categoría de gasto o forma de pago personalizable (comida, efectivo, MP...)

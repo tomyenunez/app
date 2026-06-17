@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { subDays, startOfWeek, startOfMonth } from 'date-fns';
 import { useTheme } from '../context/ThemeContext';
@@ -13,12 +14,14 @@ import { useStreak } from '../hooks/useStreak';
 import { dateKey, weekDays } from '../utils/dateUtils';
 import { formatARS, formatARSWithSign, formatPercent } from '../utils/formatters';
 import { DonutChart, DonutSlice } from '../components/stats/DonutChart';
+import { XPBar } from '../components/game/XPBar';
 
 type Periodo = 'semana' | 'mes' | 'todo';
 
 const HEX_FALLBACK = ['#6C5CE7', '#00B894', '#E17055', '#0984E3', '#E84393', '#FDCB6E', '#A29BFE', '#B2BEC3'];
 
 export function StatsScreen() {
+  const nav = useNavigation<any>();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { todos } = useTodos();
@@ -134,7 +137,7 @@ export function StatsScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 96 }}>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.iconWrap}>
@@ -144,6 +147,11 @@ export function StatsScreen() {
             <Text style={styles.title}>Stats</Text>
             <Text style={styles.sub}>tu ritmo</Text>
           </View>
+        </View>
+
+        {/* Barra de XP / nivel */}
+        <View style={styles.xpWrap}>
+          <XPBar onPress={() => nav.navigate('Profile')} />
         </View>
 
         {/* Metrics grid */}
@@ -299,6 +307,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   },
   title: { fontSize: 18, fontFamily: 'Inter_700Bold', color: colors.violet },
   sub: { fontSize: 12, fontFamily: 'Inter_400Regular', color: colors.textSecondary, marginTop: 2 },
+  xpWrap: { marginTop: 6 },
   metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, margin: 14 },
   metricCard: {
     width: '47%', borderRadius: 14, padding: 16,

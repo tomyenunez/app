@@ -35,6 +35,18 @@ export function useHabitos() {
     await saveHabitos(updated);
   }, [habitos]);
 
+  const update = useCallback(async (id: string, name: string, days: number[]) => {
+    const updated = habitos.map((h) => h.id === id ? { ...h, name, days } : h);
+    setHabitos(updated);
+    await saveHabitos(updated);
+  }, [habitos]);
+
+  const togglePin = useCallback(async (id: string) => {
+    const updated = habitos.map((h) => h.id === id ? { ...h, pinned: !h.pinned } : h);
+    setHabitos(updated);
+    await saveHabitos(updated);
+  }, [habitos]);
+
   // Toggle only today
   const toggleToday = useCallback(async (habitId: string) => {
     const key = `${todayKey()}-${habitId}`;
@@ -120,7 +132,9 @@ export function useHabitos() {
     completadosHoy,
     bonusHoy,
     add,
+    update,
     remove,
+    togglePin,
     toggleToday,
     isDoneToday,
     isDoneOnDate,

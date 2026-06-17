@@ -33,7 +33,7 @@ export function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 96 }}>
         {/* Header con botón volver */}
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => nav.goBack()} style={styles.backBtn}>

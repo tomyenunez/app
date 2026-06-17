@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { Transaction } from '../types';
 import { getTxs, saveTxs } from '../services/storage';
-import { todayKey } from '../utils/dateUtils';
+import { todayKey, dateKey } from '../utils/dateUtils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { awardXPOnce } from '../services/xpService';
@@ -25,15 +25,16 @@ export function usePresupuesto() {
     tipo: Transaction['tipo'],
     categoria?: string,
     metodo?: string,
+    fecha?: Date,
   ) => {
-    const now = new Date();
+    const d = fecha ?? new Date();
     const next: Transaction = {
       id: Date.now().toString(),
       desc,
       monto,
       tipo,
-      fecha: todayKey(),
-      fechaStr: format(now, "d 'de' MMMM", { locale: es }),
+      fecha: dateKey(d),
+      fechaStr: format(d, "d 'de' MMMM", { locale: es }),
       ...(categoria ? { categoria } : {}),
       ...(metodo ? { metodo } : {}),
     };
@@ -53,5 +54,24 @@ export function usePresupuesto() {
   const gastos = txs.filter((t) => t.tipo === 'gasto').reduce((s, t) => s + t.monto, 0);
   const saldo = ingresos - gastos;
 
-  return { txs, ingresos, gastos, saldo, loading, add, remove };
+  const ingresosList = txs.filter((t) => t.tipo === 'ingreso');
+  const gastosList = txs.filter((t) => t.tipo === 'gasto');
+
+  // Reinicia el mes: borra los movimientos pero conserva el disponible (lo que sobró)
+  // como un ingreso inicial "Saldo del mes anterior" — la plata que te quedó no se pierde.
+  const resetMes = useCallback(async () => {
+    const leftover = ingresos - gastos;
+    const carry: Transaction[] = leftover > 0 ? [{
+      id: Date.now().toString(),
+      desc: 'Saldo del mes anterior',
+      monto: leftover,
+      tipo: 'ingreso',
+      fecha: todayKey(),
+      fechaStr: format(new Date(), "d 'de' MMMM", { locale: es }),
+    }] : [];
+    setTxs(carry);
+    await saveTxs(carry);
+  }, [ingresos, gastos]);
+
+  return { txs, ingresos, gastos, saldo, ingresosList, gastosList, loading, add, remove, resetMes };
 }

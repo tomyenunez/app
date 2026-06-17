@@ -44,6 +44,11 @@ export function formatMonthYear(date: Date): string {
   return format(date, 'MMMM yyyy', { locale: es });
 }
 
+export function formatMonth(date: Date): string {
+  const m = format(date, 'MMMM', { locale: es });
+  return m.charAt(0).toUpperCase() + m.slice(1);
+}
+
 export function isSameDay(a: Date, b: Date): boolean {
   return (
     a.getFullYear() === b.getFullYear() &&
