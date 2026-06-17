@@ -5,12 +5,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import {
   useFonts,
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-  Inter_800ExtraBold,
-} from '@expo-google-fonts/inter';
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+  Poppins_700Bold,
+  Poppins_800ExtraBold,
+} from '@expo-google-fonts/poppins';
 import { AppNavigator } from './app/navigation/AppNavigator';
 import { LunaBubble } from './app/components/luna/LunaBubble';
 import { GameOverlay } from './app/components/game/GameOverlay';
@@ -54,12 +54,15 @@ function AppContent() {
 }
 
 export default function App() {
+  // Marca Dayxo: usamos Poppins en toda la app. Lo mapeamos sobre las claves
+  // "Inter_*" que ya usan todos los estilos, para migrar la fuente sin tocar
+  // cada componente. (Cuando se finalice la marca se pueden renombrar.)
   const [fontsLoaded] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-    Inter_800ExtraBold,
+    Inter_400Regular: Poppins_400Regular,
+    Inter_500Medium: Poppins_500Medium,
+    Inter_600SemiBold: Poppins_600SemiBold,
+    Inter_700Bold: Poppins_700Bold,
+    Inter_800ExtraBold: Poppins_800ExtraBold,
   });
 
   if (!fontsLoaded) {

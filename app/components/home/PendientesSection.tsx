@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
+import { Dayxo } from '../../constants/dayxo';
 import { Familia, Todo } from '../../types';
 import { AddTodoModal } from './AddTodoModal';
 
@@ -45,7 +46,7 @@ export function PendientesSection({ todos, familias, getFamilia, onAdd, onUpdate
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <View style={styles.titleWrap}>
-          <Ionicons name="checkmark-circle-outline" size={18} color={colors.violet} />
+          <Ionicons name="checkmark-circle-outline" size={18} color={Dayxo.purple} />
           <Text style={styles.sectionTitle}>Pendientes</Text>
         </View>
         <TouchableOpacity style={styles.addPill} onPress={() => setModalVisible(true)}>
@@ -85,7 +86,7 @@ export function PendientesSection({ todos, familias, getFamilia, onAdd, onUpdate
                 <Text style={[styles.tagText, { color: pal.fg }]}>{fam.nombre}</Text>
               </View>
               <TouchableOpacity onPress={() => onTogglePin(item.id)} style={styles.iconBtn}>
-                <Ionicons name={item.pinned ? 'pin' : 'pin-outline'} size={15} color={item.pinned ? colors.violet : colors.textSecondary} />
+                <Ionicons name={item.pinned ? 'pin' : 'pin-outline'} size={15} color={item.pinned ? Dayxo.purple : colors.textSecondary} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => onRemove(item.id)} style={styles.iconBtn}>
                 <Ionicons name="close" size={16} color={colors.textSecondary} />
@@ -109,21 +110,18 @@ export function PendientesSection({ todos, familias, getFamilia, onAdd, onUpdate
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
   section: {
-    backgroundColor: colors.violetLight,
-    borderRadius: 20,
-    marginTop: 14,
+    marginTop: 18,
     marginHorizontal: 14,
-    padding: 14,
   },
   sectionHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginBottom: 12,
   },
   titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  sectionTitle: { fontSize: 17, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
+  sectionTitle: { fontSize: 17, fontFamily: 'Inter_700Bold', color: Dayxo.purple },
   addPill: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: colors.violet,
+    backgroundColor: Dayxo.purple,
     borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7,
   },
   addPillText: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: '#fff' },
@@ -140,13 +138,13 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
   },
-  itemPinned: { borderWidth: 1.5, borderColor: colors.violet },
+  itemPinned: { borderWidth: 1.5, borderColor: Dayxo.purple },
   checkbox: {
     width: 22, height: 22, borderRadius: 6,
     borderWidth: 2, borderColor: colors.borderStrong,
     alignItems: 'center', justifyContent: 'center',
   },
-  checkboxDone: { backgroundColor: colors.violet, borderColor: colors.violet },
+  checkboxDone: { backgroundColor: Dayxo.purple, borderColor: Dayxo.purple },
   itemBody: { flex: 1 },
   itemText: { fontSize: 15, fontFamily: 'Inter_400Regular', color: colors.textPrimary },
   itemTextDone: { textDecorationLine: 'line-through', color: colors.textSecondary },

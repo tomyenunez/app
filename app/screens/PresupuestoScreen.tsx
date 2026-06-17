@@ -3,11 +3,13 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useTheme } from '../context/ThemeContext';
 import { AppColors } from '../constants/colors';
+import { Dayxo } from '../constants/dayxo';
 import { usePresupuesto } from '../hooks/usePresupuesto';
 import { useDeudas } from '../hooks/useDeudas';
 import { useCategoriasGasto, useMetodosPago } from '../hooks/useOpcionesGasto';
@@ -70,33 +72,33 @@ export function PresupuestoScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Top bubbles: Ingresos + Disponible */}
+        {/* Top bubbles: Ingresos + Disponible (degradado de marca) */}
         <View style={styles.topRow}>
-          <View style={[styles.topBubble, { backgroundColor: colors.blue }]}>
+          <LinearGradient colors={[Dayxo.orange, Dayxo.purple]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.topBubble}>
             <View style={styles.topHead}>
               <Text style={styles.topLabel}>Ingresos</Text>
               <TouchableOpacity style={styles.topIcon} onPress={() => setAddIngreso(true)}>
-                <Ionicons name="add" size={18} color={colors.blue} />
+                <Ionicons name="bar-chart" size={18} color={Dayxo.orange} />
               </TouchableOpacity>
             </View>
             <Text style={styles.topValue}>{formatARS(ingresos)}</Text>
-          </View>
+          </LinearGradient>
 
-          <View style={[styles.topBubble, { backgroundColor: colors.violet }]}>
+          <LinearGradient colors={[Dayxo.orange, Dayxo.purple]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.topBubble}>
             <View style={styles.topHead}>
               <Text style={styles.topLabel}>Disponible</Text>
               <TouchableOpacity style={styles.topIcon} onPress={() => setDispVisible(true)}>
-                <Ionicons name="wallet-outline" size={16} color={colors.violet} />
+                <Ionicons name="wallet-outline" size={16} color={Dayxo.purple} />
               </TouchableOpacity>
             </View>
             <Text style={styles.topValue}>{formatARSWithSign(saldo)}</Text>
-          </View>
+          </LinearGradient>
         </View>
 
         {/* Gastos del mes */}
         <View style={styles.bubble}>
           <View style={styles.bubbleHead}>
-            <Text style={styles.bubbleTitle}>Gastos del mes</Text>
+            <Text style={[styles.bubbleTitle, { color: Dayxo.coral }]}>Gastos del mes</Text>
             <Text style={styles.bubbleTotal}>{formatARS(gastos)}</Text>
           </View>
 
@@ -109,7 +111,7 @@ export function PresupuestoScreen() {
               return (
                 <View key={item.id} style={styles.row}>
                   <View style={[styles.rowIcon, { backgroundColor: colors.pinkLight }]}>
-                    <Ionicons name="arrow-up-outline" size={18} color={colors.pink} />
+                    <Ionicons name="arrow-up-outline" size={18} color={Dayxo.coral} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.rowDesc}>{item.desc}</Text>
@@ -127,7 +129,7 @@ export function PresupuestoScreen() {
                       )}
                     </View>
                   </View>
-                  <Text style={[styles.rowMonto, { color: colors.pink }]}>− {formatARS(item.monto)}</Text>
+                  <Text style={[styles.rowMonto, { color: Dayxo.coral }]}>− {formatARS(item.monto)}</Text>
                   <TouchableOpacity onPress={() => remove(item.id)} style={styles.delBtn}>
                     <Ionicons name="trash-outline" size={16} color={colors.error} />
                   </TouchableOpacity>
@@ -136,7 +138,7 @@ export function PresupuestoScreen() {
             })
           )}
 
-          <TouchableOpacity style={[styles.addBtn, { backgroundColor: colors.violet }]} onPress={() => setAddGasto(true)}>
+          <TouchableOpacity style={[styles.addBtn, { backgroundColor: Dayxo.coral }]} onPress={() => setAddGasto(true)}>
             <Ionicons name="add" size={20} color="#fff" />
             <Text style={styles.addBtnText}>Agregar gasto</Text>
           </TouchableOpacity>
@@ -144,22 +146,22 @@ export function PresupuestoScreen() {
 
         {/* Deudas */}
         <View style={styles.bubble}>
-          <Text style={styles.bubbleTitle}>Deudas</Text>
+          <Text style={[styles.bubbleTitle, { color: Dayxo.purple }]}>Deudas</Text>
 
           <View style={styles.deudaSummary}>
             <View style={styles.deudaCol}>
               <Text style={styles.deudaColLabel}>Me deben</Text>
-              <Text style={[styles.deudaColValue, { color: colors.green }]}>{formatARS(deudas.totalMeDeben)}</Text>
+              <Text style={[styles.deudaColValue, { color: Dayxo.green }]}>{formatARS(deudas.totalMeDeben)}</Text>
             </View>
             <View style={styles.deudaDivider} />
             <View style={styles.deudaCol}>
               <Text style={styles.deudaColLabel}>Debo</Text>
-              <Text style={[styles.deudaColValue, { color: colors.pink }]}>{formatARS(deudas.totalLeDebo)}</Text>
+              <Text style={[styles.deudaColValue, { color: Dayxo.coral }]}>{formatARS(deudas.totalLeDebo)}</Text>
             </View>
             <View style={styles.deudaDivider} />
             <View style={styles.deudaCol}>
               <Text style={styles.deudaColLabel}>Balance</Text>
-              <Text style={[styles.deudaColValue, { color: deudas.balance >= 0 ? colors.green : colors.pink }]}>
+              <Text style={[styles.deudaColValue, { color: deudas.balance >= 0 ? Dayxo.green : Dayxo.coral }]}>
                 {formatARSWithSign(deudas.balance)}
               </Text>
             </View>
@@ -170,7 +172,7 @@ export function PresupuestoScreen() {
           ) : (
             deudas.deudas.map((d) => {
               const meDebe = d.tipo === 'me-debe';
-              const accent = meDebe ? colors.green : colors.pink;
+              const accent = meDebe ? Dayxo.green : Dayxo.coral;
               const accentBg = meDebe ? colors.greenLight : colors.pinkLight;
               return (
                 <View key={d.id} style={styles.row}>
@@ -192,7 +194,7 @@ export function PresupuestoScreen() {
             })
           )}
 
-          <TouchableOpacity style={[styles.addBtn, { backgroundColor: colors.green }]} onPress={() => setAddDeuda(true)}>
+          <TouchableOpacity style={[styles.addBtn, { backgroundColor: Dayxo.purple }]} onPress={() => setAddDeuda(true)}>
             <Ionicons name="add" size={20} color="#fff" />
             <Text style={styles.addBtnText}>Agregar deuda</Text>
           </TouchableOpacity>
@@ -200,7 +202,7 @@ export function PresupuestoScreen() {
 
         {/* Ingresos */}
         <View style={styles.bubble}>
-          <Text style={styles.bubbleTitle}>Ingresos</Text>
+          <Text style={[styles.bubbleTitle, { color: Dayxo.green }]}>Ingresos</Text>
 
           {ingresosList.length === 0 ? (
             <Text style={styles.emptyText}>Sin ingresos registrados</Text>
@@ -208,13 +210,13 @@ export function PresupuestoScreen() {
             ingresosList.map((item) => (
               <View key={item.id} style={styles.row}>
                 <View style={[styles.rowIcon, { backgroundColor: colors.greenLight }]}>
-                  <Ionicons name="arrow-down-outline" size={18} color={colors.green} />
+                  <Ionicons name="arrow-down-outline" size={18} color={Dayxo.green} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowDesc}>{item.desc}</Text>
                   <Text style={styles.metaFecha}>{item.fechaStr}</Text>
                 </View>
-                <Text style={[styles.rowMonto, { color: colors.green }]}>+ {formatARS(item.monto)}</Text>
+                <Text style={[styles.rowMonto, { color: Dayxo.green }]}>+ {formatARS(item.monto)}</Text>
                 <TouchableOpacity onPress={() => remove(item.id)} style={styles.delBtn}>
                   <Ionicons name="trash-outline" size={16} color={colors.error} />
                 </TouchableOpacity>
@@ -222,7 +224,7 @@ export function PresupuestoScreen() {
             ))
           )}
 
-          <TouchableOpacity style={[styles.addBtn, { backgroundColor: colors.green }]} onPress={() => setAddIngreso(true)}>
+          <TouchableOpacity style={[styles.addBtn, { backgroundColor: Dayxo.green }]} onPress={() => setAddIngreso(true)}>
             <Ionicons name="add" size={20} color="#fff" />
             <Text style={styles.addBtnText}>Agregar ingreso</Text>
           </TouchableOpacity>
@@ -292,21 +294,19 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 8, elevation: 3,
   },
   topHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  topLabel: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: 'rgba(255,255,255,0.85)' },
+  topLabel: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: 'rgba(255,255,255,0.9)' },
   topIcon: { width: 30, height: 30, borderRadius: 10, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   topValue: { fontSize: 22, fontFamily: 'Inter_800ExtraBold', color: '#fff' },
   bubble: {
-    backgroundColor: colors.card, borderRadius: 20,
-    marginHorizontal: 14, marginTop: 14, padding: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
+    marginHorizontal: 14, marginTop: 18,
   },
   bubbleHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
-  bubbleTitle: { fontSize: 17, fontFamily: 'Inter_700Bold', color: colors.textPrimary, marginBottom: 6 },
+  bubbleTitle: { fontSize: 17, fontFamily: 'Inter_700Bold', marginBottom: 6 },
   bubbleTotal: { fontSize: 17, fontFamily: 'Inter_800ExtraBold', color: colors.textPrimary },
   emptyText: { fontSize: 13, fontFamily: 'Inter_400Regular', color: colors.textSecondary, textAlign: 'center', paddingVertical: 16 },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border,
+    backgroundColor: colors.card, borderRadius: 12, padding: 12, marginBottom: 8,
   },
   rowIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   rowDesc: { fontSize: 15, fontFamily: 'Inter_600SemiBold', color: colors.textPrimary },
@@ -323,7 +323,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   addBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
   deudaSummary: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: colors.grayVeryLight, borderRadius: 12, paddingVertical: 12, marginTop: 4, marginBottom: 4,
+    backgroundColor: colors.card, borderRadius: 12, paddingVertical: 12, marginTop: 4, marginBottom: 10,
   },
   deudaCol: { flex: 1, alignItems: 'center' },
   deudaColLabel: { fontSize: 12, fontFamily: 'Inter_500Medium', color: colors.textSecondary },

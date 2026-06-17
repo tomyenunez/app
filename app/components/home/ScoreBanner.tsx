@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Animated } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
+import { Dayxo } from '../../constants/dayxo';
 
 interface Props {
   score: number; // puede superar 100 con bonus
@@ -49,7 +50,7 @@ export function ScoreBanner({ score, completed, total }: Props) {
             cx={SIZE / 2}
             cy={SIZE / 2}
             r={R}
-            stroke="rgba(255,255,255,0.2)"
+            stroke={colors.grayLight}
             strokeWidth={STROKE}
             fill="none"
           />
@@ -57,7 +58,7 @@ export function ScoreBanner({ score, completed, total }: Props) {
             cx={SIZE / 2}
             cy={SIZE / 2}
             r={R}
-            stroke="#fff"
+            stroke={Dayxo.orange}
             strokeWidth={STROKE}
             fill="none"
             strokeDasharray={CIRCUMFERENCE}
@@ -77,29 +78,34 @@ export function ScoreBanner({ score, completed, total }: Props) {
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
   banner: {
-    backgroundColor: colors.scoreBg,
-    borderRadius: 16,
+    backgroundColor: colors.card,
+    borderRadius: 18,
     marginHorizontal: 14,
     padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   left: { flex: 1 },
   scoreLabel: {
-    color: '#C8C4FF',
+    color: colors.textSecondary,
     fontSize: 12,
     fontFamily: 'Inter_500Medium',
     marginBottom: 4,
   },
   scoreNumber: {
-    color: '#fff',
+    color: Dayxo.orange,
     fontSize: 34,
     fontFamily: 'Inter_800ExtraBold',
     lineHeight: 38,
   },
   scoreSub: {
-    color: '#B0A8F8',
+    color: colors.textSecondary,
     fontSize: 11,
     fontFamily: 'Inter_400Regular',
     marginTop: 4,
@@ -111,7 +117,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     justifyContent: 'center',
   },
   scoreCenterText: {
-    color: '#fff',
+    color: Dayxo.orange,
     fontSize: 18,
     fontFamily: 'Inter_700Bold',
   },

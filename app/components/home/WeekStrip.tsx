@@ -2,14 +2,16 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
+import { Dayxo } from '../../constants/dayxo';
 import { weekDays, formatShortDay, isSameDay } from '../../utils/dateUtils';
 
 interface Props {
   hasEventOnDay?: (date: Date) => boolean;
   onDayPress?: (date: Date) => void;
+  onColor?: boolean; // cuando vive sobre un fondo de color (degradado): texto claro
 }
 
-export function WeekStrip({ hasEventOnDay, onDayPress }: Props) {
+export function WeekStrip({ hasEventOnDay, onDayPress, onColor }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const days = weekDays().slice(0, 5); // lunes a viernes de la semana actual
@@ -28,13 +30,17 @@ export function WeekStrip({ hasEventOnDay, onDayPress }: Props) {
             onPress={() => onDayPress?.(day)}
             disabled={!onDayPress}
           >
-            <Text style={styles.dayLabel}>{formatShortDay(day)}</Text>
-            <View style={[styles.circle, isToday && styles.circleToday]}>
-              <Text style={[styles.dayNum, isToday && styles.dayNumToday]}>
+            <Text style={[styles.dayLabel, onColor && styles.dayLabelOnColor]}>{formatShortDay(day)}</Text>
+            <View style={[styles.circle, isToday && (onColor ? styles.circleTodayOnColor : styles.circleToday)]}>
+              <Text style={[
+                styles.dayNum,
+                onColor && styles.dayNumOnColor,
+                isToday && (onColor ? styles.dayNumTodayOnColor : styles.dayNumToday),
+              ]}>
                 {day.getDate()}
               </Text>
             </View>
-            {hasEvent && <View style={[styles.dot, isToday && styles.dotToday]} />}
+            {hasEvent && <View style={[styles.dot, onColor ? styles.dotOnColor : (isToday && styles.dotToday)]} />}
             {!hasEvent && <View style={styles.dotPlaceholder} />}
           </TouchableOpacity>
         );
@@ -62,14 +68,14 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  circleToday: { backgroundColor: colors.chipDark },
+  circleToday: { backgroundColor: Dayxo.orange },
   dayNum: {
     fontSize: 15,
     fontFamily: 'Inter_500Medium',
     color: colors.textPrimary,
   },
   dayNumToday: {
-    color: colors.chipDarkText,
+    color: '#fff',
     fontFamily: 'Inter_800ExtraBold',
   },
   dot: {
@@ -80,4 +86,9 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   },
   dotToday: { backgroundColor: colors.violet },
   dotPlaceholder: { width: 5, height: 5 },
+  dayLabelOnColor: { color: 'rgba(255,255,255,0.85)' },
+  dayNumOnColor: { color: '#fff' },
+  circleTodayOnColor: { backgroundColor: '#fff' },
+  dayNumTodayOnColor: { color: Dayxo.orange, fontFamily: 'Inter_800ExtraBold' },
+  dotOnColor: { backgroundColor: 'rgba(255,255,255,0.85)' },
 });

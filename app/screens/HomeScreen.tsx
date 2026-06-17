@@ -4,9 +4,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { AppColors } from '../constants/colors';
+import { Dayxo } from '../constants/dayxo';
 import { formatMonth, isSameDay } from '../utils/dateUtils';
 import { ScoreBanner } from '../components/home/ScoreBanner';
 import { WeekStrip } from '../components/home/WeekStrip';
@@ -77,11 +79,16 @@ export function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Burbuja: avatar + nombre + mes + calendario semanal */}
-        <View style={styles.profileBubble}>
+        {/* Burbuja: avatar + nombre + mes + calendario semanal (hero con degradado) */}
+        <LinearGradient
+          colors={[Dayxo.orange, Dayxo.purple]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.profileBubble}
+        >
           <View style={styles.profileTop}>
             <View style={styles.profileAvatar}>
-              <Ionicons name="person" size={28} color={colors.violet} />
+              <Ionicons name="person" size={28} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.profileName}>{profile.username}</Text>
@@ -93,8 +100,8 @@ export function HomeScreen() {
               <Text style={styles.streakNum}>{streak}</Text>
             </View>
           </View>
-          <WeekStrip hasEventOnDay={hasMark} onDayPress={openCalendar} />
-        </View>
+          <WeekStrip hasEventOnDay={hasMark} onDayPress={openCalendar} onColor />
+        </LinearGradient>
 
         {/* Score Banner */}
         <View style={{ marginTop: 14 }}>
@@ -212,32 +219,32 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.violetLight,
+    backgroundColor: 'rgba(255,255,255,0.22)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   profileName: {
     fontSize: 20,
     fontFamily: 'Inter_800ExtraBold',
-    color: colors.textPrimary,
+    color: '#fff',
   },
   profileMonth: {
     fontSize: 13,
     fontFamily: 'Inter_500Medium',
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.85)',
     marginTop: 2,
   },
   streakChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: colors.orangeLight,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 14,
     paddingHorizontal: 11,
     paddingVertical: 7,
   },
   streakEmoji: { fontSize: 14 },
-  streakLabel: { fontSize: 12, fontFamily: 'Inter_600SemiBold', color: colors.orange },
-  streakNum: { fontSize: 15, fontFamily: 'Inter_800ExtraBold', color: colors.orange },
+  streakLabel: { fontSize: 12, fontFamily: 'Inter_600SemiBold', color: '#fff' },
+  streakNum: { fontSize: 15, fontFamily: 'Inter_800ExtraBold', color: '#fff' },
 });
 

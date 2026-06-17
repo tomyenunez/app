@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
+import { Dayxo } from '../../constants/dayxo';
 import { Habito } from '../../types';
 import { HabitCard } from '../habits/HabitCard';
 import { AddHabitModal } from './AddHabitModal';
@@ -86,18 +87,15 @@ export function HabitosSection({
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
   section: {
-    backgroundColor: colors.orangeLight,
-    borderRadius: 20,
-    marginTop: 14,
+    marginTop: 18,
     marginHorizontal: 14,
-    padding: 14,
   },
   sectionHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginBottom: 12,
   },
   titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  sectionTitle: { fontSize: 17, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
+  sectionTitle: { fontSize: 17, fontFamily: 'Inter_700Bold', color: Dayxo.habitos },
   addPill: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
     backgroundColor: colors.orange,
