@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Animated, Modal, TouchableOpacity, Easing } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { gameEvents } from '../../services/xpService';
 import { AwardResult, Badge, UserLevel } from '../../types/game';
 import { RARITY_LABEL } from '../../constants/badges';
+import { rankUpMessage } from '../../constants/rankMessages';
 
 // Toast de XP que flota desde abajo (encima del tab bar)
 function XPToast({ amount, isBonus, isStar, onDone }: {
@@ -24,7 +25,7 @@ function XPToast({ amount, isBonus, isStar, onDone }: {
 
   return (
     <Animated.View style={[styles.xpToast, { backgroundColor: color, opacity: anim, transform: [{ translateY }] }]}>
-      <Text style={styles.xpToastText}>{isStar ? '⭐' : '⚡'} +{amount} XP</Text>
+      <Text style={styles.xpToastText}>{isStar ? '⭐' : '⚡'} +{Math.max(1, Math.round(amount))} XP</Text>
     </Animated.View>
   );
 }
@@ -55,39 +56,71 @@ function BadgeToast({ badge, onDone }: { badge: Badge; onDone: () => void }) {
   );
 }
 
-// Modal de subida de nivel (mínimo 2.5s, no cerrable antes)
+// Ráfaga de partículas del color del rango que explota desde el centro
+const PARTICLE_COUNT = 16;
+function RankParticles({ color }: { color: string }) {
+  const anims = useRef(
+    Array.from({ length: PARTICLE_COUNT }, () => new Animated.Value(0))
+  ).current;
+
+  useEffect(() => {
+    Animated.stagger(
+      18,
+      anims.map((a) =>
+        Animated.timing(a, { toValue: 1, duration: 900, easing: Easing.out(Easing.quad), useNativeDriver: true })
+      )
+    ).start();
+  }, []);
+
+  return (
+    <View style={styles.particleField} pointerEvents="none">
+      {anims.map((a, i) => {
+        const angle = (Math.PI * 2 * i) / PARTICLE_COUNT;
+        const dist = 90 + (i % 3) * 26;
+        const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [0, Math.cos(angle) * dist] });
+        const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [0, Math.sin(angle) * dist] });
+        const opacity = a.interpolate({ inputRange: [0, 0.7, 1], outputRange: [1, 1, 0] });
+        const scale = a.interpolate({ inputRange: [0, 1], outputRange: [1, 0.4] });
+        return (
+          <Animated.View
+            key={i}
+            style={[styles.particle, { backgroundColor: color, opacity, transform: [{ translateX }, { translateY }, { scale }] }]}
+          />
+        );
+      })}
+    </View>
+  );
+}
+
+// Modal de subida de RANGO (mínimo 2s, no cerrable antes)
 function LevelUpModal({ level, onClose }: { level: UserLevel; onClose: () => void }) {
   const anim = useRef(new Animated.Value(0)).current;
   const [canClose, setCanClose] = useState(false);
 
   useEffect(() => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     Animated.spring(anim, { toValue: 1, friction: 5, tension: 60, useNativeDriver: true }).start();
-    const t = setTimeout(() => setCanClose(true), 2500);
+    const t = setTimeout(() => setCanClose(true), 2000);
     return () => clearTimeout(t);
   }, []);
 
+  // Fondo: el bgColor del rango oscurecido para que destaquen los efectos
   return (
     <Modal visible transparent animationType="fade">
-      <View style={styles.levelOverlay}>
+      <View style={[styles.levelOverlay, { backgroundColor: 'rgba(8,8,12,0.92)' }]}>
+        <RankParticles color={level.color} />
         <Animated.View style={{ transform: [{ scale: anim }], alignItems: 'center' }}>
-          <LinearGradient
-            colors={[level.color, '#1A1A22']}
-            style={styles.levelCard}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          <Text style={styles.levelIcon}>{level.icon}</Text>
+          <Text style={styles.levelUpText}>SUBISTE DE RANGO</Text>
+          <Text style={[styles.levelName, { color: level.color }]}>{level.name}</Text>
+          <Text style={styles.levelMsg}>{rankUpMessage(level.name)}</Text>
+          <TouchableOpacity
+            onPress={canClose ? onClose : undefined}
+            style={[styles.levelBtn, { borderColor: level.color }, !canClose && { opacity: 0.35 }]}
+            disabled={!canClose}
           >
-            <Text style={styles.levelIcon}>{level.icon}</Text>
-            <Text style={styles.levelUpText}>¡Subiste de nivel!</Text>
-            <Text style={styles.levelName}>{level.name}</Text>
-            <Text style={styles.levelNum}>Nivel {level.level}</Text>
-            <TouchableOpacity
-              onPress={canClose ? onClose : undefined}
-              style={[styles.levelBtn, !canClose && { opacity: 0.4 }]}
-              disabled={!canClose}
-            >
-              <Text style={styles.levelBtnText}>{canClose ? '¡Genial!' : '...'}</Text>
-            </TouchableOpacity>
-          </LinearGradient>
+            <Text style={[styles.levelBtnText, { color: level.color }]}>{canClose ? '¡Vamos!' : '...'}</Text>
+          </TouchableOpacity>
         </Animated.View>
       </View>
     </Modal>
@@ -195,26 +228,41 @@ const styles = StyleSheet.create({
   badgeRarity: { fontSize: 12, fontFamily: 'Inter_600SemiBold', marginTop: 1 },
   levelOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(8,8,12,0.92)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  levelCard: {
-    width: 280,
-    borderRadius: 24,
-    padding: 28,
+  particleField: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  levelIcon: { fontSize: 64, marginBottom: 8 },
-  levelUpText: { color: '#fff', fontSize: 14, fontFamily: 'Inter_600SemiBold', opacity: 0.9 },
-  levelName: { color: '#fff', fontSize: 28, fontFamily: 'Inter_800ExtraBold', marginTop: 4 },
-  levelNum: { color: '#fff', fontSize: 14, fontFamily: 'Inter_500Medium', opacity: 0.85, marginTop: 2 },
+  particle: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  levelIcon: { fontSize: 72, marginBottom: 10 },
+  levelUpText: { color: '#9A9AA5', fontSize: 13, fontFamily: 'Inter_700Bold', letterSpacing: 2 },
+  levelName: { fontSize: 40, fontFamily: 'Inter_800ExtraBold', marginTop: 6 },
+  levelMsg: {
+    color: '#D8D8DE',
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
+    textAlign: 'center',
+    marginTop: 10,
+    paddingHorizontal: 36,
+    lineHeight: 20,
+  },
   levelBtn: {
-    marginTop: 20,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    borderRadius: 12,
-    paddingHorizontal: 32,
-    paddingVertical: 12,
+    marginTop: 28,
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderRadius: 14,
+    paddingHorizontal: 40,
+    paddingVertical: 13,
   },
-  levelBtnText: { color: '#fff', fontSize: 16, fontFamily: 'Inter_700Bold' },
+  levelBtnText: { fontSize: 16, fontFamily: 'Inter_800ExtraBold' },
 });

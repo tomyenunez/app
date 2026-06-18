@@ -1,38 +1,25 @@
-import { useState, useEffect } from 'react';
-import { getStreak, saveStreak, getLastActive, saveLastActive } from '../services/storage';
-import { todayKey } from '../utils/dateUtils';
+import { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { getStreak } from '../services/storage';
+import { gameEvents } from '../services/xpService';
 
-function yesterdayKey(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-}
-
-export function useStreak() {
+// Hook de solo lectura: el conteo de la racha y el XP los procesa
+// streakService.onAppOpen() al arrancar. Acá solo reflejamos el valor guardado
+// y lo refrescamos cuando se gana XP o al re-enfocar la pantalla.
+export function useStreak(): number {
   const [streak, setStreak] = useState(0);
 
-  useEffect(() => {
-    async function update() {
-      const [currentStreak, lastActive] = await Promise.all([getStreak(), getLastActive()]);
-      const today = todayKey();
-
-      let newStreak = currentStreak;
-      if (lastActive === today) {
-        // Already updated today, do nothing
-        newStreak = currentStreak;
-      } else if (lastActive === yesterdayKey()) {
-        // Consecutive day
-        newStreak = currentStreak + 1;
-      } else {
-        // Gap or first time
-        newStreak = 1;
-      }
-
-      setStreak(newStreak);
-      await Promise.all([saveStreak(newStreak), saveLastActive(today)]);
-    }
-    update();
+  const refresh = useCallback(() => {
+    getStreak().then(setStreak);
   }, []);
+
+  useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
+
+  useEffect(() => {
+    refresh();
+    const unsub = gameEvents.subscribe(() => refresh());
+    return unsub;
+  }, [refresh]);
 
   return streak;
 }

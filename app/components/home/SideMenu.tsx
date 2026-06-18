@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
 import { MissionsSection } from '../game/MissionsSection';
+import { awardXP } from '../../services/xpService';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const PANEL_W = Math.min(300, SCREEN_W * 0.82);
@@ -47,6 +48,14 @@ export function SideMenu({ visible, onClose }: Props) {
   if (!mounted) return null;
 
   const safePad = { paddingTop: insets.top, paddingBottom: insets.bottom };
+
+  // Prueba: cerramos el menú y otorgamos el XP DESPUÉS de que el modal del menú
+  // se desmonta. Si otorgáramos en el acto, el modal de celebración de rango
+  // chocaría con el cierre de este modal y la app se congela.
+  const testAward = (amount: number) => {
+    onClose();
+    setTimeout(() => awardXP(amount, `Prueba +${amount} XP`, { isBonus: true }), 450);
+  };
 
   return (
     <Modal transparent visible animationType="none" onRequestClose={onClose}>
@@ -106,6 +115,17 @@ export function SideMenu({ visible, onClose }: Props) {
               <View style={{ width: 36 }} />
             </View>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24, paddingTop: 6 }}>
+              {/* TODO temporal: botones de prueba para testear rangos. Sacar antes de release. */}
+              <View style={styles.debugRow}>
+                <TouchableOpacity style={styles.debugBtn} activeOpacity={0.85} onPress={() => testAward(50)}>
+                  <Ionicons name="flask" size={15} color={colors.violet} />
+                  <Text style={styles.debugBtnText}>+50 XP</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.debugBtn} activeOpacity={0.85} onPress={() => testAward(500)}>
+                  <Ionicons name="flask" size={15} color={colors.violet} />
+                  <Text style={styles.debugBtnText}>+500 XP</Text>
+                </TouchableOpacity>
+              </View>
               <MissionsSection />
             </ScrollView>
           </View>
@@ -164,4 +184,14 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   },
   backBtn: { padding: 6 },
   missionsTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
+  // Botones temporales de prueba (borde punteado para que se note que no son definitivos)
+  debugRow: { flexDirection: 'row', gap: 10, marginHorizontal: 14, marginBottom: 14 },
+  debugBtn: {
+    flex: 1,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: 12, borderRadius: 12,
+    borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.violet,
+    backgroundColor: colors.violetLight,
+  },
+  debugBtnText: { fontSize: 14, fontFamily: 'Inter_700Bold', color: colors.violet },
 });

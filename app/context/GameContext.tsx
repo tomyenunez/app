@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { UserLevel, PersonalRecords, PlayerProfile } from '../types/game';
 import { getUserLevel } from '../constants/levels';
 import { gameEvents } from '../services/xpService';
+import { onAppOpen } from '../services/session';
 import {
   getXpTotal, getBadges, getRecords, getProfile, saveProfile, getXpDaily,
 } from '../services/storage';
@@ -56,6 +57,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     reload();
     // Cada vez que se otorga XP, refrescamos el estado visible
     const unsub = gameEvents.subscribe(() => reload());
+    // Racha diaria + penalización por inactividad (una vez por arranque).
+    // Otorga XP de racha, que dispara reload vía el evento de arriba.
+    onAppOpen().then(() => reload());
     return unsub;
   }, [reload]);
 

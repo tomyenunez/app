@@ -85,16 +85,16 @@ export function ProfileScreen() {
             ))}
           </View>
 
-          {/* Nivel + barra */}
+          {/* Rango + barra */}
           <View style={styles.levelRow}>
             <Text style={styles.levelIcon}>{level.icon}</Text>
-            <Text style={styles.levelName}>Nivel {level.level} · {level.name}</Text>
+            <Text style={styles.levelName}>Rango {level.level} · {level.name}</Text>
           </View>
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${level.progress}%`, backgroundColor: level.color }]} />
           </View>
           <Text style={styles.xpTotal}>
-            {xpTotal.toLocaleString('es-AR')} XP{level.xpToNext > 0 ? ` · faltan ${level.xpToNext.toLocaleString('es-AR')}` : ' · ¡nivel máximo!'}
+            {Math.round(xpTotal).toLocaleString('es-AR')} XP{level.xpToNext > 0 ? ` · faltan ${Math.ceil(level.xpToNext).toLocaleString('es-AR')}` : ' · ¡rango máximo!'}
           </Text>
         </View>
 

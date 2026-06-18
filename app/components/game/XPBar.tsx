@@ -21,15 +21,15 @@ export function XPBar({ onPress }: { onPress?: () => void }) {
       <View style={styles.topRow}>
         <View style={styles.levelInfo}>
           <Text style={styles.levelIcon}>{level.icon}</Text>
-          <Text style={styles.levelName}>Nivel {level.level} · {level.name}</Text>
+          <Text style={styles.levelName}>Rango {level.level} · {level.name}</Text>
         </View>
-        <Text style={styles.xpTotal}>{xpTotal.toLocaleString('es-AR')} XP</Text>
+        <Text style={styles.xpTotal}>{Math.round(xpTotal).toLocaleString('es-AR')} XP</Text>
       </View>
       <View style={styles.track}>
         <Animated.View style={[styles.fill, { width, backgroundColor: level.color }]} />
       </View>
       {level.xpToNext > 0 && (
-        <Text style={styles.toNext}>{level.xpToNext.toLocaleString('es-AR')} XP para el próximo nivel</Text>
+        <Text style={styles.toNext}>{Math.ceil(level.xpToNext).toLocaleString('es-AR')} XP para el próximo rango</Text>
       )}
     </TouchableOpacity>
   );

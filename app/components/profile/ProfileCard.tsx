@@ -7,9 +7,9 @@ import { Dayxo } from '../../constants/dayxo';
 import { useGame } from '../../context/GameContext';
 import { initials } from '../../utils/formatters';
 
-// Por ahora genéricos. En el futuro: el borde/badge y la frase se personalizan según el rango.
+// Color por defecto de los estilos; el avatar/barra se tiñen con el color del
+// rango actual de forma inline (ver JSX).
 const RING = Dayxo.purple;
-const PHRASE = 'Enfocado en crecer 🚀';
 
 export function ProfileCard() {
   const { colors } = useTheme();
@@ -22,40 +22,40 @@ export function ProfileCard() {
 
   return (
     <View style={styles.card}>
-      {/* Avatar con borde de nivel + badge */}
+      {/* Avatar con borde del rango + badge */}
       <View style={styles.avatarWrap}>
-        <View style={styles.avatarRing}>
+        <View style={[styles.avatarRing, { borderColor: level.color }]}>
           <View style={[styles.avatar, { backgroundColor: profile.avatarColor }]}>
             <Text style={styles.avatarText}>{initials(profile.username)}</Text>
           </View>
         </View>
-        <View style={styles.levelBadge}>
-          <Text style={styles.levelBadgeText}>{level.level}</Text>
+        <View style={[styles.levelBadge, { backgroundColor: level.color }]}>
+          <Text style={styles.levelBadgeText}>{level.icon}</Text>
         </View>
       </View>
 
       <Text style={styles.name}>{profile.username}</Text>
-      <Text style={styles.phrase}>{PHRASE}</Text>
+      <Text style={styles.phrase}>{level.icon} {level.name}{level.isExclusive ? ' · exclusivo' : ''}</Text>
 
       <View style={styles.ptsRow}>
         <Text style={styles.star}>⭐</Text>
         <Text style={styles.ptsText}>
-          {xpTotal.toLocaleString('es-AR')} pts
+          {Math.round(xpTotal).toLocaleString('es-AR')} XP
         </Text>
       </View>
 
-      {/* Barra de XP — muestra el nivel actual y el progreso hacia el siguiente */}
+      {/* Barra de XP — muestra el rango actual y el progreso hacia el siguiente */}
       <View style={styles.xpHead}>
-        <Text style={styles.xpLevel}>{maxed ? 'Nivel máximo' : `Nivel ${level.level}`}</Text>
-        <Text style={styles.xpPct}>{level.progress}%</Text>
+        <Text style={styles.xpLevel}>{maxed ? 'Rango máximo' : `Rango ${level.level} · ${level.name}`}</Text>
+        <Text style={[styles.xpPct, { color: level.color }]}>{level.progress}%</Text>
       </View>
       <View style={styles.track}>
-        <View style={[styles.fill, { width: `${level.progress}%` }]} />
+        <View style={[styles.fill, { width: `${level.progress}%`, backgroundColor: level.color }]} />
       </View>
       <Text style={styles.xpRemaining}>
         {maxed
-          ? '¡Llegaste al nivel máximo!'
-          : `${level.xpToNext.toLocaleString('es-AR')} pts para subir a Nivel ${level.level + 1}`}
+          ? '¡Llegaste al rango máximo!'
+          : `${Math.ceil(level.xpToNext).toLocaleString('es-AR')} XP para subir de rango`}
       </Text>
     </View>
   );
@@ -88,7 +88,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     backgroundColor: RING, alignItems: 'center', justifyContent: 'center',
     borderWidth: 2, borderColor: colors.card,
   },
-  levelBadgeText: { fontSize: 12, fontFamily: 'Inter_800ExtraBold', color: '#fff' },
+  levelBadgeText: { fontSize: 14 },
   name: { fontSize: 24, fontFamily: 'Inter_800ExtraBold', color: colors.textPrimary },
   phrase: { fontSize: 14, fontFamily: 'Inter_400Regular', color: colors.textSecondary, marginTop: 4 },
   ptsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },

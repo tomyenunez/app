@@ -1,26 +1,29 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Todo, Deuda, Habito, Transaction, Evento, Familia, OpcionGasto } from '../types';
 
-const KEYS = {
-  todos: '@kitdeldia/todos',
-  deudas: '@kitdeldia/deudas',
-  habitos: '@kitdeldia/habitos',
-  txs: '@kitdeldia/txs',
-  eventos: '@kitdeldia/eventos',
-  familias: '@kitdeldia/familias',
-  habitDone: '@kitdeldia/habitDone',
-  streak: '@kitdeldia/streak',
-  lastActive: '@kitdeldia/lastActive',
-  categoriasGasto: '@kitdeldia/categoriasGasto',
-  metodosPago: '@kitdeldia/metodosPago',
+export const KEYS = {
+  todos: '@dayxo/todos',
+  deudas: '@dayxo/deudas',
+  habitos: '@dayxo/habitos',
+  txs: '@dayxo/txs',
+  eventos: '@dayxo/eventos',
+  familias: '@dayxo/familias',
+  habitDone: '@dayxo/habitDone',
+  streak: '@dayxo/streak',
+  longestStreak: '@dayxo/longest_streak',
+  lastActive: '@dayxo/lastActive',
+  categoriasGasto: '@dayxo/categoriasGasto',
+  metodosPago: '@dayxo/metodosPago',
   // Gamificación
-  xpTotal: '@kitdeldia/xp_total',
-  xpDaily: '@kitdeldia/daily_xp', // { "YYYY-M-D": number }
-  xpClaims: '@kitdeldia/xp_claims', // { [key]: true } anti-doble-conteo
-  badges: '@kitdeldia/badges', // { [badgeId]: ISO timestamp }
-  records: '@kitdeldia/records',
-  profile: '@kitdeldia/profile',
-  missionsState: '@kitdeldia/missions_state',
+  xpTotal: '@dayxo/xp_total',
+  xpDaily: '@dayxo/daily_xp', // { "YYYY-M-D": number }
+  xpClaims: '@dayxo/xp_claims', // { [key]: true } anti-doble-conteo
+  badges: '@dayxo/badges', // { [badgeId]: ISO timestamp }
+  records: '@dayxo/records',
+  profile: '@dayxo/profile',
+  missionsState: '@dayxo/missions_state',
+  // Flag de migración (corre una sola vez)
+  migratedV2: '@dayxo/migrated_v2',
 };
 
 async function getJSON<T>(key: string, fallback: T): Promise<T> {
@@ -100,6 +103,13 @@ export async function saveStreak(streak: number): Promise<void> {
   return setJSON(KEYS.streak, streak);
 }
 
+export async function getLongestStreak(): Promise<number> {
+  return getJSON<number>(KEYS.longestStreak, 0);
+}
+export async function saveLongestStreak(n: number): Promise<void> {
+  return setJSON(KEYS.longestStreak, n);
+}
+
 export async function getLastActive(): Promise<string> {
   return getJSON<string>(KEYS.lastActive, '');
 }
@@ -168,4 +178,22 @@ export async function getMissionsState(): Promise<any> {
 }
 export async function saveMissionsState(s: any): Promise<void> {
   return setJSON(KEYS.missionsState, s);
+}
+
+// --- Acceso crudo (para la migración @kitdeldia → @dayxo) ---
+export async function rawGet(key: string): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+export async function rawSet(key: string, value: string): Promise<void> {
+  await AsyncStorage.setItem(key, value);
+}
+export async function isMigratedV2(): Promise<boolean> {
+  return (await rawGet(KEYS.migratedV2)) === 'true';
+}
+export async function setMigratedV2(): Promise<void> {
+  await rawSet(KEYS.migratedV2, 'true');
 }

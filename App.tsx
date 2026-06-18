@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet, Animated } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -15,6 +15,7 @@ import { AppNavigator } from './app/navigation/AppNavigator';
 import { GameOverlay } from './app/components/game/GameOverlay';
 import { ThemeProvider, useTheme } from './app/context/ThemeContext';
 import { GameProvider } from './app/context/GameContext';
+import { runMigrationIfNeeded } from './app/services/migration';
 
 function AppContent() {
   const { colors, isDark } = useTheme();
@@ -62,7 +63,14 @@ export default function App() {
     Inter_800ExtraBold: Poppins_800ExtraBold,
   });
 
-  if (!fontsLoaded) {
+  // Migración única @kitdeldia → @dayxo (preserva contenido, resetea XP).
+  // Tiene que terminar antes de montar los providers que leen el storage.
+  const [migrated, setMigrated] = useState(false);
+  useEffect(() => {
+    runMigrationIfNeeded().then(() => setMigrated(true));
+  }, []);
+
+  if (!fontsLoaded || !migrated) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color="#6C5CE7" />

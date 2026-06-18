@@ -377,7 +377,7 @@ export function buildSmartInsights(input: {
     out.push({ icon: 'flame', accent: Dayxo.orange, text: `Llevás ${streak} días de racha 🔥 ¡No la cortes!` });
   }
   if (level.xpToNext > 0) {
-    out.push({ icon: 'flash', accent: Dayxo.purple, text: `Te faltan ${level.xpToNext} XP para subir a Nivel ${level.level + 1}.` });
+    out.push({ icon: 'flash', accent: Dayxo.purple, text: `Te faltan ${Math.ceil(level.xpToNext)} XP para subir de rango.` });
   }
   if (habit.bestDay) {
     out.push({ icon: 'calendar', accent: Dayxo.green, text: `Tus mejores días suelen ser los ${habit.bestDay.name}.` });

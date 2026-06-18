@@ -7,13 +7,25 @@ export interface XPEvent {
   isStar: boolean;
 }
 
+// Efectos visuales permanentes de los rangos exclusivos (Platino+)
+export type RankEffect =
+  | 'pulsating_silver_border' // Platino
+  | 'rotating_white_sparkles' // Diamante
+  | 'black_gold_flames'; // Obsidiana
+
+// Representa el rango actual del usuario. Mantiene el nombre UserLevel por
+// compatibilidad con toda la UI que ya lo consume.
 export interface UserLevel {
-  level: number;
-  name: string;
+  level: number; // 1-10 (nivel del rango)
+  name: string; // nombre de la gema (Bronce, Plata, ... Obsidiana)
   icon: string;
   color: string;
   minXP: number;
-  progress: number; // 0-100 hacia el siguiente nivel
+  bgColor: string; // fondo suave del rango
+  textColor: string; // texto sobre el fondo suave
+  isExclusive: boolean; // Platino, Diamante, Obsidiana
+  effect: RankEffect | null; // efecto permanente si es exclusivo
+  progress: number; // 0-100 hacia el siguiente rango
   xpToNext: number;
 }
 
