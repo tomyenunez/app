@@ -1,8 +1,11 @@
+import 'react-native-gesture-handler';
 import React, { useEffect, useRef, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet, Animated } from 'react-native';
-import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { NavigationContainer, DefaultTheme, DarkTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import * as Notifications from 'expo-notifications';
 import {
   useFonts,
   Poppins_400Regular,
@@ -16,6 +19,10 @@ import { GameOverlay } from './app/components/game/GameOverlay';
 import { ThemeProvider, useTheme } from './app/context/ThemeContext';
 import { GameProvider } from './app/context/GameContext';
 import { runMigrationIfNeeded } from './app/services/migration';
+import { getHabitos } from './app/services/storage';
+import { syncAllHabitReminders } from './app/services/notificationService';
+
+const navigationRef = createNavigationContainerRef();
 
 function AppContent() {
   const { colors, isDark } = useTheme();
@@ -26,6 +33,22 @@ function AppContent() {
     fade.setValue(0.7);
     Animated.timing(fade, { toValue: 1, duration: 180, useNativeDriver: true }).start();
   }, [isDark]);
+
+  // Resincronizar recordatorios de hábitos al arrancar (sin pedir permiso).
+  useEffect(() => {
+    getHabitos().then(syncAllHabitReminders).catch(() => {});
+  }, []);
+
+  // Al tocar una notificación, navegar a la pantalla indicada en su data.
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as { screen?: string };
+      if (data?.screen && navigationRef.isReady()) {
+        navigationRef.navigate(data.screen as never);
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   const navTheme = {
     ...(isDark ? DarkTheme : DefaultTheme),
@@ -41,7 +64,7 @@ function AppContent() {
 
   return (
     <Animated.View style={{ flex: 1, opacity: fade, backgroundColor: colors.bg }}>
-      <NavigationContainer theme={navTheme}>
+      <NavigationContainer ref={navigationRef} theme={navTheme}>
         <StatusBar style={isDark ? 'light' : 'dark'} />
         <AppNavigator />
         {/* Toasts de XP, badges y modal de subida de nivel */}
@@ -79,13 +102,15 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <GameProvider>
-          <AppContent />
-        </GameProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <GameProvider>
+            <AppContent />
+          </GameProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 

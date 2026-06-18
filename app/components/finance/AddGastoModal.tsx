@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity,
-  TextInput, ScrollView, KeyboardAvoidingView, Platform,
+  TextInput, ScrollView, KeyboardAvoidingView, Platform, Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -81,14 +81,14 @@ export function AddGastoModal({ visible, onClose, categorias, metodos, onAdd, ed
         return (
           <TouchableOpacity
             key={item.id}
-            onPress={() => onSel(active ? null : item.id)}
+            onPress={() => { Keyboard.dismiss(); onSel(active ? null : item.id); }}
             style={[styles.chip, { backgroundColor: pal.bg }, active && { borderWidth: 2, borderColor: pal.fg }]}
           >
             <Text style={[styles.chipText, { color: pal.fg }]}>{item.nombre}</Text>
           </TouchableOpacity>
         );
       })}
-      <TouchableOpacity onPress={onEdit} style={styles.editChip}>
+      <TouchableOpacity onPress={() => { Keyboard.dismiss(); onEdit(); }} style={styles.editChip}>
         <Ionicons name="add" size={14} color={colors.textSecondary} />
         <Text style={styles.editChipText}>Editar</Text>
       </TouchableOpacity>
@@ -131,18 +131,16 @@ export function AddGastoModal({ visible, onClose, categorias, metodos, onAdd, ed
             <Text style={[styles.label, { marginTop: 16 }]}>FECHA</Text>
             <DateField value={fecha} onChange={setFecha} accent={colors.pink} />
 
+            <TouchableOpacity onPress={handleSubmit} style={[styles.submitInline, !canAdd && { opacity: 0.5 }]} disabled={!canAdd}>
+              <Text style={styles.addBtnText}>{editing ? 'Guardar cambios' : 'Agregar gasto'}</Text>
+            </TouchableOpacity>
+
             <Text style={[styles.label, { marginTop: 16 }]}>MOTIVO (OPCIONAL)</Text>
             {renderChips(categorias.items, selCat, setSelCat, () => setQuickAdd('cat'))}
 
             <Text style={[styles.label, { marginTop: 16 }]}>FORMA DE PAGO (OPCIONAL)</Text>
             {renderChips(metodos.items, selMet, setSelMet, () => setQuickAdd('met'))}
           </ScrollView>
-
-          <View style={styles.footer}>
-            <TouchableOpacity onPress={handleSubmit} style={[styles.addBtn, !canAdd && { opacity: 0.5 }]} disabled={!canAdd}>
-              <Text style={styles.addBtnText}>{editing ? 'Guardar cambios' : 'Agregar gasto'}</Text>
-            </TouchableOpacity>
-          </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
 
@@ -190,5 +188,6 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   editChipText: { fontSize: 12, fontFamily: 'Inter_500Medium', color: colors.textSecondary },
   footer: { padding: 16, borderTopWidth: 1, borderTopColor: colors.border },
   addBtn: { backgroundColor: colors.pink, borderRadius: 12, paddingVertical: 15, alignItems: 'center' },
+  submitInline: { backgroundColor: colors.pink, borderRadius: 12, paddingVertical: 15, alignItems: 'center', marginTop: 18 },
   addBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
 });

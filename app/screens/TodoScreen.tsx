@@ -73,7 +73,7 @@ export function TodoScreen() {
 
         {/* Filtros por familia */}
         <View style={styles.filterBar}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow} keyboardShouldPersistTaps="handled">
             <TouchableOpacity
               onPress={() => setFilter('all')}
               style={[styles.filterChip, filter === 'all' && styles.filterChipAll]}
@@ -120,7 +120,12 @@ export function TodoScreen() {
               <Ionicons name="add" size={22} color="#fff" />
             </TouchableOpacity>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginTop: 8 }}
+            keyboardShouldPersistTaps="handled"
+          >
             {familias.map((f) => {
               const pal = colors.familia[f.color];
               return (
@@ -169,6 +174,7 @@ export function TodoScreen() {
             )}
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           />
         )}
 

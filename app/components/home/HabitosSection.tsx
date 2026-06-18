@@ -5,14 +5,14 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
 import { Dayxo } from '../../constants/dayxo';
-import { Habito } from '../../types';
+import { Habito, HabitReminder } from '../../types';
 import { HabitCard } from '../habits/HabitCard';
 import { AddHabitModal } from './AddHabitModal';
 
 interface Props {
   habitos: Habito[];
-  onAdd: (name: string, days: number[]) => Promise<void> | void;
-  onUpdate: (id: string, name: string, days: number[]) => Promise<void> | void;
+  onAdd: (name: string, days: number[], recordatorio?: HabitReminder) => Promise<void> | void;
+  onUpdate: (id: string, name: string, days: number[], recordatorio?: HabitReminder) => Promise<void> | void;
   onRemove: (id: string) => Promise<void> | void;
   onTogglePin: (id: string) => Promise<void> | void;
   onToggleToday: (id: string) => Promise<void> | void;

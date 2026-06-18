@@ -14,6 +14,7 @@ export const KEYS = {
   lastActive: '@dayxo/lastActive',
   categoriasGasto: '@dayxo/categoriasGasto',
   metodosPago: '@dayxo/metodosPago',
+  financeOrder: '@dayxo/finance_order',
   // Gamificación
   xpTotal: '@dayxo/xp_total',
   xpDaily: '@dayxo/daily_xp', // { "YYYY-M-D": number }
@@ -129,6 +130,14 @@ export async function getMetodosPago(): Promise<OpcionGasto[]> {
 }
 export async function saveMetodosPago(items: OpcionGasto[]): Promise<void> {
   return setJSON(KEYS.metodosPago, items);
+}
+
+// Orden de las burbujas de Finanzas (reordenable por el usuario)
+export async function getFinanceOrder(): Promise<string[]> {
+  return getJSON<string[]>(KEYS.financeOrder, ['gastos', 'deudas', 'ingresos']);
+}
+export async function saveFinanceOrder(order: string[]): Promise<void> {
+  return setJSON(KEYS.financeOrder, order);
 }
 
 // --- Gamificación ---

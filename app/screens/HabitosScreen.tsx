@@ -11,15 +11,18 @@ import { AppColors } from '../constants/colors';
 import { useHabitos } from '../hooks/useHabitos';
 import { EmptyState } from '../components/shared/EmptyState';
 import { HabitCard } from '../components/habits/HabitCard';
+import { AddHabitModal } from '../components/home/AddHabitModal';
+import { Habito } from '../types';
 
 const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
 export function HabitosScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { habitos, todayHabits, completadosHoy, bonusHoy, add, remove, toggleToday, isDoneToday, isDoneOnDate, weekStats } = useHabitos();
+  const { habitos, todayHabits, completadosHoy, bonusHoy, add, update, remove, toggleToday, isDoneToday, isDoneOnDate, weekStats } = useHabitos();
   const [name, setName] = useState('');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
+  const [editHabit, setEditHabit] = useState<Habito | null>(null);
 
   const toggleDay = (d: number) => {
     setSelectedDays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]);
@@ -101,6 +104,7 @@ export function HabitosScreen() {
               habito={item}
               onToggleToday={() => handleToggleToday(item.id)}
               onRemove={() => remove(item.id)}
+              onEdit={() => setEditHabit(item)}
               isDoneToday={isDoneToday(item.id)}
               isDoneOnDate={isDoneOnDate}
               weekStats={weekStats(item)}
@@ -108,6 +112,14 @@ export function HabitosScreen() {
           )}
           contentContainerStyle={{ paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
+        />
+
+        <AddHabitModal
+          visible={!!editHabit}
+          onClose={() => setEditHabit(null)}
+          onAdd={add}
+          editing={editHabit}
+          onSave={update}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>

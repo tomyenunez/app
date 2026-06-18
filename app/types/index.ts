@@ -26,11 +26,18 @@ export interface Deuda {
   fecha: string; // "YYYY-M-D"
 }
 
+export interface HabitReminder {
+  enabled: boolean;
+  hora: string; // "HH:MM" en 24h
+  mensaje?: string; // opcional; si está vacío se usa uno por defecto
+}
+
 export interface Habito {
   id: string;
   name: string;
   days: number[]; // 0=Lunes ... 6=Domingo
   pinned?: boolean; // fijado arriba de la lista
+  recordatorio?: HabitReminder; // notificación local configurable
 }
 
 // Categoría de gasto o forma de pago personalizable (comida, efectivo, MP...)

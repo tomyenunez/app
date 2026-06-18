@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
   format, addMonths, subMonths, startOfMonth, endOfMonth,
@@ -33,7 +33,7 @@ export function DateField({ value, onChange, accent }: Props) {
 
   return (
     <View>
-      <TouchableOpacity style={styles.btn} onPress={() => { setMonth(value); setOpen((o) => !o); }}>
+      <TouchableOpacity style={styles.btn} onPress={() => { Keyboard.dismiss(); setMonth(value); setOpen((o) => !o); }}>
         <Ionicons name="calendar-outline" size={18} color={tint} />
         <Text style={styles.btnText}>{format(value, "d 'de' MMMM", { locale: es })}</Text>
         <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textSecondary} />

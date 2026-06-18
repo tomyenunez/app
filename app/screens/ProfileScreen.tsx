@@ -11,6 +11,7 @@ import { useGame } from '../context/GameContext';
 import { useStreak } from '../hooks/useStreak';
 import { ActivityGrid } from '../components/profile/ActivityGrid';
 import { BadgeGrid } from '../components/profile/BadgeGrid';
+import { RanksModal } from '../components/game/RanksModal';
 import { initials } from '../utils/formatters';
 
 const AVATAR_COLORS = ['#6C5CE7', '#00B894', '#E17055', '#0984E3', '#E84393', '#FDCB6E'];
@@ -23,6 +24,7 @@ export function ProfileScreen() {
   const streak = useStreak();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(profile.username);
+  const [ranksVisible, setRanksVisible] = useState(false);
 
   const unlockedBadges = Object.keys(badges).length;
 
@@ -85,17 +87,24 @@ export function ProfileScreen() {
             ))}
           </View>
 
-          {/* Rango + barra */}
-          <View style={styles.levelRow}>
-            <Text style={styles.levelIcon}>{level.icon}</Text>
-            <Text style={styles.levelName}>Rango {level.level} · {level.name}</Text>
-          </View>
-          <View style={styles.track}>
-            <View style={[styles.fill, { width: `${level.progress}%`, backgroundColor: level.color }]} />
-          </View>
-          <Text style={styles.xpTotal}>
-            {Math.round(xpTotal).toLocaleString('es-AR')} XP{level.xpToNext > 0 ? ` · faltan ${Math.ceil(level.xpToNext).toLocaleString('es-AR')}` : ' · ¡rango máximo!'}
-          </Text>
+          {/* Rango + barra (tappable → modal de rangos) */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setRanksVisible(true)}
+            style={{ alignSelf: 'stretch', alignItems: 'center' }}
+          >
+            <View style={styles.levelRow}>
+              <Text style={styles.levelIcon}>{level.icon}</Text>
+              <Text style={styles.levelName}>Rango {level.level} · {level.name}</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+            </View>
+            <View style={styles.track}>
+              <View style={[styles.fill, { width: `${level.progress}%`, backgroundColor: level.color }]} />
+            </View>
+            <Text style={styles.xpTotal}>
+              {Math.round(xpTotal).toLocaleString('es-AR')} XP{level.xpToNext > 0 ? ` · faltan ${Math.ceil(level.xpToNext).toLocaleString('es-AR')}` : ' · ¡rango máximo!'} · ver rangos
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Stats rápidas */}
@@ -130,6 +139,8 @@ export function ProfileScreen() {
           <BadgeGrid />
         </View>
       </ScrollView>
+
+      <RanksModal visible={ranksVisible} onClose={() => setRanksVisible(false)} />
     </SafeAreaView>
   );
 }

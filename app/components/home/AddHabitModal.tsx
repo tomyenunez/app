@@ -1,23 +1,25 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity,
-  TextInput, ScrollView, KeyboardAvoidingView, Platform,
+  TextInput, ScrollView, KeyboardAvoidingView, Platform, Switch, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
-import { Habito } from '../../types';
+import { Habito, HabitReminder } from '../../types';
+import { TimeField } from '../shared/TimeField';
+import { requestNotificationPermission } from '../../services/notificationService';
 
 const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
 interface Props {
   visible: boolean;
   onClose: () => void;
-  onAdd: (name: string, days: number[]) => Promise<void> | void;
+  onAdd: (name: string, days: number[], recordatorio?: HabitReminder) => Promise<void> | void;
   editing?: Habito | null;
-  onSave?: (id: string, name: string, days: number[]) => Promise<void> | void;
+  onSave?: (id: string, name: string, days: number[], recordatorio?: HabitReminder) => Promise<void> | void;
 }
 
 export function AddHabitModal({ visible, onClose, onAdd, editing, onSave }: Props) {
@@ -25,12 +27,19 @@ export function AddHabitModal({ visible, onClose, onAdd, editing, onSave }: Prop
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [name, setName] = useState('');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
+  const [notifEnabled, setNotifEnabled] = useState(false);
+  const [notifHora, setNotifHora] = useState('09:00');
+  const [notifMensaje, setNotifMensaje] = useState('');
 
   // Al abrir: precarga los datos si es edición, o arranca limpio si es nuevo
   useEffect(() => {
     if (visible) {
       setName(editing?.name ?? '');
       setSelectedDays(editing ? [...editing.days] : []);
+      const r = editing?.recordatorio;
+      setNotifEnabled(r?.enabled ?? false);
+      setNotifHora(r?.hora ?? '09:00');
+      setNotifMensaje(r?.mensaje ?? '');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
@@ -39,14 +48,41 @@ export function AddHabitModal({ visible, onClose, onAdd, editing, onSave }: Prop
     setSelectedDays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]);
   };
 
+  // Al activar el recordatorio pedimos permiso; si lo niegan, no se enciende.
+  const handleToggleNotif = async (val: boolean) => {
+    if (val) {
+      const ok = await requestNotificationPermission();
+      if (!ok) {
+        Alert.alert(
+          'Notificaciones desactivadas',
+          'Activá las notificaciones para Dayxo en los ajustes de tu teléfono para recibir recordatorios.'
+        );
+        return;
+      }
+    }
+    setNotifEnabled(val);
+  };
+
   const canAdd = name.trim().length > 0 && selectedDays.length > 0;
+
+  const buildRecordatorio = (): HabitReminder | undefined => {
+    if (notifEnabled) {
+      return { enabled: true, hora: notifHora, mensaje: notifMensaje.trim() || undefined };
+    }
+    // Si antes tenía recordatorio y ahora lo apagó, guardamos enabled:false (para cancelarlo)
+    if (editing?.recordatorio) {
+      return { enabled: false, hora: notifHora, mensaje: notifMensaje.trim() || undefined };
+    }
+    return undefined;
+  };
 
   const handleSubmit = async () => {
     if (!canAdd) return;
+    const recordatorio = buildRecordatorio();
     if (editing && onSave) {
-      await onSave(editing.id, name.trim(), [...selectedDays].sort());
+      await onSave(editing.id, name.trim(), [...selectedDays].sort(), recordatorio);
     } else {
-      await onAdd(name.trim(), [...selectedDays].sort());
+      await onAdd(name.trim(), [...selectedDays].sort(), recordatorio);
     }
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onClose();
@@ -92,6 +128,37 @@ export function AddHabitModal({ visible, onClose, onAdd, editing, onSave }: Prop
                 );
               })}
             </View>
+
+            {/* Recordatorio */}
+            <View style={styles.notifHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>RECORDATORIO</Text>
+                <Text style={styles.notifSub}>Te avisamos los días que aplica el hábito</Text>
+              </View>
+              <Switch
+                value={notifEnabled}
+                onValueChange={handleToggleNotif}
+                trackColor={{ false: colors.grayLight, true: colors.orange }}
+                thumbColor="#fff"
+              />
+            </View>
+
+            {notifEnabled && (
+              <>
+                <Text style={[styles.label, { marginTop: 14 }]}>HORA</Text>
+                <TimeField value={notifHora} onChange={setNotifHora} accent={colors.orange} />
+
+                <Text style={[styles.label, { marginTop: 14 }]}>MENSAJE (OPCIONAL)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder={`Ej: ¡Hora de ${name.trim() || 'tu hábito'}!`}
+                  placeholderTextColor={colors.textSecondary}
+                  value={notifMensaje}
+                  onChangeText={setNotifMensaje}
+                  maxLength={120}
+                />
+              </>
+            )}
           </ScrollView>
 
           <View style={styles.footer}>
@@ -130,6 +197,8 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     fontSize: 16, fontFamily: 'Inter_400Regular', color: colors.textPrimary,
     borderWidth: 1, borderColor: colors.border,
   },
+  notifHeader: { flexDirection: 'row', alignItems: 'center', marginTop: 22, gap: 10 },
+  notifSub: { fontSize: 12, fontFamily: 'Inter_400Regular', color: colors.textSecondary, marginTop: 2 },
   daySelector: { flexDirection: 'row', gap: 6 },
   daySelectorBtn: {
     flex: 1, aspectRatio: 1, borderRadius: 8,

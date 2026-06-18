@@ -1,9 +1,10 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { Habito } from '../types';
+import { Habito, HabitReminder } from '../types';
 import { getHabitos, saveHabitos, getHabitDone, saveHabitDone } from '../services/storage';
 import { todayKey, todayIdx, weekDays, dateKey } from '../utils/dateUtils';
 import { awardXPOnce, incrementHabitRecord, weeklyStarsCount } from '../services/xpService';
+import { scheduleHabitReminders, cancelHabitReminders } from '../services/notificationService';
 import { XP_VALUES } from '../constants/xpValues';
 
 export function useHabitos() {
@@ -22,23 +23,31 @@ export function useHabitos() {
     }, [])
   );
 
-  const add = useCallback(async (name: string, days: number[]) => {
-    const next: Habito = { id: Date.now().toString(), name, days };
+  const add = useCallback(async (name: string, days: number[], recordatorio?: HabitReminder) => {
+    const next: Habito = { id: Date.now().toString(), name, days, ...(recordatorio ? { recordatorio } : {}) };
     const updated = [...habitos, next];
     setHabitos(updated);
     await saveHabitos(updated);
+    scheduleHabitReminders(next);
   }, [habitos]);
 
   const remove = useCallback(async (id: string) => {
+    cancelHabitReminders(id);
     const updated = habitos.filter((h) => h.id !== id);
     setHabitos(updated);
     await saveHabitos(updated);
   }, [habitos]);
 
-  const update = useCallback(async (id: string, name: string, days: number[]) => {
-    const updated = habitos.map((h) => h.id === id ? { ...h, name, days } : h);
+  const update = useCallback(async (id: string, name: string, days: number[], recordatorio?: HabitReminder) => {
+    let changed: Habito | undefined;
+    const updated = habitos.map((h) => {
+      if (h.id !== id) return h;
+      changed = { ...h, name, days, recordatorio };
+      return changed;
+    });
     setHabitos(updated);
     await saveHabitos(updated);
+    if (changed) scheduleHabitReminders(changed);
   }, [habitos]);
 
   const togglePin = useCallback(async (id: string) => {

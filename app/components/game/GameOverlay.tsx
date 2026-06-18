@@ -109,7 +109,7 @@ function LevelUpModal({ level, onClose }: { level: UserLevel; onClose: () => voi
   // Fondo: el bgColor del rango oscurecido para que destaquen los efectos
   return (
     <Modal visible transparent animationType="fade">
-      <View style={[styles.levelOverlay, { backgroundColor: 'rgba(8,8,12,0.92)' }]}>
+      <View style={[styles.levelOverlay, { backgroundColor: 'rgba(8,8,12,0.97)' }]}>
         <RankParticles color={level.color} />
         <Animated.View style={{ transform: [{ scale: anim }], alignItems: 'center' }}>
           <Text style={styles.levelIcon}>{level.icon}</Text>
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   badgeRarity: { fontSize: 12, fontFamily: 'Inter_600SemiBold', marginTop: 1 },
   levelOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(8,8,12,0.92)',
+    backgroundColor: 'rgba(8,8,12,0.97)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -250,13 +250,13 @@ const styles = StyleSheet.create({
   levelUpText: { color: '#9A9AA5', fontSize: 13, fontFamily: 'Inter_700Bold', letterSpacing: 2 },
   levelName: { fontSize: 40, fontFamily: 'Inter_800ExtraBold', marginTop: 6 },
   levelMsg: {
-    color: '#D8D8DE',
-    fontSize: 14,
-    fontFamily: 'Inter_400Regular',
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontFamily: 'Inter_600SemiBold',
     textAlign: 'center',
-    marginTop: 10,
-    paddingHorizontal: 36,
-    lineHeight: 20,
+    marginTop: 12,
+    paddingHorizontal: 32,
+    lineHeight: 23,
   },
   levelBtn: {
     marginTop: 28,
