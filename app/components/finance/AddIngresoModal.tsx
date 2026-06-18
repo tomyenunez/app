@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
+import { Transaction } from '../../types';
 import { DateField } from '../shared/DateField';
 import { formatMontoInput, parseMontoInput } from '../../utils/formatters';
 
@@ -15,9 +16,16 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   onAdd: (desc: string, monto: number, fecha: Date) => Promise<void> | void;
+  editing?: Transaction | null;
+  onUpdate?: (id: string, desc: string, monto: number, fecha: Date) => Promise<void> | void;
 }
 
-export function AddIngresoModal({ visible, onClose, onAdd }: Props) {
+function parseFechaKey(key: string): Date {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
+export function AddIngresoModal({ visible, onClose, onAdd, editing, onUpdate }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [desc, setDesc] = useState('');
@@ -25,14 +33,25 @@ export function AddIngresoModal({ visible, onClose, onAdd }: Props) {
   const [fecha, setFecha] = useState(new Date());
 
   useEffect(() => {
-    if (visible) { setDesc(''); setMonto(''); setFecha(new Date()); }
-  }, [visible]);
+    if (!visible) return;
+    if (editing) {
+      setDesc(editing.desc);
+      setMonto(formatMontoInput(String(editing.monto).replace('.', ',')));
+      setFecha(parseFechaKey(editing.fecha));
+    } else {
+      setDesc(''); setMonto(''); setFecha(new Date());
+    }
+  }, [visible, editing]);
 
   const canAdd = parseMontoInput(monto) > 0;
 
-  const handleAdd = async () => {
+  const handleSubmit = async () => {
     if (!canAdd) return;
-    await onAdd(desc.trim() || 'Ingreso', parseMontoInput(monto), fecha);
+    if (editing && onUpdate) {
+      await onUpdate(editing.id, desc.trim() || 'Ingreso', parseMontoInput(monto), fecha);
+    } else {
+      await onAdd(desc.trim() || 'Ingreso', parseMontoInput(monto), fecha);
+    }
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onClose();
   };
@@ -43,7 +62,7 @@ export function AddIngresoModal({ visible, onClose, onAdd }: Props) {
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.handleWrap}><View style={styles.handle} /></View>
           <View style={styles.header}>
-            <Text style={styles.title}>Nuevo ingreso</Text>
+            <Text style={styles.title}>{editing ? 'Editar ingreso' : 'Nuevo ingreso'}</Text>
             <TouchableOpacity onPress={onClose}>
               <Ionicons name="close" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
@@ -75,8 +94,8 @@ export function AddIngresoModal({ visible, onClose, onAdd }: Props) {
           </ScrollView>
 
           <View style={styles.footer}>
-            <TouchableOpacity onPress={handleAdd} style={[styles.addBtn, !canAdd && { opacity: 0.5 }]} disabled={!canAdd}>
-              <Text style={styles.addBtnText}>Agregar ingreso</Text>
+            <TouchableOpacity onPress={handleSubmit} style={[styles.addBtn, !canAdd && { opacity: 0.5 }]} disabled={!canAdd}>
+              <Text style={styles.addBtnText}>{editing ? 'Guardar cambios' : 'Agregar ingreso'}</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>

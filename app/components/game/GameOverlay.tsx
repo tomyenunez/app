@@ -5,6 +5,7 @@ import { gameEvents } from '../../services/xpService';
 import { AwardResult, Badge, UserLevel } from '../../types/game';
 import { RARITY_LABEL } from '../../constants/badges';
 import { rankUpMessage } from '../../constants/rankMessages';
+import { playRankUp } from '../../services/sound';
 
 // Toast de XP que flota desde abajo (encima del tab bar)
 function XPToast({ amount, isBonus, isStar, onDone }: {
@@ -99,6 +100,7 @@ function LevelUpModal({ level, onClose }: { level: UserLevel; onClose: () => voi
 
   useEffect(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    playRankUp();
     Animated.spring(anim, { toValue: 1, friction: 5, tension: 60, useNativeDriver: true }).start();
     const t = setTimeout(() => setCanClose(true), 2000);
     return () => clearTimeout(t);

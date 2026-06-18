@@ -44,6 +44,37 @@ export function usePresupuesto() {
     awardXPOnce(`tx-${next.id}`, XP_VALUES.LOG_TRANSACTION, 'Movimiento registrado');
   }, [txs]);
 
+  const update = useCallback(async (
+    id: string,
+    desc: string,
+    monto: number,
+    categoria?: string,
+    metodo?: string,
+    fecha?: Date,
+  ) => {
+    const updated = txs.map((t) => {
+      if (t.id !== id) return t;
+      let base = fecha;
+      if (!base) {
+        const [y, m, d] = t.fecha.split('-').map(Number);
+        base = new Date(y, (m || 1) - 1, d || 1);
+      }
+      const next: Transaction = {
+        ...t,
+        desc,
+        monto,
+        fecha: dateKey(base),
+        fechaStr: format(base, "d 'de' MMMM", { locale: es }),
+      };
+      // categoria/metodo: setear si vino, limpiar si quedó sin seleccionar
+      if (categoria) next.categoria = categoria; else delete next.categoria;
+      if (metodo) next.metodo = metodo; else delete next.metodo;
+      return next;
+    });
+    setTxs(updated);
+    await saveTxs(updated);
+  }, [txs]);
+
   const remove = useCallback(async (id: string) => {
     const updated = txs.filter((t) => t.id !== id);
     setTxs(updated);
@@ -73,5 +104,5 @@ export function usePresupuesto() {
     await saveTxs(carry);
   }, [ingresos, gastos]);
 
-  return { txs, ingresos, gastos, saldo, ingresosList, gastosList, loading, add, remove, resetMes };
+  return { txs, ingresos, gastos, saldo, ingresosList, gastosList, loading, add, update, remove, resetMes };
 }

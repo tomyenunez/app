@@ -10,6 +10,7 @@ import { es } from 'date-fns/locale';
 import { useTheme } from '../context/ThemeContext';
 import { AppColors } from '../constants/colors';
 import { Dayxo } from '../constants/dayxo';
+import { Transaction } from '../types';
 import { usePresupuesto } from '../hooks/usePresupuesto';
 import { useDeudas } from '../hooks/useDeudas';
 import { useCategoriasGasto, useMetodosPago } from '../hooks/useOpcionesGasto';
@@ -30,7 +31,7 @@ function fmtFecha(key: string): string {
 export function PresupuestoScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { ingresos, gastos, saldo, ingresosList, gastosList, add, remove, resetMes } = usePresupuesto();
+  const { ingresos, gastos, saldo, ingresosList, gastosList, add, update, remove, resetMes } = usePresupuesto();
   const deudas = useDeudas();
   const categorias = useCategoriasGasto();
   const metodos = useMetodosPago();
@@ -41,6 +42,8 @@ export function PresupuestoScreen() {
   const [addGasto, setAddGasto] = useState(false);
   const [addIngreso, setAddIngreso] = useState(false);
   const [addDeuda, setAddDeuda] = useState(false);
+  const [editGasto, setEditGasto] = useState<Transaction | null>(null);
+  const [editIngreso, setEditIngreso] = useState<Transaction | null>(null);
 
   const txs = useMemo(() => [...ingresosList, ...gastosList], [ingresosList, gastosList]);
 
@@ -113,7 +116,7 @@ export function PresupuestoScreen() {
                   <View style={[styles.rowIcon, { backgroundColor: Dayxo.coral + '66' }]}>
                     <Ionicons name="arrow-up-outline" size={18} color={Dayxo.coral} />
                   </View>
-                  <View style={{ flex: 1 }}>
+                  <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.6} onPress={() => setEditGasto(item)}>
                     <Text style={styles.rowDesc}>{item.desc}</Text>
                     <View style={styles.metaRow}>
                       <Text style={styles.metaFecha}>{item.fechaStr}</Text>
@@ -128,7 +131,7 @@ export function PresupuestoScreen() {
                         </View>
                       )}
                     </View>
-                  </View>
+                  </TouchableOpacity>
                   <Text style={[styles.rowMonto, { color: Dayxo.coral }]}>− {formatARS(item.monto)}</Text>
                   <TouchableOpacity onPress={() => remove(item.id)} style={styles.delBtn}>
                     <Ionicons name="trash-outline" size={16} color={colors.error} />
@@ -212,10 +215,10 @@ export function PresupuestoScreen() {
                 <View style={[styles.rowIcon, { backgroundColor: Dayxo.green + '66' }]}>
                   <Ionicons name="arrow-down-outline" size={18} color={Dayxo.green} />
                 </View>
-                <View style={{ flex: 1 }}>
+                <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.6} onPress={() => setEditIngreso(item)}>
                   <Text style={styles.rowDesc}>{item.desc}</Text>
                   <Text style={styles.metaFecha}>{item.fechaStr}</Text>
-                </View>
+                </TouchableOpacity>
                 <Text style={[styles.rowMonto, { color: Dayxo.green }]}>+ {formatARS(item.monto)}</Text>
                 <TouchableOpacity onPress={() => remove(item.id)} style={styles.delBtn}>
                   <Ionicons name="trash-outline" size={16} color={colors.error} />
@@ -256,16 +259,20 @@ export function PresupuestoScreen() {
         saldo={saldo}
       />
       <AddGastoModal
-        visible={addGasto}
-        onClose={() => setAddGasto(false)}
+        visible={addGasto || !!editGasto}
+        editing={editGasto}
+        onClose={() => { setAddGasto(false); setEditGasto(null); }}
         categorias={categorias}
         metodos={metodos}
         onAdd={(desc, monto, cat, met, fecha) => add(desc, monto, 'gasto', cat, met, fecha)}
+        onUpdate={(id, desc, monto, cat, met, fecha) => update(id, desc, monto, cat, met, fecha)}
       />
       <AddIngresoModal
-        visible={addIngreso}
-        onClose={() => setAddIngreso(false)}
+        visible={addIngreso || !!editIngreso}
+        editing={editIngreso}
+        onClose={() => { setAddIngreso(false); setEditIngreso(null); }}
         onAdd={(desc, monto, fecha) => add(desc, monto, 'ingreso', undefined, undefined, fecha)}
+        onUpdate={(id, desc, monto, fecha) => update(id, desc, monto, undefined, undefined, fecha)}
       />
       <AddDeudaModal
         visible={addDeuda}

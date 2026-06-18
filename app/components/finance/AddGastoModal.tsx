@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
-import { OpcionGasto, FamiliaColor } from '../../types';
+import { OpcionGasto, FamiliaColor, Transaction } from '../../types';
 import { DateField } from '../shared/DateField';
 import { QuickOptionModal } from './QuickOptionModal';
 import { formatMontoInput, parseMontoInput } from '../../utils/formatters';
@@ -18,15 +18,24 @@ interface Catalogo {
   add: (nombre: string, color: FamiliaColor) => Promise<void> | void;
 }
 
+type SubmitFn = (desc: string, monto: number, categoria: string | undefined, metodo: string | undefined, fecha: Date) => Promise<void> | void;
+
 interface Props {
   visible: boolean;
   onClose: () => void;
   categorias: Catalogo;
   metodos: Catalogo;
-  onAdd: (desc: string, monto: number, categoria: string | undefined, metodo: string | undefined, fecha: Date) => Promise<void> | void;
+  onAdd: SubmitFn;
+  editing?: Transaction | null;
+  onUpdate?: (id: string, desc: string, monto: number, categoria: string | undefined, metodo: string | undefined, fecha: Date) => Promise<void> | void;
 }
 
-export function AddGastoModal({ visible, onClose, categorias, metodos, onAdd }: Props) {
+function parseFechaKey(key: string): Date {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
+export function AddGastoModal({ visible, onClose, categorias, metodos, onAdd, editing, onUpdate }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [desc, setDesc] = useState('');
@@ -37,17 +46,29 @@ export function AddGastoModal({ visible, onClose, categorias, metodos, onAdd }: 
   const [quickAdd, setQuickAdd] = useState<'cat' | 'met' | null>(null);
 
   useEffect(() => {
-    if (visible) {
+    if (!visible) return;
+    setQuickAdd(null);
+    if (editing) {
+      setDesc(editing.desc);
+      setMonto(formatMontoInput(String(editing.monto).replace('.', ',')));
+      setFecha(parseFechaKey(editing.fecha));
+      setSelCat(editing.categoria ?? null);
+      setSelMet(editing.metodo ?? null);
+    } else {
       setDesc(''); setMonto(''); setFecha(new Date());
-      setSelCat(null); setSelMet(null); setQuickAdd(null);
+      setSelCat(null); setSelMet(null);
     }
-  }, [visible]);
+  }, [visible, editing]);
 
   const canAdd = desc.trim().length > 0 && parseMontoInput(monto) > 0;
 
-  const handleAdd = async () => {
+  const handleSubmit = async () => {
     if (!canAdd) return;
-    await onAdd(desc.trim(), parseMontoInput(monto), selCat ?? undefined, selMet ?? undefined, fecha);
+    if (editing && onUpdate) {
+      await onUpdate(editing.id, desc.trim(), parseMontoInput(monto), selCat ?? undefined, selMet ?? undefined, fecha);
+    } else {
+      await onAdd(desc.trim(), parseMontoInput(monto), selCat ?? undefined, selMet ?? undefined, fecha);
+    }
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onClose();
   };
@@ -80,7 +101,7 @@ export function AddGastoModal({ visible, onClose, categorias, metodos, onAdd }: 
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.handleWrap}><View style={styles.handle} /></View>
           <View style={styles.header}>
-            <Text style={styles.title}>Nuevo gasto</Text>
+            <Text style={styles.title}>{editing ? 'Editar gasto' : 'Nuevo gasto'}</Text>
             <TouchableOpacity onPress={onClose}>
               <Ionicons name="close" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
@@ -118,8 +139,8 @@ export function AddGastoModal({ visible, onClose, categorias, metodos, onAdd }: 
           </ScrollView>
 
           <View style={styles.footer}>
-            <TouchableOpacity onPress={handleAdd} style={[styles.addBtn, !canAdd && { opacity: 0.5 }]} disabled={!canAdd}>
-              <Text style={styles.addBtnText}>Agregar gasto</Text>
+            <TouchableOpacity onPress={handleSubmit} style={[styles.addBtn, !canAdd && { opacity: 0.5 }]} disabled={!canAdd}>
+              <Text style={styles.addBtnText}>{editing ? 'Guardar cambios' : 'Agregar gasto'}</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
