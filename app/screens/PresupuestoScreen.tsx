@@ -96,7 +96,7 @@ export function PresupuestoScreen() {
         </View>
 
         {/* Gastos del mes */}
-        <View style={styles.bubble}>
+        <View style={[styles.bubble, styles.bubbleGastos]}>
           <View style={styles.bubbleHead}>
             <Text style={[styles.bubbleTitle, { color: Dayxo.coral }]}>Gastos del mes</Text>
             <Text style={styles.bubbleTotal}>{formatARS(gastos)}</Text>
@@ -110,7 +110,7 @@ export function PresupuestoScreen() {
               const met = item.metodo ? metodos.getItem(item.metodo) : null;
               return (
                 <View key={item.id} style={styles.row}>
-                  <View style={[styles.rowIcon, { backgroundColor: colors.pinkLight }]}>
+                  <View style={[styles.rowIcon, { backgroundColor: Dayxo.coral + '66' }]}>
                     <Ionicons name="arrow-up-outline" size={18} color={Dayxo.coral} />
                   </View>
                   <View style={{ flex: 1 }}>
@@ -145,7 +145,7 @@ export function PresupuestoScreen() {
         </View>
 
         {/* Deudas */}
-        <View style={styles.bubble}>
+        <View style={[styles.bubble, styles.bubbleDeudas]}>
           <Text style={[styles.bubbleTitle, { color: Dayxo.purple }]}>Deudas</Text>
 
           <View style={styles.deudaSummary}>
@@ -173,7 +173,7 @@ export function PresupuestoScreen() {
             deudas.deudas.map((d) => {
               const meDebe = d.tipo === 'me-debe';
               const accent = meDebe ? Dayxo.green : Dayxo.coral;
-              const accentBg = meDebe ? colors.greenLight : colors.pinkLight;
+              const accentBg = accent + '66';
               return (
                 <View key={d.id} style={styles.row}>
                   <View style={[styles.rowIcon, { backgroundColor: accentBg }]}>
@@ -201,7 +201,7 @@ export function PresupuestoScreen() {
         </View>
 
         {/* Ingresos */}
-        <View style={styles.bubble}>
+        <View style={[styles.bubble, styles.bubbleIngresos]}>
           <Text style={[styles.bubbleTitle, { color: Dayxo.green }]}>Ingresos</Text>
 
           {ingresosList.length === 0 ? (
@@ -209,7 +209,7 @@ export function PresupuestoScreen() {
           ) : (
             ingresosList.map((item) => (
               <View key={item.id} style={styles.row}>
-                <View style={[styles.rowIcon, { backgroundColor: colors.greenLight }]}>
+                <View style={[styles.rowIcon, { backgroundColor: Dayxo.green + '66' }]}>
                   <Ionicons name="arrow-down-outline" size={18} color={Dayxo.green} />
                 </View>
                 <View style={{ flex: 1 }}>
@@ -299,7 +299,14 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   topValue: { fontSize: 22, fontFamily: 'Inter_800ExtraBold', color: '#fff' },
   bubble: {
     marginHorizontal: 14, marginTop: 18,
+    borderRadius: 18, padding: 14,
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 10, elevation: 2,
   },
+  // Cada apartado lleva su color de sección: tinte suave + borde de acento
+  bubbleGastos: { backgroundColor: colors.pinkLight, borderColor: Dayxo.coral + '40', shadowColor: Dayxo.coral },
+  bubbleDeudas: { backgroundColor: colors.violetLight, borderColor: Dayxo.purple + '40', shadowColor: Dayxo.purple },
+  bubbleIngresos: { backgroundColor: colors.greenLight, borderColor: Dayxo.green + '40', shadowColor: Dayxo.green },
   bubbleHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
   bubbleTitle: { fontSize: 17, fontFamily: 'Inter_700Bold', marginBottom: 6 },
   bubbleTotal: { fontSize: 17, fontFamily: 'Inter_800ExtraBold', color: colors.textPrimary },

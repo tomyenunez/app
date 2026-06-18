@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Todo, Deuda, Habito, Transaction, Evento, Familia, OpcionGasto } from '../types';
-import { LunaMessage } from '../types/luna';
 
 const KEYS = {
   todos: '@kitdeldia/todos',
@@ -12,8 +11,6 @@ const KEYS = {
   habitDone: '@kitdeldia/habitDone',
   streak: '@kitdeldia/streak',
   lastActive: '@kitdeldia/lastActive',
-  lunaHistory: '@kitdeldia/luna_history',
-  lunaLastOpened: '@kitdeldia/luna_lastOpened',
   categoriasGasto: '@kitdeldia/categoriasGasto',
   metodosPago: '@kitdeldia/metodosPago',
   // Gamificación
@@ -122,22 +119,6 @@ export async function getMetodosPago(): Promise<OpcionGasto[]> {
 }
 export async function saveMetodosPago(items: OpcionGasto[]): Promise<void> {
   return setJSON(KEYS.metodosPago, items);
-}
-
-// --- Luna (chat) ---
-const LUNA_HISTORY_MAX = 50;
-
-export async function getLunaHistory(): Promise<LunaMessage[]> {
-  return getJSON<LunaMessage[]>(KEYS.lunaHistory, []);
-}
-export async function saveLunaHistory(messages: LunaMessage[]): Promise<void> {
-  return setJSON(KEYS.lunaHistory, messages.slice(-LUNA_HISTORY_MAX));
-}
-export async function getLunaLastOpened(): Promise<string> {
-  return getJSON<string>(KEYS.lunaLastOpened, '');
-}
-export async function saveLunaLastOpened(date: string): Promise<void> {
-  return setJSON(KEYS.lunaLastOpened, date);
 }
 
 // --- Gamificación ---

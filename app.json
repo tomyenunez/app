@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Kit del Día",
-    "slug": "kitdeldia",
+    "name": "Dayxo",
+    "slug": "dayxo",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -12,10 +12,10 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.kitdeldia.app"
+      "bundleIdentifier": "com.dayxo.app"
     },
     "android": {
-      "package": "com.kitdeldia.app",
+      "package": "com.dayxo.app",
       "softwareKeyboardLayoutMode": "pan"
     },
     "plugins": [

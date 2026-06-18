@@ -1,4 +1,4 @@
-# Kit del Día
+# Dayxo
 
 App de productividad y finanzas personales — React Native + Expo SDK 52.
 

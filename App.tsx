@@ -12,7 +12,6 @@ import {
   Poppins_800ExtraBold,
 } from '@expo-google-fonts/poppins';
 import { AppNavigator } from './app/navigation/AppNavigator';
-import { LunaBubble } from './app/components/luna/LunaBubble';
 import { GameOverlay } from './app/components/game/GameOverlay';
 import { ThemeProvider, useTheme } from './app/context/ThemeContext';
 import { GameProvider } from './app/context/GameContext';
@@ -44,8 +43,6 @@ function AppContent() {
       <NavigationContainer theme={navTheme}>
         <StatusBar style={isDark ? 'light' : 'dark'} />
         <AppNavigator />
-        {/* Luna flota encima de toda la app, en todas las pantallas */}
-        <LunaBubble />
         {/* Toasts de XP, badges y modal de subida de nivel */}
         <GameOverlay />
       </NavigationContainer>
