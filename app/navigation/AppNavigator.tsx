@@ -12,11 +12,10 @@ import { HabitosScreen } from '../screens/HabitosScreen';
 import { PresupuestoScreen } from '../screens/PresupuestoScreen';
 import { AgendaScreen } from '../screens/AgendaScreen';
 import { StatsScreen } from '../screens/StatsScreen';
-import { ProfileScreen } from '../screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
 
-// Todo, Habitos, Agenda y Profile están ocultos de la barra; se accede desde el Home.
+// Todo, Habitos y Agenda están ocultos de la barra; se accede desde el Home.
 const TAB_CONFIG = [
   { name: 'Home', icon: 'home-outline', accent: 'violet', Screen: HomeScreen },
   { name: 'Todo', icon: 'checkmark-circle-outline', accent: 'violet', Screen: TodoScreen },
@@ -24,10 +23,9 @@ const TAB_CONFIG = [
   { name: 'Plata', icon: 'wallet-outline', accent: 'blue', Screen: PresupuestoScreen },
   { name: 'Agenda', icon: 'calendar-outline', accent: 'pink', Screen: AgendaScreen },
   { name: 'Stats', icon: 'bar-chart-outline', accent: 'violet', Screen: StatsScreen },
-  { name: 'Profile', icon: 'person-outline', accent: 'violet', Screen: ProfileScreen },
 ] as const;
 
-const HIDDEN_TABS = ['Todo', 'Habitos', 'Agenda', 'Profile'];
+const HIDDEN_TABS = ['Todo', 'Habitos', 'Agenda'];
 
 // Barra flotante translúcida (vidrio esmerilado, estilo Instagram): flota por encima
 // del contenido y deja ver el fondo borroso a través de ella.

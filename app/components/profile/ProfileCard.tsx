@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
@@ -11,7 +11,11 @@ import { initials } from '../../utils/formatters';
 // rango actual de forma inline (ver JSX).
 const RING = Dayxo.purple;
 
-export function ProfileCard() {
+interface Props {
+  onPress?: () => void; // abre el pop-up de editar perfil / ver rangos
+}
+
+export function ProfileCard({ onPress }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { profile, level, xpTotal, reload } = useGame();
@@ -22,8 +26,8 @@ export function ProfileCard() {
 
   return (
     <View style={styles.card}>
-      {/* Avatar con borde del rango + badge */}
-      <View style={styles.avatarWrap}>
+      {/* Avatar con borde del rango + badge — tappable: abre editar perfil */}
+      <TouchableOpacity activeOpacity={0.8} onPress={onPress} style={styles.avatarWrap}>
         <View style={[styles.avatarRing, { borderColor: level.color }]}>
           <View style={[styles.avatar, { backgroundColor: profile.avatarColor }]}>
             <Text style={styles.avatarText}>{initials(profile.username)}</Text>
@@ -32,7 +36,7 @@ export function ProfileCard() {
         <View style={[styles.levelBadge, { backgroundColor: level.color }]}>
           <Text style={styles.levelBadgeText}>{level.icon}</Text>
         </View>
-      </View>
+      </TouchableOpacity>
 
       <Text style={styles.name}>{profile.username}</Text>
       <Text style={styles.phrase}>{level.icon} {level.name}{level.isExclusive ? ' · exclusivo' : ''}</Text>

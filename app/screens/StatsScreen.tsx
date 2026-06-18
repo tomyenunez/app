@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { startOfWeek, startOfMonth, subMonths, addMonths, subDays } from 'date-fns';
 import { useTheme } from '../context/ThemeContext';
@@ -19,6 +19,7 @@ import { formatARS, formatARSWithSign, formatPercent } from '../utils/formatters
 import { DonutChart, DonutSlice } from '../components/stats/DonutChart';
 import { BarRow } from '../components/stats/BarRow';
 import { ProfileCard } from '../components/profile/ProfileCard';
+import { EditProfileModal } from '../components/profile/EditProfileModal';
 import { ActivityGrid } from '../components/profile/ActivityGrid';
 import { useFamilias } from '../hooks/useFamilias';
 import {
@@ -50,6 +51,16 @@ export function StatsScreen() {
   const { records, badges, xpDaily, level } = useGame();
   const [periodo, setPeriodo] = useState<Periodo>('mes');
   const [socialVisible, setSocialVisible] = useState(false);
+  const [editVisible, setEditVisible] = useState(false);
+
+  // El avatar del Home navega acá con { editProfile: true } para abrir el pop-up
+  const route = useRoute<any>();
+  useFocusEffect(useCallback(() => {
+    if (route.params?.editProfile) {
+      setEditVisible(true);
+      nav.setParams({ editProfile: undefined });
+    }
+  }, [route.params?.editProfile]));
 
   const today = new Date();
   const weekStart = startOfWeek(today, { weekStartsOn: 1 });
@@ -222,8 +233,8 @@ export function StatsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Card de perfil */}
-        <ProfileCard />
+        {/* Card de perfil — tap en avatar/nombre abre el pop-up de editar */}
+        <ProfileCard onPress={() => setEditVisible(true)} />
 
         {/* Puntos extra */}
         <View style={styles.bonusBanner}>
@@ -555,6 +566,9 @@ export function StatsScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Pop-up de perfil: editar nombre/color + rangos */}
+      <EditProfileModal visible={editVisible} onClose={() => setEditVisible(false)} />
     </SafeAreaView>
   );
 }

@@ -22,33 +22,33 @@ export function ActivityGrid({ weeks = DEFAULT_WEEKS, accent }: Props) {
   const base = accent ?? level.color;
   const [selected, setSelected] = useState<{ date: Date; xp: number } | null>(null);
 
-  const { columns, maxXP } = useMemo(() => {
+  const columns = useMemo(() => {
     const today = new Date();
     const start = new Date(today);
     const dayIdx = (today.getDay() + 6) % 7;
     start.setDate(today.getDate() - dayIdx - (weeks - 1) * 7);
 
     const cols: { date: Date; xp: number }[][] = [];
-    let max = 1;
     for (let w = 0; w < weeks; w++) {
       const col: { date: Date; xp: number }[] = [];
       for (let d = 0; d < 7; d++) {
         const date = new Date(start);
         date.setDate(start.getDate() + w * 7 + d);
         const xp = xpDaily[dateKey(date)] ?? 0;
-        if (xp > max) max = xp;
         col.push({ date, xp });
       }
       cols.push(col);
     }
-    return { columns: cols, maxXP: max };
+    return cols;
   }, [xpDaily, weeks]);
 
+  // Intensidad por XP ABSOLUTO del día (no relativa al máximo de la ventana):
+  // el color refleja el esfuerzo real, sube en vivo a medida que sumás XP en el
+  // día (sin esperar a que termine) y queda fijo como historial — un día no
+  // cambia de color porque otro lo supere después.
   const intensity = (xp: number): string => {
-    if (xp === 0) return colors.grayVeryLight;
-    const ratio = xp / maxXP;
-    // 4 niveles de intensidad sobre el color base
-    const opacity = ratio < 0.25 ? '55' : ratio < 0.5 ? '88' : ratio < 0.75 ? 'BB' : 'FF';
+    if (xp <= 0) return colors.grayVeryLight;
+    const opacity = xp < 15 ? '55' : xp < 30 ? '88' : xp < 50 ? 'BB' : 'FF';
     return base + opacity;
   };
 

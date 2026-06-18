@@ -73,7 +73,7 @@ export function HomeScreen() {
           <Text style={styles.headerTitle}>Inicio</Text>
           <TouchableOpacity
             style={[styles.avatarBtn, { backgroundColor: profile.avatarColor }]}
-            onPress={() => nav.navigate('Profile')}
+            onPress={() => nav.navigate('Stats', { editProfile: true })}
           >
             <Text style={styles.avatarBtnText}>{profile.username.slice(0, 2).toUpperCase()}</Text>
           </TouchableOpacity>

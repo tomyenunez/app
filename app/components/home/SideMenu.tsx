@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
 import { MissionsSection } from '../game/MissionsSection';
+import { LogrosSection } from '../game/LogrosSection';
 import { awardXP } from '../../services/xpService';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -25,6 +26,7 @@ export function SideMenu({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const [mounted, setMounted] = useState(visible);
   const [missionsOpen, setMissionsOpen] = useState(false);
+  const [logrosOpen, setLogrosOpen] = useState(false);
   const translateX = useRef(new Animated.Value(-PANEL_W)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
@@ -37,6 +39,7 @@ export function SideMenu({ visible, onClose }: Props) {
       ]).start();
     } else if (mounted) {
       setMissionsOpen(false);
+      setLogrosOpen(false);
       Animated.parallel([
         Animated.timing(translateX, { toValue: -PANEL_W, duration: 200, useNativeDriver: true }),
         Animated.timing(overlayOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
@@ -73,11 +76,19 @@ export function SideMenu({ visible, onClose }: Props) {
               </TouchableOpacity>
             </View>
 
-            {/* Arriba: misiones */}
+            {/* Arriba: misiones + logros */}
             <TouchableOpacity style={styles.menuItem} onPress={() => setMissionsOpen(true)} activeOpacity={0.7}>
               <View style={styles.menuItemLeft}>
                 <Text style={styles.menuEmoji}>🎯</Text>
                 <Text style={styles.menuLabel}>Misiones</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.menuItem} onPress={() => setLogrosOpen(true)} activeOpacity={0.7}>
+              <View style={styles.menuItemLeft}>
+                <Text style={styles.menuEmoji}>🏆</Text>
+                <Text style={styles.menuLabel}>Logros</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
@@ -127,6 +138,22 @@ export function SideMenu({ visible, onClose }: Props) {
                 </TouchableOpacity>
               </View>
               <MissionsSection />
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Logros: vista dentro del mismo modal */}
+        {logrosOpen && (
+          <View style={[styles.missionsCover, safePad]}>
+            <View style={styles.missionsHeader}>
+              <TouchableOpacity onPress={() => setLogrosOpen(false)} style={styles.backBtn}>
+                <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+              </TouchableOpacity>
+              <Text style={styles.missionsTitle}>Logros</Text>
+              <View style={{ width: 36 }} />
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24, paddingTop: 12 }}>
+              <LogrosSection />
             </ScrollView>
           </View>
         )}
