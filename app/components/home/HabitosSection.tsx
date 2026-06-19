@@ -8,6 +8,7 @@ import { Dayxo } from '../../constants/dayxo';
 import { Habito, HabitReminder } from '../../types';
 import { HabitCard } from '../habits/HabitCard';
 import { AddHabitModal } from './AddHabitModal';
+import { SwipeableRow } from '../shared/SwipeableRow';
 
 interface Props {
   habitos: Habito[];
@@ -59,18 +60,26 @@ export function HabitosSection({
         </View>
       ) : (
         ordered.map((habito) => (
-          <HabitCard
+          <SwipeableRow
             key={habito.id}
-            habito={habito}
-            onToggleToday={() => handleToggleToday(habito.id)}
-            onRemove={() => onRemove(habito.id)}
-            onTogglePin={() => onTogglePin(habito.id)}
+            pinned={habito.pinned}
+            pinColor={colors.orange}
+            editColor={Dayxo.blue}
+            containerStyle={styles.cardSpacing}
+            onPin={() => onTogglePin(habito.id)}
             onEdit={() => setEditHabit(habito)}
-            isDoneToday={isDoneToday(habito.id)}
-            isDoneOnDate={isDoneOnDate}
-            weekStats={weekStats(habito)}
-            embedded
-          />
+          >
+            <HabitCard
+              habito={habito}
+              onToggleToday={() => handleToggleToday(habito.id)}
+              onRemove={() => onRemove(habito.id)}
+              isDoneToday={isDoneToday(habito.id)}
+              isDoneOnDate={isDoneOnDate}
+              weekStats={weekStats(habito)}
+              embedded
+              style={styles.cardNoMargin}
+            />
+          </SwipeableRow>
         ))
       )}
 
@@ -108,4 +117,6 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed',
   },
   emptyText: { fontSize: 13, fontFamily: 'Inter_400Regular', color: colors.textSecondary },
+  cardSpacing: { marginBottom: 10 },
+  cardNoMargin: { marginBottom: 0 },
 });

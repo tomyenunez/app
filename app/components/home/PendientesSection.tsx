@@ -9,6 +9,7 @@ import { AppColors } from '../../constants/colors';
 import { Dayxo } from '../../constants/dayxo';
 import { Familia, Todo } from '../../types';
 import { AddTodoModal } from './AddTodoModal';
+import { SwipeableRow } from '../shared/SwipeableRow';
 
 interface Props {
   todos: Todo[];
@@ -64,34 +65,41 @@ export function PendientesSection({ todos, familias, getFamilia, onAdd, onUpdate
           const fam = getFamilia(item.tag);
           const pal = colors.familia[fam.color];
           return (
-            <View key={item.id} style={[styles.item, item.pinned && styles.itemPinned]}>
-              <TouchableOpacity
-                onPress={() => handleToggle(item.id)}
-                style={[styles.checkbox, item.done && styles.checkboxDone]}
-              >
-                {item.done && <Ionicons name="checkmark" size={14} color="#fff" />}
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.itemBody} activeOpacity={0.6} onPress={() => setEditTodo(item)}>
-                <Text style={[styles.itemText, item.done && styles.itemTextDone]} numberOfLines={2}>
-                  {item.text}
-                </Text>
-                {item.fecha && (
-                  <View style={styles.dateRow}>
-                    <Ionicons name="calendar-outline" size={11} color={colors.textSecondary} />
-                    <Text style={styles.dateText}>{format(new Date(item.fecha), 'd MMM', { locale: es })}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-              <View style={[styles.tag, { backgroundColor: pal.bg }]}>
-                <Text style={[styles.tagText, { color: pal.fg }]}>{fam.nombre}</Text>
+            <SwipeableRow
+              key={item.id}
+              pinned={item.pinned}
+              pinColor={Dayxo.purple}
+              editColor={Dayxo.blue}
+              containerStyle={styles.itemSpacing}
+              onPin={() => onTogglePin(item.id)}
+              onEdit={() => setEditTodo(item)}
+            >
+              <View style={[styles.item, item.pinned && styles.itemPinned]}>
+                <TouchableOpacity
+                  onPress={() => handleToggle(item.id)}
+                  style={[styles.checkbox, item.done && styles.checkboxDone]}
+                >
+                  {item.done && <Ionicons name="checkmark" size={14} color="#fff" />}
+                </TouchableOpacity>
+                <View style={styles.itemBody}>
+                  <Text style={[styles.itemText, item.done && styles.itemTextDone]} numberOfLines={2}>
+                    {item.text}
+                  </Text>
+                  {item.fecha && (
+                    <View style={styles.dateRow}>
+                      <Ionicons name="calendar-outline" size={11} color={colors.textSecondary} />
+                      <Text style={styles.dateText}>{format(new Date(item.fecha), 'd MMM', { locale: es })}</Text>
+                    </View>
+                  )}
+                </View>
+                <View style={[styles.tag, { backgroundColor: pal.bg }]}>
+                  <Text style={[styles.tagText, { color: pal.fg }]}>{fam.nombre}</Text>
+                </View>
+                <TouchableOpacity onPress={() => onRemove(item.id)} style={styles.iconBtn}>
+                  <Ionicons name="close" size={16} color={colors.textSecondary} />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity onPress={() => onTogglePin(item.id)} style={styles.iconBtn}>
-                <Ionicons name={item.pinned ? 'pin' : 'pin-outline'} size={15} color={item.pinned ? Dayxo.purple : colors.textSecondary} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => onRemove(item.id)} style={styles.iconBtn}>
-                <Ionicons name="close" size={16} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
+            </SwipeableRow>
           );
         })
       )}
@@ -131,10 +139,11 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed',
   },
   emptyText: { fontSize: 13, fontFamily: 'Inter_400Regular', color: colors.textSecondary },
+  itemSpacing: { marginBottom: 8 },
   item: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: colors.card, borderRadius: 12,
-    padding: 12, gap: 8, marginBottom: 8,
+    padding: 12, gap: 8,
     shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
   },

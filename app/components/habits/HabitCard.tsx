@@ -22,10 +22,11 @@ interface Props {
   embedded?: boolean;
   onTogglePin?: () => void;
   onEdit?: () => void;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function HabitCard({
-  habito, onToggleToday, onRemove, isDoneToday, isDoneOnDate, weekStats, embedded, onTogglePin, onEdit,
+  habito, onToggleToday, onRemove, isDoneToday, isDoneOnDate, weekStats, embedded, onTogglePin, onEdit, style,
 }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -34,7 +35,7 @@ export function HabitCard({
   const appliesLabels = habito.days.map((d) => DAY_NAMES[d]).join(' · ');
 
   return (
-    <View style={[styles.habitCard, embedded && styles.habitCardEmbedded, habito.pinned && styles.habitCardPinned]}>
+    <View style={[styles.habitCard, embedded && styles.habitCardEmbedded, habito.pinned && styles.habitCardPinned, style]}>
       {/* Header */}
       <View style={styles.habitHeader}>
         <TouchableOpacity style={{ flex: 1 }} activeOpacity={onEdit ? 0.6 : 1} onPress={onEdit} disabled={!onEdit}>
