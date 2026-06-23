@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Todo, Deuda, Habito, Transaction, Evento, Familia, OpcionGasto } from '../types';
+import { Todo, Deuda, Transaction, Evento, Familia, OpcionGasto } from '../types';
 import { supabase } from './supabase';
 
 export const KEYS = {
@@ -15,7 +15,6 @@ export const KEYS = {
   lastActive: '@dayxo/lastActive',
   categoriasGasto: '@dayxo/categoriasGasto',
   metodosPago: '@dayxo/metodosPago',
-  financeOrder: '@dayxo/finance_order',
   // Gamificación
   xpTotal: '@dayxo/xp_total',
   xpDaily: '@dayxo/daily_xp', // { "YYYY-M-D": number }
@@ -23,7 +22,6 @@ export const KEYS = {
   badges: '@dayxo/badges', // { [badgeId]: ISO timestamp }
   records: '@dayxo/records',
   profile: '@dayxo/profile',
-  missionsState: '@dayxo/missions_state',
   // Flag de migración (corre una sola vez)
   migratedV2: '@dayxo/migrated_v2',
 };
@@ -157,14 +155,6 @@ export async function saveDeudas(deudas: Deuda[]): Promise<void> {
   return setJSON(KEYS.deudas, deudas);
 }
 
-// --- Habitos ---
-export async function getHabitos(): Promise<Habito[]> {
-  return getJSON<Habito[]>(KEYS.habitos, []);
-}
-export async function saveHabitos(habitos: Habito[]): Promise<void> {
-  return setJSON(KEYS.habitos, habitos);
-}
-
 // --- Transactions ---
 export async function getTxs(): Promise<Transaction[]> {
   return getJSON<Transaction[]>(KEYS.txs, []);
@@ -221,12 +211,21 @@ export async function saveMetodosPago(items: OpcionGasto[]): Promise<void> {
   return setJSON(KEYS.metodosPago, items);
 }
 
-// Orden de las burbujas de Finanzas (reordenable por el usuario)
+// Orden de las burbujas de Finanzas (reordenable por el usuario) — en profiles.finance_order
 export async function getFinanceOrder(): Promise<string[]> {
-  return getJSON<string[]>(KEYS.financeOrder, ['gastos', 'deudas', 'ingresos']);
+  const def = ['gastos', 'deudas', 'ingresos'];
+  const uid = await currentUid();
+  if (!uid) return def;
+  const { data, error } = await supabase.from('profiles').select('finance_order').eq('id', uid).maybeSingle();
+  if (error) console.warn('[Dayxo finance_order] leer:', error.message);
+  const order = data?.finance_order;
+  return Array.isArray(order) && order.length === 3 ? order : def;
 }
 export async function saveFinanceOrder(order: string[]): Promise<void> {
-  return setJSON(KEYS.financeOrder, order);
+  const uid = await currentUid();
+  if (!uid) return;
+  const { error } = await supabase.from('profiles').update({ finance_order: order }).eq('id', uid);
+  if (error) console.warn('[Dayxo finance_order] guardar:', error.message);
 }
 
 // --- Gamificación ---
@@ -248,13 +247,6 @@ export async function getProfile(): Promise<PlayerProfile> {
 export async function saveProfile(p: PlayerProfile): Promise<void> {
   return setJSON(KEYS.profile, p);
 }
-export async function getMissionsState(): Promise<any> {
-  return getJSON<any>(KEYS.missionsState, null);
-}
-export async function saveMissionsState(s: any): Promise<void> {
-  return setJSON(KEYS.missionsState, s);
-}
-
 // --- Acceso crudo (para la migración @kitdeldia → @dayxo) ---
 export async function rawGet(key: string): Promise<string | null> {
   try {

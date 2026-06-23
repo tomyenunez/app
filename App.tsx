@@ -21,8 +21,9 @@ import { ThemeProvider, useTheme } from './app/context/ThemeContext';
 import { GameProvider } from './app/context/GameContext';
 import { AuthProvider, useAuth } from './app/context/AuthContext';
 import { runMigrationIfNeeded } from './app/services/migration';
-import { getHabitos } from './app/services/storage';
 import { syncAllHabitReminders } from './app/services/notificationService';
+import { supabase } from './app/services/supabase';
+import { Habito } from './app/types';
 
 const navigationRef = createNavigationContainerRef();
 
@@ -37,10 +38,18 @@ function AppContent() {
     Animated.timing(fade, { toValue: 1, duration: 180, useNativeDriver: true }).start();
   }, [isDark]);
 
-  // Resincronizar recordatorios de hábitos al arrancar (sin pedir permiso).
+  // Resincronizar recordatorios de hábitos al loguear (desde la nube).
   useEffect(() => {
-    getHabitos().then(syncAllHabitReminders).catch(() => {});
-  }, []);
+    if (!session) return;
+    (async () => {
+      const { data } = await supabase.from('habitos').select('id, name, days, recordatorio');
+      const habits = (data ?? []).map((r: any) => ({
+        id: r.id, name: r.name, days: r.days ?? [], recordatorio: r.recordatorio ?? undefined,
+      })) as Habito[];
+      syncAllHabitReminders(habits).catch(() => {});
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id]);
 
   // Al tocar una notificación, navegar a la pantalla indicada en su data.
   useEffect(() => {

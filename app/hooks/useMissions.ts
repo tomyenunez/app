@@ -3,22 +3,36 @@ import { useFocusEffect } from '@react-navigation/native';
 import { startOfWeek } from 'date-fns';
 import { Mission } from '../types/game';
 import { DAILY_MISSIONS, WEEKLY_MISSIONS } from '../constants/missions';
-import { getTodos, getHabitos, getTxs, getHabitDone } from '../services/storage';
 import { awardXPOnce } from '../services/xpService';
 import { todayKey, todayIdx, dateKey } from '../utils/dateUtils';
+import { supabase } from '../services/supabase';
+import { useAuth } from '../context/AuthContext';
 
-// Calcula el progreso de cada misión desde los datos reales y otorga XP
-// la primera vez que se completa (clave única por día/semana).
+// Calcula el progreso de cada misión desde los datos reales (en la nube) y
+// otorga XP la primera vez que se completa (clave única por día/semana).
 export function useMissions() {
+  const { user } = useAuth();
+  const userId = user?.id;
   const [missions, setMissions] = useState<Mission[]>([]);
 
   useFocusEffect(
     useCallback(() => {
+      if (!userId) { setMissions([]); return; }
       let cancelled = false;
       (async () => {
-        const [todos, habitos, txs, habitDone] = await Promise.all([
-          getTodos(), getHabitos(), getTxs(), getHabitDone(),
+        const [todosRes, habitosRes, txsRes, hdRes] = await Promise.all([
+          supabase.from('todos').select('done, created'),
+          supabase.from('habitos').select('id, days'),
+          supabase.from('transactions').select('fecha'),
+          supabase.from('habit_done').select('habit_id, fecha'),
         ]);
+        if (cancelled) return;
+
+        const todos = (todosRes.data ?? []) as { done: boolean; created: string }[];
+        const habitos = (habitosRes.data ?? []).map((h: any) => ({ id: h.id as string, days: (h.days ?? []) as number[] }));
+        const txs = (txsRes.data ?? []) as { fecha: string }[];
+        const habitDone: Record<string, boolean> = {};
+        (hdRes.data ?? []).forEach((r: any) => { habitDone[`${r.fecha}-${r.habit_id}`] = true; });
 
         const tk = todayKey();
         const idx = todayIdx();
@@ -74,7 +88,7 @@ export function useMissions() {
         if (!cancelled) setMissions(all);
       })();
       return () => { cancelled = true; };
-    }, [])
+    }, [userId])
   );
 
   return missions;
