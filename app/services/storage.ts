@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Todo, Deuda, Habito, Transaction, Evento, Familia, OpcionGasto } from '../types';
+import { supabase } from './supabase';
 
 export const KEYS = {
   todos: '@dayxo/todos',
@@ -38,6 +39,106 @@ async function getJSON<T>(key: string, fallback: T): Promise<T> {
 
 async function setJSON<T>(key: string, value: T): Promise<void> {
   await AsyncStorage.setItem(key, JSON.stringify(value));
+}
+
+// ============================================================
+// Gamificación: 1 fila por usuario en `game_state` (nube).
+// Cache en memoria + escritura agrupada (debounce): un "award" toca varios
+// campos, no queremos un round-trip por cada uno. Las firmas async se mantienen
+// así xpService / GameContext / useStreak no cambian.
+// ============================================================
+import { PersonalRecords as PR } from '../types/game';
+
+interface GameState {
+  xpTotal: number;
+  xpDaily: Record<string, number>;
+  xpClaims: Record<string, boolean>;
+  badges: Record<string, string>;
+  records: PR;
+  streak: number;
+  longestStreak: number;
+  lastActive: string;
+}
+
+const DEFAULT_GAME: GameState = {
+  xpTotal: 0, xpDaily: {}, xpClaims: {}, badges: {},
+  records: {
+    bestStreak: 0, bestWeekXP: 0, bestDayXP: 0, totalExtraStars: 0,
+    totalBadges: 0, totalHabitsCompleted: 0, totalTodosCompleted: 0,
+  },
+  streak: 0, longestStreak: 0, lastActive: '',
+};
+
+let gameCache: GameState | null = null;
+let gameLoad: Promise<GameState> | null = null;
+let gameSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+async function currentUid(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user?.id ?? null;
+}
+
+function gameToRow(uid: string, s: GameState) {
+  return {
+    user_id: uid,
+    xp_total: s.xpTotal,
+    xp_daily: s.xpDaily,
+    xp_claims: s.xpClaims,
+    badges: s.badges,
+    records: s.records,
+    streak: s.streak,
+    longest_streak: s.longestStreak,
+    last_active: s.lastActive,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+async function loadGame(): Promise<GameState> {
+  if (gameCache) return gameCache;
+  if (gameLoad) return gameLoad;
+  gameLoad = (async () => {
+    const uid = await currentUid();
+    if (!uid) { gameCache = { ...DEFAULT_GAME }; return gameCache; }
+    const { data, error } = await supabase.from('game_state').select('*').eq('user_id', uid).maybeSingle();
+    if (error) console.warn('[Dayxo game] leer:', error.message);
+    if (data) {
+      gameCache = {
+        xpTotal: Number(data.xp_total) || 0,
+        xpDaily: data.xp_daily ?? {},
+        xpClaims: data.xp_claims ?? {},
+        badges: data.badges ?? {},
+        records: { ...DEFAULT_GAME.records, ...(data.records ?? {}) },
+        streak: data.streak ?? 0,
+        longestStreak: data.longest_streak ?? 0,
+        lastActive: data.last_active ?? '',
+      };
+    } else {
+      gameCache = { ...DEFAULT_GAME };
+      const { error: insErr } = await supabase.from('game_state').upsert(gameToRow(uid, gameCache));
+      if (insErr) console.warn('[Dayxo game] crear:', insErr.message);
+    }
+    return gameCache;
+  })();
+  try { return await gameLoad; } finally { gameLoad = null; }
+}
+
+async function persistGame(): Promise<void> {
+  const uid = await currentUid();
+  if (!uid || !gameCache) return;
+  const { error } = await supabase.from('game_state').upsert(gameToRow(uid, gameCache));
+  if (error) console.warn('[Dayxo game] guardar:', error.message);
+}
+
+function scheduleGameSave(): void {
+  if (gameSaveTimer) clearTimeout(gameSaveTimer);
+  gameSaveTimer = setTimeout(() => { persistGame(); }, 400);
+}
+
+// Limpia el cache al cambiar de usuario (login/logout) — lo llama GameContext
+export function resetGameCache(): void {
+  gameCache = null;
+  gameLoad = null;
+  if (gameSaveTimer) { clearTimeout(gameSaveTimer); gameSaveTimer = null; }
 }
 
 // --- Todos ---
@@ -96,27 +197,15 @@ export async function saveHabitDone(done: Record<string, boolean>): Promise<void
   return setJSON(KEYS.habitDone, done);
 }
 
-// --- Streak ---
-export async function getStreak(): Promise<number> {
-  return getJSON<number>(KEYS.streak, 0);
-}
-export async function saveStreak(streak: number): Promise<void> {
-  return setJSON(KEYS.streak, streak);
-}
+// --- Streak (en game_state, nube) ---
+export async function getStreak(): Promise<number> { return (await loadGame()).streak; }
+export async function saveStreak(streak: number): Promise<void> { (await loadGame()).streak = streak; scheduleGameSave(); }
 
-export async function getLongestStreak(): Promise<number> {
-  return getJSON<number>(KEYS.longestStreak, 0);
-}
-export async function saveLongestStreak(n: number): Promise<void> {
-  return setJSON(KEYS.longestStreak, n);
-}
+export async function getLongestStreak(): Promise<number> { return (await loadGame()).longestStreak; }
+export async function saveLongestStreak(n: number): Promise<void> { (await loadGame()).longestStreak = n; scheduleGameSave(); }
 
-export async function getLastActive(): Promise<string> {
-  return getJSON<string>(KEYS.lastActive, '');
-}
-export async function saveLastActive(date: string): Promise<void> {
-  return setJSON(KEYS.lastActive, date);
-}
+export async function getLastActive(): Promise<string> { return (await loadGame()).lastActive; }
+export async function saveLastActive(date: string): Promise<void> { (await loadGame()).lastActive = date; scheduleGameSave(); }
 
 // --- Categorías de gasto y formas de pago ---
 export async function getCategoriasGasto(): Promise<OpcionGasto[]> {
@@ -143,39 +232,16 @@ export async function saveFinanceOrder(order: string[]): Promise<void> {
 // --- Gamificación ---
 import { PersonalRecords, PlayerProfile } from '../types/game';
 
-export async function getXpTotal(): Promise<number> {
-  return getJSON<number>(KEYS.xpTotal, 0);
-}
-export async function saveXpTotal(n: number): Promise<void> {
-  return setJSON(KEYS.xpTotal, n);
-}
-export async function getXpDaily(): Promise<Record<string, number>> {
-  return getJSON<Record<string, number>>(KEYS.xpDaily, {});
-}
-export async function saveXpDaily(d: Record<string, number>): Promise<void> {
-  return setJSON(KEYS.xpDaily, d);
-}
-export async function getXpClaims(): Promise<Record<string, boolean>> {
-  return getJSON<Record<string, boolean>>(KEYS.xpClaims, {});
-}
-export async function saveXpClaims(c: Record<string, boolean>): Promise<void> {
-  return setJSON(KEYS.xpClaims, c);
-}
-export async function getBadges(): Promise<Record<string, string>> {
-  return getJSON<Record<string, string>>(KEYS.badges, {});
-}
-export async function saveBadges(b: Record<string, string>): Promise<void> {
-  return setJSON(KEYS.badges, b);
-}
-export async function getRecords(): Promise<PersonalRecords> {
-  return getJSON<PersonalRecords>(KEYS.records, {
-    bestStreak: 0, bestWeekXP: 0, bestDayXP: 0, totalExtraStars: 0,
-    totalBadges: 0, totalHabitsCompleted: 0, totalTodosCompleted: 0,
-  });
-}
-export async function saveRecords(r: PersonalRecords): Promise<void> {
-  return setJSON(KEYS.records, r);
-}
+export async function getXpTotal(): Promise<number> { return (await loadGame()).xpTotal; }
+export async function saveXpTotal(n: number): Promise<void> { (await loadGame()).xpTotal = n; scheduleGameSave(); }
+export async function getXpDaily(): Promise<Record<string, number>> { return { ...(await loadGame()).xpDaily }; }
+export async function saveXpDaily(d: Record<string, number>): Promise<void> { (await loadGame()).xpDaily = d; scheduleGameSave(); }
+export async function getXpClaims(): Promise<Record<string, boolean>> { return { ...(await loadGame()).xpClaims }; }
+export async function saveXpClaims(c: Record<string, boolean>): Promise<void> { (await loadGame()).xpClaims = c; scheduleGameSave(); }
+export async function getBadges(): Promise<Record<string, string>> { return { ...(await loadGame()).badges }; }
+export async function saveBadges(b: Record<string, string>): Promise<void> { (await loadGame()).badges = b; scheduleGameSave(); }
+export async function getRecords(): Promise<PersonalRecords> { return { ...(await loadGame()).records }; }
+export async function saveRecords(r: PersonalRecords): Promise<void> { (await loadGame()).records = r; scheduleGameSave(); }
 export async function getProfile(): Promise<PlayerProfile> {
   return getJSON<PlayerProfile>(KEYS.profile, { username: 'Eladio', avatarColor: '#6C5CE7' });
 }

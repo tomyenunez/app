@@ -15,9 +15,11 @@ import {
   Poppins_800ExtraBold,
 } from '@expo-google-fonts/poppins';
 import { AppNavigator } from './app/navigation/AppNavigator';
+import { AuthScreen } from './app/screens/AuthScreen';
 import { GameOverlay } from './app/components/game/GameOverlay';
 import { ThemeProvider, useTheme } from './app/context/ThemeContext';
 import { GameProvider } from './app/context/GameContext';
+import { AuthProvider, useAuth } from './app/context/AuthContext';
 import { runMigrationIfNeeded } from './app/services/migration';
 import { getHabitos } from './app/services/storage';
 import { syncAllHabitReminders } from './app/services/notificationService';
@@ -26,6 +28,7 @@ const navigationRef = createNavigationContainerRef();
 
 function AppContent() {
   const { colors, isDark } = useTheme();
+  const { session, loading: authLoading } = useAuth();
   const fade = useRef(new Animated.Value(1)).current;
 
   // Transición suave al cambiar de tema
@@ -64,12 +67,21 @@ function AppContent() {
 
   return (
     <Animated.View style={{ flex: 1, opacity: fade, backgroundColor: colors.bg }}>
-      <NavigationContainer ref={navigationRef} theme={navTheme}>
-        <StatusBar style={isDark ? 'light' : 'dark'} />
-        <AppNavigator />
-        {/* Toasts de XP, badges y modal de subida de nivel */}
-        <GameOverlay />
-      </NavigationContainer>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      {authLoading ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={colors.violet} />
+        </View>
+      ) : !session ? (
+        // Online-only: sin sesión, mostramos el login
+        <AuthScreen />
+      ) : (
+        <NavigationContainer ref={navigationRef} theme={navTheme}>
+          <AppNavigator />
+          {/* Toasts de XP, badges y modal de subida de nivel */}
+          <GameOverlay />
+        </NavigationContainer>
+      )}
     </Animated.View>
   );
 }
@@ -105,9 +117,11 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <GameProvider>
-            <AppContent />
-          </GameProvider>
+          <AuthProvider>
+            <GameProvider>
+              <AppContent />
+            </GameProvider>
+          </AuthProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
@@ -121,4 +135,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });

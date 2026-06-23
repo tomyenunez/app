@@ -14,13 +14,16 @@ import { useCategoriasGasto } from '../hooks/useOpcionesGasto';
 import { useStreak } from '../hooks/useStreak';
 import { useGame } from '../context/GameContext';
 import { BADGES } from '../constants/badges';
-import { dateKey, weekDays } from '../utils/dateUtils';
+import { dateKey, weekDays, isSameDay } from '../utils/dateUtils';
 import { formatARS, formatARSWithSign, formatPercent } from '../utils/formatters';
 import { DonutChart, DonutSlice } from '../components/stats/DonutChart';
 import { BarRow } from '../components/stats/BarRow';
+import { WeeklySummaryCard } from '../components/stats/WeeklySummaryCard';
+import { NextBadgeCard } from '../components/stats/NextBadgeCard';
 import { ProfileCard } from '../components/profile/ProfileCard';
 import { EditProfileModal } from '../components/profile/EditProfileModal';
 import { ActivityGrid } from '../components/profile/ActivityGrid';
+import { LogrosSection } from '../components/game/LogrosSection';
 import { useFamilias } from '../hooks/useFamilias';
 import {
   habitInsights, taskInsights, financeInsights, evolutionInsights, buildSmartInsights,
@@ -48,10 +51,11 @@ export function StatsScreen() {
   const categorias = useCategoriasGasto();
   const { getFamilia } = useFamilias();
   const streak = useStreak();
-  const { records, badges, xpDaily, level } = useGame();
+  const { profile, records, badges, xpDaily, level, xpTotal } = useGame();
   const [periodo, setPeriodo] = useState<Periodo>('mes');
   const [socialVisible, setSocialVisible] = useState(false);
   const [editVisible, setEditVisible] = useState(false);
+  const [logrosVisible, setLogrosVisible] = useState(false);
 
   // El avatar del Home navega acá con { editProfile: true } para abrir el pop-up
   const route = useRoute<any>();
@@ -141,25 +145,6 @@ export function StatsScreen() {
   const logrosCount = Object.keys(badges).length;
   const nextBadge = BADGES.find((b) => !badges[b.id]);
 
-  // --- Puntos extra (bonus) ---
-  const bonusStats = useMemo(() => {
-    let semana = 0, mes = 0;
-    weekDays().forEach((day) => {
-      const idx = (day.getDay() + 6) % 7;
-      habitos.forEach((h) => {
-        if (!h.days.includes(idx) && habitDone[`${dateKey(day)}-${h.id}`]) semana++;
-      });
-    });
-    for (let i = 0; i < 30; i++) {
-      const day = subDays(today, i);
-      const idx = (day.getDay() + 6) % 7;
-      habitos.forEach((h) => {
-        if (!h.days.includes(idx) && habitDone[`${dateKey(day)}-${h.id}`]) mes++;
-      });
-    }
-    return { semana, mes };
-  }, [habitos, habitDone]);
-
   // --- Las 6 cards ---
   const cards = [
     { accent: Dayxo.orange, icon: 'flame', value: streak.toString(), label: 'Días de racha', secondary: records.bestStreak > 0 ? `Mejor racha: ${records.bestStreak} días` : 'Aún sin récord' },
@@ -213,6 +198,40 @@ export function StatsScreen() {
   const maxCatTask = Math.max(1, ...tStats.perCategory.map((c) => c.count));
   const maxFin = Math.max(1, fStats.ingresoMes, fStats.gastoMes);
 
+  // --- Resumen semanal: % + objetivos + días ---
+  const semana = useMemo(() => {
+    const labels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+    let totalAll = 0, doneAll = 0;
+    const days = weekDays().map((day, i) => {
+      const idx = (day.getDay() + 6) % 7;
+      let dTotal = 0, dDone = 0;
+      habitos.forEach((h) => {
+        if (h.days.includes(idx)) { dTotal++; if (habitDone[`${dateKey(day)}-${h.id}`]) dDone++; }
+      });
+      todos.forEach((t) => {
+        if (t.fecha && isSameDay(new Date(t.fecha), day)) { dTotal++; if (t.done) dDone++; }
+      });
+      totalAll += dTotal; doneAll += dDone;
+      return { label: labels[i], ratio: dTotal > 0 ? dDone / dTotal : 0, future: day > today, hasItems: dTotal > 0 };
+    });
+    const pct = totalAll > 0 ? Math.round((doneAll / totalAll) * 100) : 0;
+    return { pct, done: doneAll, total: totalAll, days };
+  }, [habitos, habitDone, todos]);
+
+  // --- Próximos logros: los 3 siguientes badges sin desbloquear (+ progreso si es medible) ---
+  const nextBadges = useMemo(() => {
+    return BADGES.filter((b) => !badges[b.id]).slice(0, 3).map((b) => {
+      let cur: number | null = null;
+      let target: number | null = null;
+      const m = b.id.match(/^(streak|todos|xp)_(\d+)$/);
+      if (m) {
+        target = Number(m[2]);
+        cur = m[1] === 'streak' ? streak : m[1] === 'todos' ? records.totalTodosCompleted : Math.round(xpTotal);
+      }
+      return { icon: b.icon, name: b.name, description: b.description, color: b.color, current: cur, target };
+    });
+  }, [badges, streak, records, xpTotal]);
+
   const PERIODOS: { key: Periodo; label: string }[] = [
     { key: 'mes-anterior', label: 'Mes anterior' },
     { key: 'mes', label: 'Este mes' },
@@ -236,23 +255,11 @@ export function StatsScreen() {
         {/* Card de perfil — tap en avatar/nombre abre el pop-up de editar */}
         <ProfileCard onPress={() => setEditVisible(true)} />
 
-        {/* Puntos extra */}
-        <View style={styles.bonusBanner}>
-          <Text style={styles.bonusStar}>★</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.bonusLabel}>PUNTOS EXTRA</Text>
-            <Text style={styles.bonusValue}>+{bonusStats.semana} esta semana</Text>
-            <Text style={styles.bonusSub}>+{bonusStats.mes} en los últimos 30 días</Text>
-          </View>
-        </View>
-
-        {/* 6 cards premium */}
+        {/* Cards de stats: fondo neutro + ícono llamativo de fondo */}
         <View style={styles.statsGrid}>
           {cards.map((c, i) => (
-            <View key={i} style={[styles.statCard, { backgroundColor: darkTint(c.accent), shadowColor: c.accent, borderColor: c.accent + '55' }]}>
-              <View style={[styles.statIconWrap, { backgroundColor: c.accent + '22' }]}>
-                <Ionicons name={c.icon as any} size={18} color={c.accent} />
-              </View>
+            <View key={i} style={styles.statCard}>
+              <Ionicons name={c.icon as any} size={60} color={c.accent} style={styles.statWatermark} />
               <Text style={[styles.statValue, { color: c.accent }]} numberOfLines={1} adjustsFontSizeToFit>{c.value}</Text>
               <Text style={styles.statLabel}>{c.label}</Text>
               <Text style={styles.statSecondary} numberOfLines={1}>{c.secondary}</Text>
@@ -260,11 +267,62 @@ export function StatsScreen() {
           ))}
         </View>
 
+        {/* Resumen semanal + Próximo logro */}
+        <View style={styles.duoRow}>
+          <WeeklySummaryCard pct={semana.pct} done={semana.done} total={semana.total} days={semana.days} />
+          <NextBadgeCard badges={nextBadges} />
+        </View>
+
         {/* Actividad — heatmap del último mes */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Actividad — último mes</Text>
-          <Text style={styles.sectionSub}>Cada cuadrado = 1 día. Más intenso = más XP ese día.</Text>
-          <ActivityGrid weeks={5} accent={Dayxo.orange} />
+          <View style={styles.actHead}>
+            <Text style={styles.sectionTitle}>Actividad — último mes</Text>
+            <Text style={styles.actHoy}>Hoy</Text>
+          </View>
+          <ActivityGrid weeks={5} accent={Dayxo.purple} />
+        </View>
+
+        {/* Logros */}
+        <View style={[styles.section, styles.logrosSection]}>
+          <View style={styles.logrosHead}>
+            <View style={styles.logrosTitleWrap}>
+              <View style={[styles.sectionIcon, { backgroundColor: Dayxo.purple + '22' }]}>
+                <Ionicons name="ribbon" size={16} color={Dayxo.purple} />
+              </View>
+              <View>
+                <Text style={styles.sectionTitle}>Logros</Text>
+                <Text style={styles.logrosCount}>{logrosCount} de {BADGES.length} desbloqueados</Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={() => setLogrosVisible(true)}>
+              <Text style={styles.verTodos}>Ver todos ›</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.logrosRow}>
+            {[...BADGES]
+              .sort((a, b) => (badges[b.id] ? 1 : 0) - (badges[a.id] ? 1 : 0))
+              .slice(0, 8)
+              .map((b) => {
+                const unlocked = !!badges[b.id];
+                return (
+                  <View key={b.id} style={[styles.logroChip, { borderColor: unlocked ? b.color : colors.border }]}>
+                    <Text style={styles.logroIcon}>{unlocked ? b.icon : '🔒'}</Text>
+                    <Text style={[styles.logroName, { color: unlocked ? colors.textPrimary : colors.textTertiary }]} numberOfLines={1}>
+                      {b.name}
+                    </Text>
+                  </View>
+                );
+              })}
+          </ScrollView>
+        </View>
+
+        {/* Banner motivacional */}
+        <View style={styles.motivBanner}>
+          <View style={styles.motivIcon}><Text style={styles.motivEmoji}>🚀</Text></View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.motivTitle}>¡Seguí así, {profile.username}!</Text>
+            <Text style={styles.motivText}>Tu racha es de {streak} {streak === 1 ? 'día' : 'días'}. ¡Vos podés más!</Text>
+          </View>
         </View>
 
         {/* Selector de período */}
@@ -569,6 +627,22 @@ export function StatsScreen() {
 
       {/* Pop-up de perfil: editar nombre/color + rangos */}
       <EditProfileModal visible={editVisible} onClose={() => setEditVisible(false)} />
+
+      {/* Ver todos los logros */}
+      <Modal visible={logrosVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setLogrosVisible(false)}>
+        <SafeAreaView style={styles.safe} edges={['top']}>
+          <View style={styles.modalHandleWrap}><View style={styles.modalHandle} /></View>
+          <View style={styles.lmHeader}>
+            <Text style={styles.lmTitle}>Logros</Text>
+            <TouchableOpacity onPress={() => setLogrosVisible(false)}>
+              <Ionicons name="close" size={24} color={colors.textPrimary} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 14, paddingBottom: 40 }}>
+            <LogrosSection />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -586,33 +660,58 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   },
   headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
 
-  // 6 cards premium (dark)
+  // Cards de stats (fondo neutro + ícono de fondo)
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, margin: 14 },
   statCard: {
     width: '47%',
-    borderRadius: 18,
-    padding: 16,
+    borderRadius: 16,
+    padding: 12,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
+    borderColor: colors.border,
+    overflow: 'hidden',
   },
-  statIconWrap: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  statValue: { fontSize: 22, fontFamily: 'Inter_800ExtraBold' },
-  statLabel: { fontSize: 12, fontFamily: 'Inter_600SemiBold', color: 'rgba(255,255,255,0.72)', marginTop: 3 },
-  statSecondary: { fontSize: 11, fontFamily: 'Inter_400Regular', color: 'rgba(255,255,255,0.45)', marginTop: 6 },
+  statWatermark: { position: 'absolute', right: -8, bottom: -10, opacity: 0.13 },
+  statValue: { fontSize: 19, fontFamily: 'Inter_800ExtraBold' },
+  statLabel: { fontSize: 11, fontFamily: 'Inter_600SemiBold', color: colors.textPrimary, marginTop: 3 },
+  statSecondary: { fontSize: 10, fontFamily: 'Inter_400Regular', color: colors.textSecondary, marginTop: 4 },
 
-  bonusBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#FF9F43',
-    marginHorizontal: 14, marginTop: 18, marginBottom: 4,
-    borderRadius: 16, padding: 16,
+  duoRow: { flexDirection: 'row', gap: 10, marginHorizontal: 14, marginTop: 14 },
+
+  actHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  actHoy: { fontSize: 13, fontFamily: 'Inter_700Bold', color: Dayxo.purple },
+
+  logrosHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  logrosTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  logrosCount: { fontSize: 11, fontFamily: 'Inter_500Medium', color: colors.textSecondary, marginTop: 2 },
+  verTodos: { fontSize: 13, fontFamily: 'Inter_700Bold', color: Dayxo.purple },
+  logrosSection: { backgroundColor: colors.violetLight, borderWidth: 1, borderColor: Dayxo.purple + '40' },
+  logrosRow: { gap: 10, paddingRight: 14 },
+  logroChip: {
+    width: 64, height: 80,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.card, borderRadius: 14, borderWidth: 1.5, padding: 6,
   },
-  bonusStar: { fontSize: 28, color: '#fff' },
-  bonusLabel: { fontSize: 10, fontFamily: 'Inter_700Bold', color: '#FFE3C4', letterSpacing: 0.8 },
-  bonusValue: { fontSize: 20, fontFamily: 'Inter_800ExtraBold', color: '#fff', marginTop: 2 },
-  bonusSub: { fontSize: 12, fontFamily: 'Inter_500Medium', color: '#FFE3C4', marginTop: 2 },
+  logroIcon: { fontSize: 24 },
+  logroName: { fontSize: 10, fontFamily: 'Inter_600SemiBold', marginTop: 6, textAlign: 'center' },
+
+  motivBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: 14, marginTop: 14, borderRadius: 16, padding: 16,
+    backgroundColor: Dayxo.orange + '1A', borderWidth: 1, borderColor: Dayxo.orange + '33',
+  },
+  motivIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: Dayxo.orange + '22', alignItems: 'center', justifyContent: 'center' },
+  motivEmoji: { fontSize: 22 },
+  motivTitle: { fontSize: 15, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
+  motivText: { fontSize: 12, fontFamily: 'Inter_500Medium', color: colors.textSecondary, marginTop: 2 },
+
+  modalHandleWrap: { alignItems: 'center', paddingTop: 10, paddingBottom: 6 },
+  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border },
+  lmHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  lmTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
 
   section: {
     backgroundColor: colors.card,

@@ -24,6 +24,7 @@ export interface Deuda {
   desc: string;
   tipo: 'me-debe' | 'le-debo';
   fecha: string; // "YYYY-M-D"
+  pinned?: boolean; // fijado arriba de la lista
 }
 
 export interface HabitReminder {
@@ -56,6 +57,7 @@ export interface Transaction {
   fechaStr: string;
   categoria?: string; // id de OpcionGasto (solo gastos)
   metodo?: string; // id de OpcionGasto — forma de pago
+  pinned?: boolean; // fijado arriba de la lista
 }
 
 export interface Evento {

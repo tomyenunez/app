@@ -1,7 +1,8 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -9,7 +10,7 @@ import { es } from 'date-fns/locale';
 import { useTheme } from '../context/ThemeContext';
 import { AppColors } from '../constants/colors';
 import { Dayxo } from '../constants/dayxo';
-import { Transaction } from '../types';
+import { Transaction, Deuda } from '../types';
 import { usePresupuesto } from '../hooks/usePresupuesto';
 import { useDeudas } from '../hooks/useDeudas';
 import { useCategoriasGasto, useMetodosPago } from '../hooks/useOpcionesGasto';
@@ -19,6 +20,7 @@ import { AddGastoModal } from '../components/finance/AddGastoModal';
 import { AddIngresoModal } from '../components/finance/AddIngresoModal';
 import { AddDeudaModal } from '../components/finance/AddDeudaModal';
 import { DisponibleModal } from '../components/finance/DisponibleModal';
+import { SwipeableRow } from '../components/shared/SwipeableRow';
 import { FinanzasGraphsModal } from '../components/finance/FinanzasGraphsModal';
 import { formatARS, formatARSWithSign } from '../utils/formatters';
 
@@ -33,7 +35,7 @@ const DEFAULT_ORDER = ['gastos', 'deudas', 'ingresos'];
 export function PresupuestoScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { ingresos, gastos, saldo, ingresosList, gastosList, add, update, remove, resetMes } = usePresupuesto();
+  const { ingresos, gastos, saldo, ingresosList, gastosList, add, update, remove, togglePin, resetMes } = usePresupuesto();
   const deudas = useDeudas();
   const categorias = useCategoriasGasto();
   const metodos = useMetodosPago();
@@ -46,6 +48,8 @@ export function PresupuestoScreen() {
   const [addDeuda, setAddDeuda] = useState(false);
   const [editGasto, setEditGasto] = useState<Transaction | null>(null);
   const [editIngreso, setEditIngreso] = useState<Transaction | null>(null);
+  const [editDeuda, setEditDeuda] = useState<Deuda | null>(null);
+  const [verTodo, setVerTodo] = useState<'gastos' | 'ingresos' | 'deudas' | null>(null);
 
   // Orden de las burbujas (persistido, reordenable arrastrando)
   const [order, setOrder] = useState<string[]>(DEFAULT_ORDER);
@@ -79,6 +83,117 @@ export function PresupuestoScreen() {
     );
   };
 
+  // --- Fila de gasto (swipe: pin + editar) ---
+  const renderGastoRow = (item: Transaction) => {
+    const cat = item.categoria ? categorias.getItem(item.categoria) : null;
+    const met = item.metodo ? metodos.getItem(item.metodo) : null;
+    return (
+      <SwipeableRow
+        key={item.id}
+        pinned={item.pinned}
+        pinColor={Dayxo.coral}
+        editColor={Dayxo.blue}
+        containerStyle={styles.rowSpacing}
+        onPin={() => togglePin(item.id)}
+        onEdit={() => { setVerTodo(null); setEditGasto(item); }}
+      >
+        <View style={[styles.row, item.pinned && { borderWidth: 1.5, borderColor: Dayxo.coral }]}>
+          <View style={[styles.rowIcon, { backgroundColor: Dayxo.coral + '66' }]}>
+            <Ionicons name="arrow-up-outline" size={18} color={Dayxo.coral} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.rowDesc}>{item.desc}</Text>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaFecha}>{item.fechaStr}</Text>
+              {met && (
+                <View style={[styles.miniBadge, { backgroundColor: colors.familia[met.color].bg }]}>
+                  <Text style={[styles.miniBadgeText, { color: colors.familia[met.color].fg }]}>{met.nombre}</Text>
+                </View>
+              )}
+              {cat && (
+                <View style={[styles.miniBadge, { backgroundColor: colors.familia[cat.color].bg }]}>
+                  <Text style={[styles.miniBadgeText, { color: colors.familia[cat.color].fg }]}>{cat.nombre}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+          <Text style={[styles.rowMonto, { color: Dayxo.coral }]}>− {formatARS(item.monto)}</Text>
+          <TouchableOpacity onPress={() => remove(item.id)} style={styles.delBtn}>
+            <Ionicons name="trash-outline" size={16} color={colors.error} />
+          </TouchableOpacity>
+        </View>
+      </SwipeableRow>
+    );
+  };
+
+  // --- Fila de ingreso (swipe: pin + editar) ---
+  const renderIngresoRow = (item: Transaction) => (
+    <SwipeableRow
+      key={item.id}
+      pinned={item.pinned}
+      pinColor={Dayxo.green}
+      editColor={Dayxo.blue}
+      containerStyle={styles.rowSpacing}
+      onPin={() => togglePin(item.id)}
+      onEdit={() => { setVerTodo(null); setEditIngreso(item); }}
+    >
+      <View style={[styles.row, item.pinned && { borderWidth: 1.5, borderColor: Dayxo.green }]}>
+        <View style={[styles.rowIcon, { backgroundColor: Dayxo.green + '66' }]}>
+          <Ionicons name="arrow-down-outline" size={18} color={Dayxo.green} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.rowDesc}>{item.desc}</Text>
+          <Text style={styles.metaFecha}>{item.fechaStr}</Text>
+        </View>
+        <Text style={[styles.rowMonto, { color: Dayxo.green }]}>+ {formatARS(item.monto)}</Text>
+        <TouchableOpacity onPress={() => remove(item.id)} style={styles.delBtn}>
+          <Ionicons name="trash-outline" size={16} color={colors.error} />
+        </TouchableOpacity>
+      </View>
+    </SwipeableRow>
+  );
+
+  // --- Fila de deuda (swipe: pin + editar) ---
+  const renderDeudaRow = (d: Deuda) => {
+    const meDebe = d.tipo === 'me-debe';
+    const accent = meDebe ? Dayxo.green : Dayxo.coral;
+    return (
+      <SwipeableRow
+        key={d.id}
+        pinned={d.pinned}
+        pinColor={accent}
+        editColor={Dayxo.blue}
+        containerStyle={styles.rowSpacing}
+        onPin={() => deudas.togglePin(d.id)}
+        onEdit={() => { setVerTodo(null); setEditDeuda(d); }}
+      >
+        <View style={[styles.row, d.pinned && { borderWidth: 1.5, borderColor: accent }]}>
+          <View style={[styles.rowIcon, { backgroundColor: accent + '66' }]}>
+            <Ionicons name={meDebe ? 'arrow-down-outline' : 'arrow-up-outline'} size={18} color={accent} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.rowDesc}>{d.nombre}</Text>
+            <Text style={styles.metaFecha}>{fmtFecha(d.fecha)}</Text>
+          </View>
+          <Text style={[styles.rowMonto, { color: accent }]}>
+            {meDebe ? '+' : '−'} {formatARS(d.monto)}
+          </Text>
+          <TouchableOpacity onPress={() => deudas.remove(d.id)} style={styles.delBtn}>
+            <Ionicons name="trash-outline" size={16} color={colors.error} />
+          </TouchableOpacity>
+        </View>
+      </SwipeableRow>
+    );
+  };
+
+  // Botón "Ver todos" (aparece si hay más de 3 ítems)
+  const verTodoBtn = (tipo: 'gastos' | 'ingresos' | 'deudas', count: number, accent: string) => (
+    <TouchableOpacity style={styles.verTodo} onPress={() => setVerTodo(tipo)} activeOpacity={0.7}>
+      <Text style={[styles.verTodoText, { color: accent }]}>Ver todos ({count})</Text>
+      <Ionicons name="chevron-forward" size={15} color={accent} />
+    </TouchableOpacity>
+  );
+
   // --- Burbuja: Gastos ---
   const renderGastos = () => (
     <View style={[styles.bubble, styles.bubbleGastos]}>
@@ -98,37 +213,10 @@ export function PresupuestoScreen() {
       {gastosList.length === 0 ? (
         <Text style={styles.emptyText}>Sin gastos todavía</Text>
       ) : (
-        gastosList.map((item) => {
-          const cat = item.categoria ? categorias.getItem(item.categoria) : null;
-          const met = item.metodo ? metodos.getItem(item.metodo) : null;
-          return (
-            <View key={item.id} style={styles.row}>
-              <View style={[styles.rowIcon, { backgroundColor: Dayxo.coral + '66' }]}>
-                <Ionicons name="arrow-up-outline" size={18} color={Dayxo.coral} />
-              </View>
-              <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.6} onPress={() => setEditGasto(item)}>
-                <Text style={styles.rowDesc}>{item.desc}</Text>
-                <View style={styles.metaRow}>
-                  <Text style={styles.metaFecha}>{item.fechaStr}</Text>
-                  {met && (
-                    <View style={[styles.miniBadge, { backgroundColor: colors.familia[met.color].bg }]}>
-                      <Text style={[styles.miniBadgeText, { color: colors.familia[met.color].fg }]}>{met.nombre}</Text>
-                    </View>
-                  )}
-                  {cat && (
-                    <View style={[styles.miniBadge, { backgroundColor: colors.familia[cat.color].bg }]}>
-                      <Text style={[styles.miniBadgeText, { color: colors.familia[cat.color].fg }]}>{cat.nombre}</Text>
-                    </View>
-                  )}
-                </View>
-              </TouchableOpacity>
-              <Text style={[styles.rowMonto, { color: Dayxo.coral }]}>− {formatARS(item.monto)}</Text>
-              <TouchableOpacity onPress={() => remove(item.id)} style={styles.delBtn}>
-                <Ionicons name="trash-outline" size={16} color={colors.error} />
-              </TouchableOpacity>
-            </View>
-          );
-        })
+        <>
+          {gastosList.slice(0, 3).map(renderGastoRow)}
+          {gastosList.length > 3 && verTodoBtn('gastos', gastosList.length, Dayxo.coral)}
+        </>
       )}
     </View>
   );
@@ -168,28 +256,10 @@ export function PresupuestoScreen() {
       {deudas.deudas.length === 0 ? (
         <Text style={styles.emptyText}>Sin deudas registradas</Text>
       ) : (
-        deudas.deudas.map((d) => {
-          const meDebe = d.tipo === 'me-debe';
-          const accent = meDebe ? Dayxo.green : Dayxo.coral;
-          const accentBg = accent + '66';
-          return (
-            <View key={d.id} style={styles.row}>
-              <View style={[styles.rowIcon, { backgroundColor: accentBg }]}>
-                <Ionicons name={meDebe ? 'arrow-down-outline' : 'arrow-up-outline'} size={18} color={accent} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rowDesc}>{d.nombre}</Text>
-                <Text style={styles.metaFecha}>{fmtFecha(d.fecha)}</Text>
-              </View>
-              <Text style={[styles.rowMonto, { color: accent }]}>
-                {meDebe ? '+' : '−'} {formatARS(d.monto)}
-              </Text>
-              <TouchableOpacity onPress={() => deudas.remove(d.id)} style={styles.delBtn}>
-                <Ionicons name="trash-outline" size={16} color={colors.error} />
-              </TouchableOpacity>
-            </View>
-          );
-        })
+        <>
+          {deudas.deudas.slice(0, 3).map(renderDeudaRow)}
+          {deudas.deudas.length > 3 && verTodoBtn('deudas', deudas.deudas.length, Dayxo.purple)}
+        </>
       )}
     </View>
   );
@@ -210,21 +280,10 @@ export function PresupuestoScreen() {
       {ingresosList.length === 0 ? (
         <Text style={styles.emptyText}>Sin ingresos registrados</Text>
       ) : (
-        ingresosList.map((item) => (
-          <View key={item.id} style={styles.row}>
-            <View style={[styles.rowIcon, { backgroundColor: Dayxo.green + '66' }]}>
-              <Ionicons name="arrow-down-outline" size={18} color={Dayxo.green} />
-            </View>
-            <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.6} onPress={() => setEditIngreso(item)}>
-              <Text style={styles.rowDesc}>{item.desc}</Text>
-              <Text style={styles.metaFecha}>{item.fechaStr}</Text>
-            </TouchableOpacity>
-            <Text style={[styles.rowMonto, { color: Dayxo.green }]}>+ {formatARS(item.monto)}</Text>
-            <TouchableOpacity onPress={() => remove(item.id)} style={styles.delBtn}>
-              <Ionicons name="trash-outline" size={16} color={colors.error} />
-            </TouchableOpacity>
-          </View>
-        ))
+        <>
+          {ingresosList.slice(0, 3).map(renderIngresoRow)}
+          {ingresosList.length > 3 && verTodoBtn('ingresos', ingresosList.length, Dayxo.green)}
+        </>
       )}
     </View>
   );
@@ -335,10 +394,39 @@ export function PresupuestoScreen() {
         onUpdate={(id, desc, monto, fecha) => update(id, desc, monto, undefined, undefined, fecha)}
       />
       <AddDeudaModal
-        visible={addDeuda}
-        onClose={() => setAddDeuda(false)}
+        visible={addDeuda || !!editDeuda}
+        editing={editDeuda}
+        onClose={() => { setAddDeuda(false); setEditDeuda(null); }}
         onAdd={(nombre, monto, tipo, fecha) => deudas.add(nombre, monto, tipo, fecha)}
+        onUpdate={(id, nombre, monto, tipo, fecha) => deudas.update(id, nombre, monto, tipo, fecha)}
       />
+
+      {/* Ver todos: lista completa de la sección elegida */}
+      <Modal
+        visible={!!verTodo}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setVerTodo(null)}
+      >
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <SafeAreaView style={styles.modalSafe} edges={['top']}>
+            <View style={styles.modalHandleWrap}><View style={styles.modalHandle} /></View>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {verTodo === 'gastos' ? 'Todos los gastos' : verTodo === 'ingresos' ? 'Todos los ingresos' : 'Todas las deudas'}
+              </Text>
+              <TouchableOpacity onPress={() => setVerTodo(null)}>
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalBody}>
+              {verTodo === 'gastos' && gastosList.map(renderGastoRow)}
+              {verTodo === 'ingresos' && ingresosList.map(renderIngresoRow)}
+              {verTodo === 'deudas' && deudas.deudas.map(renderDeudaRow)}
+            </ScrollView>
+          </SafeAreaView>
+        </GestureHandlerRootView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -382,10 +470,25 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   bubbleTitle: { fontSize: 17, fontFamily: 'Inter_700Bold' },
   bubbleTotal: { fontSize: 17, fontFamily: 'Inter_800ExtraBold', color: colors.textPrimary },
   emptyText: { fontSize: 13, fontFamily: 'Inter_400Regular', color: colors.textSecondary, textAlign: 'center', paddingVertical: 16 },
+  rowSpacing: { marginBottom: 8 },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: colors.card, borderRadius: 12, padding: 12, marginBottom: 8,
+    backgroundColor: colors.card, borderRadius: 12, padding: 12,
   },
+  verTodo: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
+    paddingVertical: 10, marginTop: 2,
+  },
+  verTodoText: { fontSize: 13, fontFamily: 'Inter_700Bold' },
+  modalSafe: { flex: 1, backgroundColor: colors.bg },
+  modalHandleWrap: { alignItems: 'center', paddingTop: 10, paddingBottom: 6 },
+  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border },
+  modalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  modalTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
+  modalBody: { padding: 14, paddingBottom: 40 },
   rowIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   rowDesc: { fontSize: 15, fontFamily: 'Inter_600SemiBold', color: colors.textPrimary },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3, flexWrap: 'wrap' },

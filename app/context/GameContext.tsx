@@ -4,8 +4,10 @@ import { getUserLevel } from '../constants/levels';
 import { gameEvents } from '../services/xpService';
 import { onAppOpen } from '../services/session';
 import {
-  getXpTotal, getBadges, getRecords, getProfile, saveProfile, getXpDaily,
+  getXpTotal, getBadges, getRecords, getXpDaily, resetGameCache,
 } from '../services/storage';
+import { useAuth } from './AuthContext';
+import { supabase } from '../services/supabase';
 
 interface GameContextType {
   xpTotal: number;
@@ -35,38 +37,80 @@ const GameContext = createContext<GameContextType>({
 });
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const [xpTotal, setXpTotal] = useState(0);
   const [badges, setBadges] = useState<Record<string, string>>({});
   const [records, setRecords] = useState<PersonalRecords>(DEFAULT_RECORDS);
-  const [profile, setProfileState] = useState<PlayerProfile>({ username: 'Eladio', avatarColor: '#6C5CE7' });
+  const [profile, setProfileState] = useState<PlayerProfile>({ username: 'Dayxo', avatarColor: '#6C5CE7' });
   const [xpDaily, setXpDaily] = useState<Record<string, number>>({});
 
   const reload = useCallback(() => {
-    Promise.all([getXpTotal(), getBadges(), getRecords(), getProfile(), getXpDaily()]).then(
-      ([xp, b, r, p, d]) => {
+    Promise.all([getXpTotal(), getBadges(), getRecords(), getXpDaily()]).then(
+      ([xp, b, r, d]) => {
         setXpTotal(xp);
         setBadges(b);
         setRecords(r);
-        setProfileState(p);
         setXpDaily(d);
       }
     );
   }, []);
 
+  // Perfil desde la nube (online-only): al loguear lo trae; si no existe, lo crea (upsert)
   useEffect(() => {
-    reload();
-    // Cada vez que se otorga XP, refrescamos el estado visible
+    if (!user) {
+      setProfileState({ username: 'Dayxo', avatarColor: '#6C5CE7' });
+      return;
+    }
+    let active = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username, avatar_color')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (error) console.warn('[Dayxo profiles] leer:', error.message);
+      if (!active) return;
+      if (data) {
+        setProfileState({ username: data.username, avatarColor: data.avatar_color });
+      } else {
+        const def = { username: user.email?.split('@')[0] ?? 'Dayxo', avatarColor: '#6C5CE7' };
+        const { error: insErr } = await supabase.from('profiles').upsert({ id: user.id, username: def.username, avatar_color: def.avatarColor });
+        if (insErr) console.warn('[Dayxo profiles] crear:', insErr.message);
+        if (active) setProfileState(def);
+      }
+    })();
+    return () => { active = false; };
+  }, [user]);
+
+  // Cada vez que se otorga XP, refrescamos el estado visible
+  useEffect(() => {
     const unsub = gameEvents.subscribe(() => reload());
-    // Racha diaria + penalización por inactividad (una vez por arranque).
-    // Otorga XP de racha, que dispara reload vía el evento de arriba.
-    onAppOpen().then(() => reload());
     return unsub;
   }, [reload]);
 
-  const setProfile = useCallback((p: PlayerProfile) => {
+  // Al cambiar de usuario (login/logout): limpiar el cache de gamificación y
+  // recargar desde SU fila en la nube. Si está logueado, corre la racha diaria.
+  useEffect(() => {
+    resetGameCache();
+    if (user?.id) {
+      onAppOpen().then(() => reload());
+    } else {
+      reload();
+    }
+  }, [user?.id]);
+
+  const setProfile = useCallback(async (p: PlayerProfile) => {
     setProfileState(p);
-    saveProfile(p);
-  }, []);
+    if (user) {
+      const { error } = await supabase.from('profiles').upsert({
+        id: user.id,
+        username: p.username,
+        avatar_color: p.avatarColor,
+        updated_at: new Date().toISOString(),
+      });
+      if (error) console.warn('[Dayxo profiles] guardar:', error.message);
+    }
+  }, [user]);
 
   const level = useMemo(() => getUserLevel(xpTotal), [xpTotal]);
 

@@ -7,7 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
 import { MissionsSection } from '../game/MissionsSection';
-import { LogrosSection } from '../game/LogrosSection';
+import { AuthPanel } from '../auth/AuthPanel';
+import { useAuth } from '../../context/AuthContext';
 import { awardXP } from '../../services/xpService';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -20,13 +21,14 @@ interface Props {
 
 export function SideMenu({ visible, onClose }: Props) {
   const { colors, isDark, setThemeMode } = useTheme();
+  const { user } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
   // Leemos los insets acá (con contexto del provider); dentro del Modal el
   // SafeAreaView no mide bien la primera vez, así que aplicamos padding a mano.
   const insets = useSafeAreaInsets();
   const [mounted, setMounted] = useState(visible);
   const [missionsOpen, setMissionsOpen] = useState(false);
-  const [logrosOpen, setLogrosOpen] = useState(false);
+  const [cuentaOpen, setCuentaOpen] = useState(false);
   const translateX = useRef(new Animated.Value(-PANEL_W)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
@@ -39,7 +41,7 @@ export function SideMenu({ visible, onClose }: Props) {
       ]).start();
     } else if (mounted) {
       setMissionsOpen(false);
-      setLogrosOpen(false);
+      setCuentaOpen(false);
       Animated.parallel([
         Animated.timing(translateX, { toValue: -PANEL_W, duration: 200, useNativeDriver: true }),
         Animated.timing(overlayOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
@@ -76,7 +78,7 @@ export function SideMenu({ visible, onClose }: Props) {
               </TouchableOpacity>
             </View>
 
-            {/* Arriba: misiones + logros */}
+            {/* Arriba: misiones */}
             <TouchableOpacity style={styles.menuItem} onPress={() => setMissionsOpen(true)} activeOpacity={0.7}>
               <View style={styles.menuItemLeft}>
                 <Text style={styles.menuEmoji}>🎯</Text>
@@ -85,18 +87,21 @@ export function SideMenu({ visible, onClose }: Props) {
               <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.menuItem} onPress={() => setLogrosOpen(true)} activeOpacity={0.7}>
-              <View style={styles.menuItemLeft}>
-                <Text style={styles.menuEmoji}>🏆</Text>
-                <Text style={styles.menuLabel}>Logros</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
-            </TouchableOpacity>
-
             <View style={{ flex: 1 }} />
 
-            {/* Abajo: modo oscuro */}
+            {/* Abajo: cuenta + modo oscuro */}
             <View style={styles.bottomSection}>
+              <TouchableOpacity style={styles.row} onPress={() => setCuentaOpen(true)} activeOpacity={0.7}>
+                <View style={styles.rowLeft}>
+                  <Ionicons name="person-circle-outline" size={22} color={colors.violet} />
+                  <View style={{ flexShrink: 1 }}>
+                    <Text style={styles.rowLabel}>Cuenta</Text>
+                    <Text style={styles.rowSub} numberOfLines={1}>{user ? user.email : 'Iniciá sesión o registrate'}</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
+
               <View style={styles.row}>
                 <View style={styles.rowLeft}>
                   <Ionicons name="moon" size={20} color={colors.violet} />
@@ -142,18 +147,22 @@ export function SideMenu({ visible, onClose }: Props) {
           </View>
         )}
 
-        {/* Logros: vista dentro del mismo modal */}
-        {logrosOpen && (
+        {/* Cuenta: vista dentro del mismo modal */}
+        {cuentaOpen && (
           <View style={[styles.missionsCover, safePad]}>
             <View style={styles.missionsHeader}>
-              <TouchableOpacity onPress={() => setLogrosOpen(false)} style={styles.backBtn}>
+              <TouchableOpacity onPress={() => setCuentaOpen(false)} style={styles.backBtn}>
                 <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
-              <Text style={styles.missionsTitle}>Logros</Text>
+              <Text style={styles.missionsTitle}>Cuenta</Text>
               <View style={{ width: 36 }} />
             </View>
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24, paddingTop: 12 }}>
-              <LogrosSection />
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 24, paddingTop: 8 }}
+              keyboardShouldPersistTaps="handled"
+            >
+              <AuthPanel onDone={() => setCuentaOpen(false)} />
             </ScrollView>
           </View>
         )}
@@ -194,6 +203,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   },
   rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowLabel: { fontSize: 15, fontFamily: 'Inter_500Medium', color: colors.textPrimary },
+  rowSub: { fontSize: 11, fontFamily: 'Inter_400Regular', color: colors.textSecondary, marginTop: 1 },
   switchWrap: {
     borderWidth: 1.5,
     borderColor: colors.textPrimary,

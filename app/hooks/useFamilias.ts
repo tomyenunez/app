@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { Familia, FamiliaColor } from '../types';
-import { getFamilias, saveFamilias } from '../services/storage';
+import { supabase } from '../services/supabase';
+import { useAuth } from '../context/AuthContext';
 
-// Los ids coinciden con los tags viejos para que las tareas existentes migren solas
 const DEFAULT_FAMILIAS: Familia[] = [
   { id: 'personal', nombre: 'Personal', color: 'violeta' },
   { id: 'uni', nombre: 'Uni', color: 'verde' },
@@ -14,42 +14,66 @@ const DEFAULT_FAMILIAS: Familia[] = [
 const FALLBACK: Familia = { id: 'otro', nombre: 'Otro', color: 'gris' };
 
 export function useFamilias() {
+  const { user } = useAuth();
+  const userId = user?.id;
   const [familias, setFamilias] = useState<Familia[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Recarga al enfocar el tab; la primera vez siembra las familias default
+  // Recarga al enfocar; la primera vez (vacío) siembra las familias default en la nube
   useFocusEffect(
     useCallback(() => {
-      getFamilias().then((f) => {
-        if (f.length === 0) {
-          setFamilias(DEFAULT_FAMILIAS);
-          saveFamilias(DEFAULT_FAMILIAS);
+      if (!userId) { setFamilias([]); setLoading(false); return; }
+      let active = true;
+      (async () => {
+        const { data, error } = await supabase
+          .from('familias')
+          .select('familia_id, nombre, color')
+          .order('created_at', { ascending: true });
+        if (!active) return;
+        if (error) console.warn('[Dayxo familias] leer:', error.message);
+
+        const rows: Familia[] = (data ?? []).map((r) => ({
+          id: r.familia_id, nombre: r.nombre, color: r.color as FamiliaColor,
+        }));
+
+        if (rows.length === 0) {
+          const seed = DEFAULT_FAMILIAS.map((f) => ({
+            user_id: userId, familia_id: f.id, nombre: f.nombre, color: f.color,
+          }));
+          const { error: seedErr } = await supabase
+            .from('familias')
+            .upsert(seed, { onConflict: 'user_id,familia_id', ignoreDuplicates: true });
+          if (seedErr) console.warn('[Dayxo familias] sembrar:', seedErr.message);
+          if (active) setFamilias(DEFAULT_FAMILIAS);
         } else {
-          setFamilias(f);
+          setFamilias(rows);
         }
-        setLoading(false);
-      });
-    }, [])
+        if (active) setLoading(false);
+      })();
+      return () => { active = false; };
+    }, [userId])
   );
 
   const add = useCallback(async (nombre: string, color: FamiliaColor) => {
+    if (!userId) return;
     const next: Familia = { id: Date.now().toString(), nombre, color };
-    const updated = [...familias, next];
-    setFamilias(updated);
-    await saveFamilias(updated);
-  }, [familias]);
+    setFamilias((prev) => [...prev, next]);
+    const { error } = await supabase.from('familias')
+      .insert({ user_id: userId, familia_id: next.id, nombre, color });
+    if (error) console.warn('[Dayxo familias] crear:', error.message);
+  }, [userId]);
 
   const update = useCallback(async (id: string, changes: Partial<Pick<Familia, 'nombre' | 'color'>>) => {
-    const updated = familias.map((f) => f.id === id ? { ...f, ...changes } : f);
-    setFamilias(updated);
-    await saveFamilias(updated);
-  }, [familias]);
+    setFamilias((prev) => prev.map((f) => f.id === id ? { ...f, ...changes } : f));
+    const { error } = await supabase.from('familias').update(changes).eq('familia_id', id);
+    if (error) console.warn('[Dayxo familias] editar:', error.message);
+  }, [userId]);
 
   const remove = useCallback(async (id: string) => {
-    const updated = familias.filter((f) => f.id !== id);
-    setFamilias(updated);
-    await saveFamilias(updated);
-  }, [familias]);
+    setFamilias((prev) => prev.filter((f) => f.id !== id));
+    const { error } = await supabase.from('familias').delete().eq('familia_id', id);
+    if (error) console.warn('[Dayxo familias] borrar:', error.message);
+  }, [userId]);
 
   // Si una tarea/evento apunta a una familia borrada, cae en "Otro" gris
   const getFamilia = useCallback((id: string): Familia => {

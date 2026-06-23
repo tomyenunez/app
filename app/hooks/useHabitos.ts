@@ -1,71 +1,117 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { Habito, HabitReminder } from '../types';
-import { getHabitos, saveHabitos, getHabitDone, saveHabitDone } from '../services/storage';
 import { todayKey, todayIdx, weekDays, dateKey } from '../utils/dateUtils';
 import { awardXPOnce, incrementHabitRecord, weeklyStarsCount } from '../services/xpService';
 import { scheduleHabitReminders, cancelHabitReminders } from '../services/notificationService';
 import { XP_VALUES } from '../constants/xpValues';
+import { supabase } from '../services/supabase';
+import { useAuth } from '../context/AuthContext';
+
+function fromRow(r: any): Habito {
+  return {
+    id: r.id,
+    name: r.name,
+    days: r.days ?? [],
+    ...(r.pinned ? { pinned: true } : {}),
+    ...(r.recordatorio ? { recordatorio: r.recordatorio as HabitReminder } : {}),
+  };
+}
+function toRow(h: Habito, userId: string) {
+  return {
+    id: h.id,
+    user_id: userId,
+    name: h.name,
+    days: h.days,
+    pinned: !!h.pinned,
+    recordatorio: h.recordatorio ?? null,
+  };
+}
 
 export function useHabitos() {
+  const { user } = useAuth();
+  const userId = user?.id;
   const [habitos, setHabitos] = useState<Habito[]>([]);
   const [habitDone, setHabitDone] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
 
-  // Recarga al enfocar el tab: otra pantalla pudo haber modificado el storage
+  // Recarga al enfocar: trae los hábitos + el registro de completados desde la nube
   useFocusEffect(
     useCallback(() => {
-      Promise.all([getHabitos(), getHabitDone()]).then(([h, d]) => {
-        setHabitos(h);
-        setHabitDone(d);
+      if (!userId) { setHabitos([]); setHabitDone({}); setLoading(false); return; }
+      let active = true;
+      (async () => {
+        const [hRes, dRes] = await Promise.all([
+          supabase.from('habitos').select('*').order('created_at', { ascending: true }),
+          supabase.from('habit_done').select('habit_id, fecha'),
+        ]);
+        if (!active) return;
+        if (hRes.error) console.warn('[Dayxo habitos] leer:', hRes.error.message);
+        if (dRes.error) console.warn('[Dayxo habit_done] leer:', dRes.error.message);
+        setHabitos((hRes.data ?? []).map(fromRow));
+        const map: Record<string, boolean> = {};
+        (dRes.data ?? []).forEach((r: any) => { map[`${r.fecha}-${r.habit_id}`] = true; });
+        setHabitDone(map);
         setLoading(false);
-      });
-    }, [])
+      })();
+      return () => { active = false; };
+    }, [userId])
   );
 
   const add = useCallback(async (name: string, days: number[], recordatorio?: HabitReminder) => {
+    if (!userId) return;
     const next: Habito = { id: Date.now().toString(), name, days, ...(recordatorio ? { recordatorio } : {}) };
-    const updated = [...habitos, next];
-    setHabitos(updated);
-    await saveHabitos(updated);
+    setHabitos((prev) => [...prev, next]);
+    const { error } = await supabase.from('habitos').insert(toRow(next, userId));
+    if (error) console.warn('[Dayxo habitos] crear:', error.message);
     scheduleHabitReminders(next);
-  }, [habitos]);
+  }, [userId]);
 
   const remove = useCallback(async (id: string) => {
     cancelHabitReminders(id);
-    const updated = habitos.filter((h) => h.id !== id);
-    setHabitos(updated);
-    await saveHabitos(updated);
-  }, [habitos]);
+    setHabitos((prev) => prev.filter((h) => h.id !== id));
+    const { error } = await supabase.from('habitos').delete().eq('id', id);
+    if (error) console.warn('[Dayxo habitos] borrar:', error.message);
+    // borra también su registro de completados
+    await supabase.from('habit_done').delete().eq('habit_id', id);
+  }, []);
 
   const update = useCallback(async (id: string, name: string, days: number[], recordatorio?: HabitReminder) => {
-    let changed: Habito | undefined;
-    const updated = habitos.map((h) => {
-      if (h.id !== id) return h;
-      changed = { ...h, name, days, recordatorio };
-      return changed;
-    });
-    setHabitos(updated);
-    await saveHabitos(updated);
-    if (changed) scheduleHabitReminders(changed);
+    const existing = habitos.find((h) => h.id === id);
+    const changed: Habito = existing
+      ? { ...existing, name, days, recordatorio }
+      : { id, name, days, recordatorio };
+    setHabitos((prev) => prev.map((h) => h.id === id ? changed : h));
+    const { error } = await supabase.from('habitos')
+      .update({ name, days, recordatorio: recordatorio ?? null }).eq('id', id);
+    if (error) console.warn('[Dayxo habitos] editar:', error.message);
+    scheduleHabitReminders(changed);
   }, [habitos]);
 
   const togglePin = useCallback(async (id: string) => {
-    const updated = habitos.map((h) => h.id === id ? { ...h, pinned: !h.pinned } : h);
-    setHabitos(updated);
-    await saveHabitos(updated);
+    const h = habitos.find((x) => x.id === id);
+    if (!h) return;
+    const newPinned = !h.pinned;
+    setHabitos((prev) => prev.map((x) => x.id === id ? { ...x, pinned: newPinned } : x));
+    const { error } = await supabase.from('habitos').update({ pinned: newPinned }).eq('id', id);
+    if (error) console.warn('[Dayxo habitos] pin:', error.message);
   }, [habitos]);
 
-  // Toggle only today
+  // Marca/desmarca el hábito para HOY
   const toggleToday = useCallback(async (habitId: string) => {
-    const key = `${todayKey()}-${habitId}`;
+    if (!userId) return;
+    const fecha = todayKey();
+    const key = `${fecha}-${habitId}`;
     const wasDone = !!habitDone[key];
     const updated = { ...habitDone, [key]: !wasDone };
     setHabitDone(updated);
-    await saveHabitDone(updated);
 
-    // XP solo al marcar (nunca resta); una vez por hábito por día
     if (!wasDone) {
+      // marcar: fila en habit_done + XP (una vez por hábito por día)
+      const { error } = await supabase.from('habit_done')
+        .upsert({ user_id: userId, habit_id: habitId, fecha });
+      if (error) console.warn('[Dayxo habitos] marcar:', error.message);
+
       const habito = habitos.find((h) => h.id === habitId);
       const aplicaHoy = habito?.days.includes(todayIdx()) ?? false;
       const isStar = !aplicaHoy; // día que no tocaba → estrella dorada
@@ -86,8 +132,13 @@ export function useHabitos() {
           },
         }
       );
+    } else {
+      // desmarcar: borra la fila
+      const { error } = await supabase.from('habit_done')
+        .delete().eq('habit_id', habitId).eq('fecha', fecha);
+      if (error) console.warn('[Dayxo habitos] desmarcar:', error.message);
     }
-  }, [habitDone, habitos]);
+  }, [habitDone, habitos, userId]);
 
   const isDoneToday = useCallback((habitId: string) => {
     return !!habitDone[`${todayKey()}-${habitId}`];
@@ -97,7 +148,6 @@ export function useHabitos() {
     return !!habitDone[`${dateKey(date)}-${habitId}`];
   }, [habitDone]);
 
-  // Count completados hoy
   const todayHabits = useMemo(() =>
     habitos.filter((h) => h.days.includes(todayIdx())),
     [habitos]
@@ -114,7 +164,7 @@ export function useHabitos() {
     [habitos, isDoneToday]
   );
 
-  // Week stats for a habit: done = días que tocaban y se hicieron, bonus = extras
+  // Week stats: done = días que tocaban y se hicieron, bonus = extras
   const weekStats = useCallback((habito: Habito) => {
     const days = weekDays();
     let applies = 0;

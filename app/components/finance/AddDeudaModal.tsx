@@ -16,9 +16,11 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   onAdd: (nombre: string, monto: number, tipo: Deuda['tipo'], fecha: Date) => Promise<void> | void;
+  editing?: Deuda | null;
+  onUpdate?: (id: string, nombre: string, monto: number, tipo: Deuda['tipo'], fecha: Date) => Promise<void> | void;
 }
 
-export function AddDeudaModal({ visible, onClose, onAdd }: Props) {
+export function AddDeudaModal({ visible, onClose, onAdd, editing, onUpdate }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [tipo, setTipo] = useState<Deuda['tipo']>('me-debe');
@@ -26,15 +28,30 @@ export function AddDeudaModal({ visible, onClose, onAdd }: Props) {
   const [monto, setMonto] = useState('');
   const [fecha, setFecha] = useState(new Date());
 
+  const isEditing = !!editing;
+
   useEffect(() => {
-    if (visible) { setTipo('me-debe'); setNombre(''); setMonto(''); setFecha(new Date()); }
-  }, [visible]);
+    if (!visible) return;
+    if (editing) {
+      const [y, m, d] = editing.fecha.split('-').map(Number);
+      setTipo(editing.tipo);
+      setNombre(editing.nombre);
+      setMonto(formatMontoInput(String(editing.monto)));
+      setFecha(new Date(y, (m || 1) - 1, d || 1));
+    } else {
+      setTipo('me-debe'); setNombre(''); setMonto(''); setFecha(new Date());
+    }
+  }, [visible, editing]);
 
   const canAdd = nombre.trim().length > 0 && parseMontoInput(monto) > 0;
 
   const handleAdd = async () => {
     if (!canAdd) return;
-    await onAdd(nombre.trim(), parseMontoInput(monto), tipo, fecha);
+    if (isEditing && onUpdate) {
+      await onUpdate(editing!.id, nombre.trim(), parseMontoInput(monto), tipo, fecha);
+    } else {
+      await onAdd(nombre.trim(), parseMontoInput(monto), tipo, fecha);
+    }
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onClose();
   };
@@ -45,7 +62,7 @@ export function AddDeudaModal({ visible, onClose, onAdd }: Props) {
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.handleWrap}><View style={styles.handle} /></View>
           <View style={styles.header}>
-            <Text style={styles.title}>Nueva deuda</Text>
+            <Text style={styles.title}>{isEditing ? 'Editar deuda' : 'Nueva deuda'}</Text>
             <TouchableOpacity onPress={onClose}>
               <Ionicons name="close" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
@@ -97,7 +114,7 @@ export function AddDeudaModal({ visible, onClose, onAdd }: Props) {
               style={[styles.addBtn, { backgroundColor: tipo === 'me-debe' ? colors.green : colors.pink }, !canAdd && { opacity: 0.5 }]}
               disabled={!canAdd}
             >
-              <Text style={styles.addBtnText}>Agregar deuda</Text>
+              <Text style={styles.addBtnText}>{isEditing ? 'Guardar cambios' : 'Agregar deuda'}</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>

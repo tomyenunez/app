@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useMemo, useRef } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity, Animated, LayoutAnimation, Platform, UIManager,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { format } from 'date-fns';
@@ -10,6 +12,11 @@ import { Dayxo } from '../../constants/dayxo';
 import { Familia, Todo } from '../../types';
 import { AddTodoModal } from './AddTodoModal';
 import { SwipeableRow } from '../shared/SwipeableRow';
+
+// LayoutAnimation en Android necesita este flag para animar el cierre del hueco
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 interface Props {
   todos: Todo[];
@@ -28,20 +35,11 @@ export function PendientesSection({ todos, familias, getFamilia, onAdd, onUpdate
   const [modalVisible, setModalVisible] = useState(false);
   const [editTodo, setEditTodo] = useState<Todo | null>(null);
 
-  // Fijados arriba; dentro de cada grupo, pendientes antes que completados
+  // Solo pendientes (al marcar como hecho se tacha y se desvanece); fijados arriba
   const ordered = useMemo(
-    () => [...todos].sort((a, b) => {
-      const pin = (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
-      if (pin !== 0) return pin;
-      return (a.done ? 1 : 0) - (b.done ? 1 : 0);
-    }),
+    () => todos.filter((t) => !t.done).sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)),
     [todos]
   );
-
-  const handleToggle = async (id: string) => {
-    await onToggle(id);
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  };
 
   return (
     <View style={styles.section}>
@@ -63,43 +61,19 @@ export function PendientesSection({ todos, familias, getFamilia, onAdd, onUpdate
       ) : (
         ordered.map((item) => {
           const fam = getFamilia(item.tag);
-          const pal = colors.familia[fam.color];
           return (
-            <SwipeableRow
+            <PendienteItem
               key={item.id}
-              pinned={item.pinned}
-              pinColor={Dayxo.purple}
-              editColor={Dayxo.blue}
-              containerStyle={styles.itemSpacing}
-              onPin={() => onTogglePin(item.id)}
+              item={item}
+              fam={fam}
+              pal={colors.familia[fam.color]}
+              styles={styles}
+              colors={colors}
+              onToggle={onToggle}
+              onRemove={onRemove}
               onEdit={() => setEditTodo(item)}
-            >
-              <View style={[styles.item, item.pinned && styles.itemPinned]}>
-                <TouchableOpacity
-                  onPress={() => handleToggle(item.id)}
-                  style={[styles.checkbox, item.done && styles.checkboxDone]}
-                >
-                  {item.done && <Ionicons name="checkmark" size={14} color="#fff" />}
-                </TouchableOpacity>
-                <View style={styles.itemBody}>
-                  <Text style={[styles.itemText, item.done && styles.itemTextDone]} numberOfLines={2}>
-                    {item.text}
-                  </Text>
-                  {item.fecha && (
-                    <View style={styles.dateRow}>
-                      <Ionicons name="calendar-outline" size={11} color={colors.textSecondary} />
-                      <Text style={styles.dateText}>{format(new Date(item.fecha), 'd MMM', { locale: es })}</Text>
-                    </View>
-                  )}
-                </View>
-                <View style={[styles.tag, { backgroundColor: pal.bg }]}>
-                  <Text style={[styles.tagText, { color: pal.fg }]}>{fam.nombre}</Text>
-                </View>
-                <TouchableOpacity onPress={() => onRemove(item.id)} style={styles.iconBtn}>
-                  <Ionicons name="close" size={16} color={colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
-            </SwipeableRow>
+              onPin={() => onTogglePin(item.id)}
+            />
           );
         })
       )}
@@ -113,6 +87,82 @@ export function PendientesSection({ todos, familias, getFamilia, onAdd, onUpdate
         onSave={onUpdate}
       />
     </View>
+  );
+}
+
+type Styles = ReturnType<typeof createStyles>;
+
+interface ItemProps {
+  item: Todo;
+  fam: Familia;
+  pal: { bg: string; fg: string };
+  styles: Styles;
+  colors: AppColors;
+  onToggle: (id: string) => Promise<void> | void;
+  onRemove: (id: string) => Promise<void> | void;
+  onEdit: () => void;
+  onPin: () => void;
+}
+
+// Fila de pendiente: al tildar se marca + tacha al instante, queda ~1.6s y se
+// desvanece deslizándose; recién ahí dispara onToggle (que lo saca de la lista).
+function PendienteItem({ item, fam, pal, styles, colors, onToggle, onRemove, onEdit, onPin }: ItemProps) {
+  const [completing, setCompleting] = useState(false);
+  const opacity = useRef(new Animated.Value(1)).current;
+  const tx = useRef(new Animated.Value(0)).current;
+
+  const check = () => {
+    if (completing) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setCompleting(true);
+    Animated.sequence([
+      Animated.delay(1600),
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 0, duration: 450, useNativeDriver: true }),
+        Animated.timing(tx, { toValue: 60, duration: 450, useNativeDriver: true }),
+      ]),
+    ]).start(({ finished }) => {
+      if (finished) {
+        LayoutAnimation.configureNext(
+          LayoutAnimation.create(260, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity)
+        );
+        onToggle(item.id);
+      }
+    });
+  };
+
+  return (
+    <SwipeableRow
+      pinned={item.pinned}
+      pinColor={Dayxo.purple}
+      editColor={Dayxo.blue}
+      containerStyle={styles.itemSpacing}
+      onPin={onPin}
+      onEdit={onEdit}
+    >
+      <Animated.View style={[styles.item, item.pinned && styles.itemPinned, { opacity, transform: [{ translateX: tx }] }]}>
+        <TouchableOpacity onPress={check} style={[styles.checkbox, completing && styles.checkboxDone]}>
+          {completing && <Ionicons name="checkmark" size={14} color="#fff" />}
+        </TouchableOpacity>
+        <View style={styles.itemBody}>
+          <Text style={[styles.itemText, completing && styles.itemTextDone]} numberOfLines={2}>
+            {item.text}
+          </Text>
+          {item.fecha && (
+            <View style={styles.dateRow}>
+              <Ionicons name="calendar-outline" size={11} color={colors.textSecondary} />
+              <Text style={styles.dateText}>{format(new Date(item.fecha), 'd MMM', { locale: es })}</Text>
+            </View>
+          )}
+        </View>
+        <View style={[styles.tag, { backgroundColor: pal.bg }]}>
+          <Text style={[styles.tagText, { color: pal.fg }]}>{fam.nombre}</Text>
+        </View>
+        <TouchableOpacity onPress={() => onRemove(item.id)} style={styles.iconBtn}>
+          <Ionicons name="close" size={16} color={colors.textSecondary} />
+        </TouchableOpacity>
+      </Animated.View>
+    </SwipeableRow>
   );
 }
 
