@@ -17,6 +17,7 @@ export function AuthPanel({ onDone }: { onDone: () => void }) {
 
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [step, setStep] = useState<'form' | 'code'>('form');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
@@ -124,9 +125,13 @@ export function AuthPanel({ onDone }: { onDone: () => void }) {
       setError('Ingresá un email y una contraseña de 6+ caracteres.');
       return;
     }
+    if (mode === 'signup' && username.trim().length < 2) {
+      setError('Elegí un nombre de usuario (mínimo 2 caracteres).');
+      return;
+    }
     setBusy(true);
     if (mode === 'signup') {
-      const res = await signUp(email, password);
+      const res = await signUp(email, password, username);
       setBusy(false);
       if (res.error) { setError(res.error); return; }
       setStep('code');
@@ -162,7 +167,23 @@ export function AuthPanel({ onDone }: { onDone: () => void }) {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.label}>EMAIL</Text>
+      {mode === 'signup' && (
+        <>
+          <Text style={styles.label}>NOMBRE DE USUARIO</Text>
+          <TextInput
+            style={styles.input}
+            value={username}
+            onChangeText={setUsername}
+            placeholder="Cómo te van a ver los demás"
+            placeholderTextColor={colors.textTertiary}
+            autoCapitalize="words"
+            autoCorrect={false}
+            maxLength={24}
+          />
+        </>
+      )}
+
+      <Text style={[styles.label, mode === 'signup' && { marginTop: 14 }]}>EMAIL</Text>
       <TextInput
         style={styles.input}
         value={email}

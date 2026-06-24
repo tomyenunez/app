@@ -30,7 +30,7 @@ const GameContext = createContext<GameContextType>({
   level: getUserLevel(0),
   badges: {},
   records: DEFAULT_RECORDS,
-  profile: { username: 'Eladio', avatarColor: '#6C5CE7' },
+  profile: { username: 'Dayxo', avatarColor: '#6C5CE7' },
   xpDaily: {},
   setProfile: () => {},
   reload: () => {},
@@ -73,7 +73,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (data) {
         setProfileState({ username: data.username, avatarColor: data.avatar_color });
       } else {
-        const def = { username: user.email?.split('@')[0] ?? 'Dayxo', avatarColor: '#6C5CE7' };
+        const def = { username: (user.user_metadata?.username as string) || user.email?.split('@')[0] || 'Dayxo', avatarColor: '#6C5CE7' };
         const { error: insErr } = await supabase.from('profiles').upsert({ id: user.id, username: def.username, avatar_color: def.avatarColor });
         if (insErr) console.warn('[Dayxo profiles] crear:', insErr.message);
         if (active) setProfileState(def);
