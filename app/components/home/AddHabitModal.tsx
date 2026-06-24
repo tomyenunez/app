@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity,
-  TextInput, ScrollView, KeyboardAvoidingView, Platform, Switch, Alert,
+  TextInput, ScrollView, KeyboardAvoidingView, Platform, Switch, Alert, Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -50,6 +50,7 @@ export function AddHabitModal({ visible, onClose, onAdd, editing, onSave }: Prop
 
   // Al activar el recordatorio pedimos permiso; si lo niegan, no se enciende.
   const handleToggleNotif = async (val: boolean) => {
+    Keyboard.dismiss();
     if (val) {
       const ok = await requestNotificationPermission();
       if (!ok) {
@@ -118,7 +119,7 @@ export function AddHabitModal({ visible, onClose, onAdd, editing, onSave }: Prop
                 return (
                   <TouchableOpacity
                     key={i}
-                    onPress={() => toggleDay(i)}
+                    onPress={() => { Keyboard.dismiss(); toggleDay(i); }}
                     style={[styles.daySelectorBtn, active && styles.daySelectorBtnActive]}
                   >
                     <Text style={[styles.daySelectorText, active && styles.daySelectorTextActive]}>
@@ -159,17 +160,15 @@ export function AddHabitModal({ visible, onClose, onAdd, editing, onSave }: Prop
                 />
               </>
             )}
-          </ScrollView>
 
-          <View style={styles.footer}>
             <TouchableOpacity
               onPress={handleSubmit}
-              style={[styles.addBtn, !canAdd && { opacity: 0.5 }]}
+              style={[styles.submitInline, !canAdd && { opacity: 0.5 }]}
               disabled={!canAdd}
             >
               <Text style={styles.addBtnText}>{editing ? 'Guardar cambios' : 'Agregar hábito'}</Text>
             </TouchableOpacity>
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
@@ -209,13 +208,9 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   daySelectorBtnActive: { backgroundColor: colors.orange, borderColor: colors.orange },
   daySelectorText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: colors.textSecondary },
   daySelectorTextActive: { color: '#fff' },
-  footer: {
-    padding: 16,
-    borderTopWidth: 1, borderTopColor: colors.border,
-  },
-  addBtn: {
+  submitInline: {
     backgroundColor: colors.orange, borderRadius: 12,
-    paddingVertical: 15, alignItems: 'center',
+    paddingVertical: 15, alignItems: 'center', marginTop: 24,
   },
   addBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
 });

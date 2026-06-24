@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity,
-  TextInput, ScrollView, KeyboardAvoidingView, Platform,
+  TextInput, ScrollView, KeyboardAvoidingView, Platform, Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -98,7 +98,7 @@ export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSav
                 return (
                   <TouchableOpacity
                     key={f.id}
-                    onPress={() => setSelectedTag(f.id)}
+                    onPress={() => { Keyboard.dismiss(); setSelectedTag(f.id); }}
                     style={[
                       styles.tagChip,
                       { backgroundColor: pal.bg },
@@ -113,7 +113,7 @@ export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSav
 
             <Text style={[styles.label, { marginTop: 16 }]}>FECHA (OPCIONAL)</Text>
             <View style={styles.fechaRow}>
-              <TouchableOpacity style={styles.fechaBtn} onPress={() => setShowCal((s) => !s)}>
+              <TouchableOpacity style={styles.fechaBtn} onPress={() => { Keyboard.dismiss(); setShowCal((s) => !s); }}>
                 <Ionicons name="calendar-outline" size={18} color={colors.violet} />
                 <Text style={styles.fechaBtnText}>
                   {fecha ? format(fecha, "d 'de' MMMM", { locale: es }) : 'Sin fecha'}
@@ -166,17 +166,15 @@ export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSav
                 </View>
               </View>
             )}
-          </ScrollView>
 
-          <View style={styles.footer}>
             <TouchableOpacity
               onPress={handleSubmit}
-              style={[styles.addBtn, !text.trim() && { opacity: 0.5 }]}
+              style={[styles.submitInline, !text.trim() && { opacity: 0.5 }]}
               disabled={!text.trim()}
             >
               <Text style={styles.addBtnText}>{editing ? 'Guardar cambios' : 'Agregar pendiente'}</Text>
             </TouchableOpacity>
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
@@ -244,10 +242,9 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   calDayNum: { fontSize: 13, fontFamily: 'Inter_500Medium', color: colors.textPrimary },
   calDayOther: { color: colors.textTertiary },
   calDaySelected: { color: '#fff', fontFamily: 'Inter_700Bold' },
-  footer: { padding: 16, borderTopWidth: 1, borderTopColor: colors.border },
-  addBtn: {
+  submitInline: {
     backgroundColor: colors.violet, borderRadius: 12,
-    paddingVertical: 15, alignItems: 'center',
+    paddingVertical: 15, alignItems: 'center', marginTop: 24,
   },
   addBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
 });

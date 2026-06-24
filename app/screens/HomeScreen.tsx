@@ -64,7 +64,7 @@ export function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {/* Header: menú · título · avatar */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.iconBtn} onPress={() => setMenuVisible(true)}>

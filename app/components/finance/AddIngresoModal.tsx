@@ -91,13 +91,11 @@ export function AddIngresoModal({ visible, onClose, onAdd, editing, onUpdate }: 
 
             <Text style={[styles.label, { marginTop: 16 }]}>FECHA</Text>
             <DateField value={fecha} onChange={setFecha} accent={colors.green} />
-          </ScrollView>
 
-          <View style={styles.footer}>
-            <TouchableOpacity onPress={handleSubmit} style={[styles.addBtn, !canAdd && { opacity: 0.5 }]} disabled={!canAdd}>
+            <TouchableOpacity onPress={handleSubmit} style={[styles.submitInline, !canAdd && { opacity: 0.5 }]} disabled={!canAdd}>
               <Text style={styles.addBtnText}>{editing ? 'Guardar cambios' : 'Agregar ingreso'}</Text>
             </TouchableOpacity>
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
@@ -119,7 +117,6 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     backgroundColor: colors.inputBg, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
     fontSize: 16, fontFamily: 'Inter_400Regular', color: colors.textPrimary, borderWidth: 1, borderColor: colors.border,
   },
-  footer: { padding: 16, borderTopWidth: 1, borderTopColor: colors.border },
-  addBtn: { backgroundColor: colors.green, borderRadius: 12, paddingVertical: 15, alignItems: 'center' },
+  submitInline: { backgroundColor: colors.green, borderRadius: 12, paddingVertical: 15, alignItems: 'center', marginTop: 18 },
   addBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
 });

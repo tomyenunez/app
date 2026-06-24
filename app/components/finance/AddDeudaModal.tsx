@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity,
-  TextInput, ScrollView, KeyboardAvoidingView, Platform,
+  TextInput, ScrollView, KeyboardAvoidingView, Platform, Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -71,13 +71,13 @@ export function AddDeudaModal({ visible, onClose, onAdd, editing, onUpdate }: Pr
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
             <View style={styles.toggle}>
               <TouchableOpacity
-                onPress={() => setTipo('me-debe')}
+                onPress={() => { Keyboard.dismiss(); setTipo('me-debe'); }}
                 style={[styles.toggleBtn, tipo === 'me-debe' && { backgroundColor: colors.greenLight }]}
               >
                 <Text style={[styles.toggleText, tipo === 'me-debe' && { color: colors.green }]}>Me deben</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => setTipo('le-debo')}
+                onPress={() => { Keyboard.dismiss(); setTipo('le-debo'); }}
                 style={[styles.toggleBtn, tipo === 'le-debo' && { backgroundColor: colors.pinkLight }]}
               >
                 <Text style={[styles.toggleText, tipo === 'le-debo' && { color: colors.pink }]}>Yo debo</Text>
@@ -106,17 +106,15 @@ export function AddDeudaModal({ visible, onClose, onAdd, editing, onUpdate }: Pr
 
             <Text style={[styles.label, { marginTop: 16 }]}>FECHA</Text>
             <DateField value={fecha} onChange={setFecha} accent={tipo === 'me-debe' ? colors.green : colors.pink} />
-          </ScrollView>
 
-          <View style={styles.footer}>
             <TouchableOpacity
               onPress={handleAdd}
-              style={[styles.addBtn, { backgroundColor: tipo === 'me-debe' ? colors.green : colors.pink }, !canAdd && { opacity: 0.5 }]}
+              style={[styles.submitInline, { backgroundColor: tipo === 'me-debe' ? colors.green : colors.pink }, !canAdd && { opacity: 0.5 }]}
               disabled={!canAdd}
             >
               <Text style={styles.addBtnText}>{isEditing ? 'Guardar cambios' : 'Agregar deuda'}</Text>
             </TouchableOpacity>
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
@@ -141,7 +139,6 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     backgroundColor: colors.inputBg, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
     fontSize: 16, fontFamily: 'Inter_400Regular', color: colors.textPrimary, borderWidth: 1, borderColor: colors.border,
   },
-  footer: { padding: 16, borderTopWidth: 1, borderTopColor: colors.border },
-  addBtn: { borderRadius: 12, paddingVertical: 15, alignItems: 'center' },
+  submitInline: { borderRadius: 12, paddingVertical: 15, alignItems: 'center', marginTop: 18 },
   addBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
 });
