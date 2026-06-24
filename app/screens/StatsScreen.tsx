@@ -191,8 +191,8 @@ export function StatsScreen() {
   const fStats = useMemo(() => financeInsights(txs, categorias.getItem, today), [txs, categorias.getItem]);
   const eStats = useMemo(() => evolutionInsights(todos, habitos, habitDone, xpDaily, txs, today), [todos, habitos, habitDone, xpDaily, txs]);
   const smartInsights = useMemo(
-    () => buildSmartInsights({ habit: hStats, task: tStats, finance: fStats, level, streak }),
-    [hStats, tStats, fStats, level, streak],
+    () => buildSmartInsights({ habit: hStats, task: tStats, finance: fStats, evolution: eStats, level, streak, records, weekXP }),
+    [hStats, tStats, fStats, eStats, level, streak, records, weekXP],
   );
 
   const maxCatTask = Math.max(1, ...tStats.perCategory.map((c) => c.count));
@@ -279,7 +279,7 @@ export function StatsScreen() {
             <Text style={styles.sectionTitle}>Actividad — último mes</Text>
             <Text style={styles.actHoy}>Hoy</Text>
           </View>
-          <ActivityGrid weeks={5} accent={Dayxo.purple} />
+          <ActivityGrid weeks={5} accent={Dayxo.orange} />
         </View>
 
         {/* Logros */}
@@ -679,7 +679,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   duoRow: { flexDirection: 'row', gap: 10, marginHorizontal: 14, marginTop: 14 },
 
   actHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-  actHoy: { fontSize: 13, fontFamily: 'Inter_700Bold', color: Dayxo.purple },
+  actHoy: { fontSize: 13, fontFamily: 'Inter_700Bold', color: Dayxo.orange },
 
   logrosHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   logrosTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 10 },

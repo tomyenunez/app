@@ -6,6 +6,7 @@ import {
   startOfWeek, startOfMonth, subMonths, addMonths, subDays, subWeeks, addDays, getDaysInMonth,
 } from 'date-fns';
 import { Todo, Habito, Transaction, Familia, OpcionGasto, FamiliaColor } from '../types';
+import { PersonalRecords } from '../types/game';
 import { dateKey } from './dateUtils';
 import { Dayxo } from '../constants/dayxo';
 
@@ -367,33 +368,76 @@ export function buildSmartInsights(input: {
   habit: HabitInsights;
   task: TaskInsights;
   finance: FinanceInsights;
+  evolution: EvolutionInsights;
   level: { level: number; xpToNext: number };
   streak: number;
+  records: PersonalRecords;
+  weekXP: number;
 }): SmartInsight[] {
-  const { habit, task, finance, level, streak } = input;
+  const { habit, task, finance, evolution, level, streak, records, weekXP } = input;
   const out: SmartInsight[] = [];
 
-  if (streak >= 3) {
-    out.push({ icon: 'flame', accent: Dayxo.orange, text: `Llevás ${streak} días de racha 🔥 ¡No la cortes!` });
+  // ----- 1) PROGRESO REAL / comparaciones (lo más personalizado, va primero) -----
+
+  // Racha en su mejor momento histórico
+  if (streak >= 3 && streak >= records.bestStreak) {
+    out.push({ icon: 'flame', accent: Dayxo.orange, text: `¡${streak} días seguidos — es tu mejor racha hasta ahora! 🔥` });
   }
-  if (level.xpToNext > 0) {
-    out.push({ icon: 'flash', accent: Dayxo.purple, text: `Te faltan ${Math.ceil(level.xpToNext)} XP para subir de rango.` });
+
+  // Productividad vs la semana pasada (XP)
+  if (evolution.prodDeltaPct !== null && evolution.prodDeltaPct >= 10) {
+    out.push({ icon: 'trending-up', accent: Dayxo.green, text: `Venís un ${evolution.prodDeltaPct}% más productivo que la semana pasada 🚀` });
+  } else if (evolution.prodDeltaPct !== null && evolution.prodDeltaPct <= -10) {
+    out.push({ icon: 'trending-down', accent: Dayxo.coral, text: `Tu actividad bajó ${Math.abs(evolution.prodDeltaPct)}% vs la semana pasada. ¡A retomar el ritmo!` });
   }
-  if (habit.bestDay) {
-    out.push({ icon: 'calendar', accent: Dayxo.green, text: `Tus mejores días suelen ser los ${habit.bestDay.name}.` });
+
+  // Hábitos completados vs la semana pasada
+  const habVar = evolution.variations.find((v) => v.label === 'Hábitos');
+  if (habVar && habVar.dir === 'up') {
+    out.push({ icon: 'barbell', accent: Dayxo.habitos, text: `Completaste ${habVar.display.replace('+', '')} hábitos más que la semana pasada 💪` });
   }
-  if (finance.topCategoria) {
-    out.push({ icon: 'card', accent: Dayxo.blue, text: `Gastaste más en ${finance.topCategoria.name} que en ninguna otra categoría.` });
+
+  // Semana récord de XP
+  if (weekXP > 0 && records.bestWeekXP > 0 && weekXP >= records.bestWeekXP) {
+    out.push({ icon: 'sparkles', accent: Dayxo.pink, text: `Sumaste ${weekXP} XP esta semana — ¡tu mejor semana! ✨` });
   }
+
+  // Gastos vs el mes pasado
+  if (finance.gastoDeltaPct !== null && finance.gastoDeltaPct <= -10) {
+    out.push({ icon: 'trending-down', accent: Dayxo.green, text: `Gastaste un ${Math.abs(finance.gastoDeltaPct)}% menos que el mes pasado. ¡Bien ahí! 👏` });
+  } else if (finance.gastoDeltaPct !== null && finance.gastoDeltaPct >= 20) {
+    out.push({ icon: 'card', accent: Dayxo.coral, text: `Tus gastos subieron ${finance.gastoDeltaPct}% respecto al mes pasado. Ojo con eso.` });
+  }
+
+  // ----- 2) TU DATA DESTACADA (personalizado, no comparativo) -----
+
   if (habit.best && habit.best.pct >= 60) {
     out.push({ icon: 'trophy', accent: Dayxo.habitos, text: `${habit.best.name} es tu hábito más firme (${habit.best.pct}% de cumplimiento).` });
   }
-  if (task.topPending && task.totalActive > 0) {
-    out.push({ icon: 'alert-circle', accent: Dayxo.coral, text: `Tenés varias tareas de ${task.topPending} sin terminar.` });
+  if (habit.worst && habit.worst.pct < 40 && habit.perHabit.length > 1) {
+    out.push({ icon: 'alert-circle', accent: Dayxo.coral, text: `${habit.worst.name} es el que más se te escapa (${habit.worst.pct}%). ¡Dale una chance hoy!` });
+  }
+  if (habit.bestDay) {
+    out.push({ icon: 'calendar', accent: Dayxo.green, text: `Tus ${habit.bestDay.name} son tu día más fuerte. Aprovechalos.` });
+  }
+  if (finance.topCategoria) {
+    out.push({ icon: 'card', accent: Dayxo.blue, text: `Tu mayor gasto del mes fue en ${finance.topCategoria.name}.` });
   }
   if (task.overdue > 0) {
     const s = task.overdue === 1;
     out.push({ icon: 'time', accent: Dayxo.coral, text: `Tenés ${task.overdue} ${s ? 'tarea vencida' : 'tareas vencidas'} — dales prioridad.` });
+  }
+  if (task.topPending && task.totalActive > 0) {
+    out.push({ icon: 'list', accent: Dayxo.purple, text: `Lo que más tenés pendiente es de ${task.topPending}.` });
+  }
+
+  // ----- 3) MOTIVACIONAL / fallback (genérico, solo si quedó lugar) -----
+
+  if (level.xpToNext > 0) {
+    out.push({ icon: 'flash', accent: Dayxo.purple, text: `Te faltan ${Math.ceil(level.xpToNext)} XP para subir de rango.` });
+  }
+  if (streak >= 3 && streak < records.bestStreak) {
+    out.push({ icon: 'flame', accent: Dayxo.orange, text: `Llevás ${streak} días de racha 🔥 ¡No la cortes!` });
   }
 
   return out.slice(0, 4);
