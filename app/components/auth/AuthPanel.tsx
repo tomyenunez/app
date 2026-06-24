@@ -20,6 +20,7 @@ export function AuthPanel({ onDone }: { onDone: () => void }) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -197,15 +198,33 @@ export function AuthPanel({ onDone }: { onDone: () => void }) {
       />
 
       <Text style={[styles.label, { marginTop: 14 }]}>CONTRASEÑA</Text>
-      <TextInput
-        style={styles.input}
-        value={password}
-        onChangeText={setPassword}
-        placeholder="Mínimo 6 caracteres"
-        placeholderTextColor={colors.textTertiary}
-        secureTextEntry
-        autoCapitalize="none"
-      />
+      <View style={styles.passwordWrap}>
+        <TextInput
+          style={[styles.input, { paddingRight: 48 }]}
+          value={password}
+          onChangeText={setPassword}
+          placeholder="Mínimo 6 caracteres"
+          placeholderTextColor={colors.textTertiary}
+          secureTextEntry={!showPassword}
+          autoCapitalize="none"
+          autoCorrect={false}
+          spellCheck={false}
+          textContentType="password"
+        />
+        <TouchableOpacity
+          style={styles.eyeBtn}
+          onPressIn={() => setShowPassword(true)}
+          onPressOut={() => setShowPassword(false)}
+          activeOpacity={1}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons
+            name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+            size={20}
+            color={colors.textTertiary}
+          />
+        </TouchableOpacity>
+      </View>
 
       {error && <Text style={styles.error}>{error}</Text>}
       {info && <Text style={styles.info}>{info}</Text>}
@@ -231,6 +250,8 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     backgroundColor: colors.inputBg, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
     fontSize: 16, fontFamily: 'Inter_400Regular', color: colors.textPrimary, borderWidth: 1, borderColor: colors.border,
   },
+  passwordWrap: { position: 'relative', justifyContent: 'center' },
+  eyeBtn: { position: 'absolute', right: 4, top: 0, bottom: 0, width: 44, alignItems: 'center', justifyContent: 'center' },
   error: { fontSize: 13, fontFamily: 'Inter_500Medium', color: colors.error, marginTop: 14 },
   info: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Dayxo.green, marginTop: 14, lineHeight: 18 },
   submitBtn: { backgroundColor: Dayxo.purple, borderRadius: 12, paddingVertical: 15, alignItems: 'center', marginTop: 20 },
