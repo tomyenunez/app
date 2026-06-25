@@ -14,14 +14,15 @@ import { es } from 'date-fns/locale';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
 import { Familia, Todo } from '../../types';
+import { TimeField } from '../shared/TimeField';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
   familias: Familia[];
-  onAdd: (text: string, tag: Todo['tag'], fecha?: Date) => Promise<void> | void;
+  onAdd: (text: string, tag: Todo['tag'], fecha?: Date, hora?: string) => Promise<void> | void;
   editing?: Todo | null;
-  onSave?: (id: string, text: string, tag: Todo['tag'], fecha?: Date) => Promise<void> | void;
+  onSave?: (id: string, text: string, tag: Todo['tag'], fecha?: Date, hora?: string) => Promise<void> | void;
 }
 
 export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSave }: Props) {
@@ -30,6 +31,7 @@ export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSav
   const [text, setText] = useState('');
   const [selectedTag, setSelectedTag] = useState<string>('personal');
   const [fecha, setFecha] = useState<Date | null>(null);
+  const [hora, setHora] = useState<string | null>(null);
   const [showCal, setShowCal] = useState(false);
   const [calMonth, setCalMonth] = useState(new Date());
 
@@ -39,6 +41,7 @@ export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSav
       setText(editing?.text ?? '');
       setSelectedTag(editing?.tag ?? familias[0]?.id ?? 'personal');
       setFecha(editing?.fecha ? new Date(editing.fecha) : null);
+      setHora(editing?.hora ?? null);
       setShowCal(false);
       setCalMonth(editing?.fecha ? new Date(editing.fecha) : new Date());
     }
@@ -57,10 +60,11 @@ export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSav
 
   const handleSubmit = async () => {
     if (!text.trim()) return;
+    const horaArg = fecha && hora ? hora : undefined; // la hora solo viaja si hay fecha
     if (editing && onSave) {
-      await onSave(editing.id, text.trim(), effectiveTag as Todo['tag'], fecha ?? undefined);
+      await onSave(editing.id, text.trim(), effectiveTag as Todo['tag'], fecha ?? undefined, horaArg);
     } else {
-      await onAdd(text.trim(), effectiveTag as Todo['tag'], fecha ?? undefined);
+      await onAdd(text.trim(), effectiveTag as Todo['tag'], fecha ?? undefined, horaArg);
     }
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onClose();
@@ -120,7 +124,7 @@ export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSav
                 </Text>
               </TouchableOpacity>
               {fecha && (
-                <TouchableOpacity style={styles.fechaClear} onPress={() => { setFecha(null); setShowCal(false); }}>
+                <TouchableOpacity style={styles.fechaClear} onPress={() => { setFecha(null); setShowCal(false); setHora(null); }}>
                   <Ionicons name="close" size={16} color={colors.textSecondary} />
                 </TouchableOpacity>
               )}
@@ -165,6 +169,28 @@ export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSav
                   })}
                 </View>
               </View>
+            )}
+
+            {/* La hora solo tiene sentido junto con una fecha */}
+            {fecha && (
+              <>
+                <Text style={[styles.label, { marginTop: 16 }]}>HORA (OPCIONAL)</Text>
+                {hora === null ? (
+                  <TouchableOpacity style={styles.horaAddBtn} onPress={() => { Keyboard.dismiss(); setHora('09:00'); }}>
+                    <Ionicons name="time-outline" size={18} color={colors.textSecondary} />
+                    <Text style={styles.horaAddText}>Agregar hora</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={styles.horaRow}>
+                    <View style={{ flex: 1 }}>
+                      <TimeField value={hora} onChange={setHora} accent={colors.violet} />
+                    </View>
+                    <TouchableOpacity style={styles.fechaClear} onPress={() => setHora(null)}>
+                      <Ionicons name="close" size={16} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </>
             )}
 
             <TouchableOpacity
@@ -221,6 +247,14 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     backgroundColor: colors.grayVeryLight,
   },
+  horaAddBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: colors.inputBg,
+    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
+    borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed',
+  },
+  horaAddText: { fontSize: 15, fontFamily: 'Inter_500Medium', color: colors.textSecondary },
+  horaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   calBox: {
     marginTop: 10, padding: 8,
     backgroundColor: colors.grayVeryLight, borderRadius: 12,

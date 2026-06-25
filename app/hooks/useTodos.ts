@@ -6,6 +6,7 @@ import { awardXPOnce, incrementTodoRecord } from '../services/xpService';
 import { XP_VALUES } from '../constants/xpValues';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
+import { scheduleTodoReminders, cancelTodoReminders } from '../services/notificationService';
 
 // Mapeo entre la fila de la tabla `todos` y el tipo Todo de la app
 function fromRow(r: any): Todo {
@@ -16,7 +17,9 @@ function fromRow(r: any): Todo {
     tag: r.tag,
     created: r.created,
     ...(r.fecha ? { fecha: r.fecha } : {}),
+    ...(r.hora ? { hora: r.hora } : {}),
     ...(r.pinned ? { pinned: true } : {}),
+    ...(r.completed_at ? { completedAt: r.completed_at } : {}),
   };
 }
 function toRow(t: Todo, userId: string) {
@@ -28,7 +31,9 @@ function toRow(t: Todo, userId: string) {
     tag: t.tag,
     created: t.created,
     fecha: t.fecha ?? null,
+    hora: t.hora ?? null,
     pinned: !!t.pinned,
+    completed_at: t.completedAt ?? null,
   };
 }
 
@@ -57,7 +62,7 @@ export function useTodos() {
     }, [userId])
   );
 
-  const add = useCallback(async (text: string, tag: Todo['tag'], fecha?: Date) => {
+  const add = useCallback(async (text: string, tag: Todo['tag'], fecha?: Date, hora?: string) => {
     if (!userId) return;
     const next: Todo = {
       id: Date.now().toString(),
@@ -66,40 +71,51 @@ export function useTodos() {
       tag,
       created: todayKey(),
       ...(fecha ? { fecha: fecha.toISOString() } : {}),
+      ...(fecha && hora ? { hora } : {}), // la hora solo tiene sentido con fecha
     };
     setTodos((prev) => [next, ...prev]);
     const { error } = await supabase.from('todos').insert(toRow(next, userId));
     if (error) console.warn('[Dayxo todos] crear:', error.message);
+    scheduleTodoReminders(next).catch(() => {});
   }, [userId]);
 
   const toggle = useCallback(async (id: string) => {
     const target = todos.find((t) => t.id === id);
     if (!target) return;
     const newDone = !target.done;
-    setTodos((prev) => prev.map((t) => t.id === id ? { ...t, done: newDone } : t));
-    const { error } = await supabase.from('todos').update({ done: newDone }).eq('id', id);
+    const completedAt = newDone ? new Date().toISOString() : undefined;
+    setTodos((prev) => prev.map((t) => t.id === id ? { ...t, done: newDone, completedAt } : t));
+    const { error } = await supabase.from('todos')
+      .update({ done: newDone, completed_at: completedAt ?? null })
+      .eq('id', id);
     if (error) console.warn('[Dayxo todos] completar:', error.message);
-    // XP solo al completar (nunca resta); una vez por tarea
     if (newDone) {
+      cancelTodoReminders(id).catch(() => {}); // completada → ya no hace falta avisar
       incrementTodoRecord();
       awardXPOnce(`todo-${id}`, XP_VALUES.COMPLETE_TODO, 'Tarea completada');
+    } else {
+      scheduleTodoReminders({ ...target, done: false }).catch(() => {}); // restaurada → reprogramar
     }
   }, [todos]);
 
   const remove = useCallback(async (id: string) => {
+    cancelTodoReminders(id).catch(() => {});
     setTodos((prev) => prev.filter((t) => t.id !== id));
     const { error } = await supabase.from('todos').delete().eq('id', id);
     if (error) console.warn('[Dayxo todos] borrar:', error.message);
   }, []);
 
-  const update = useCallback(async (id: string, text: string, tag: Todo['tag'], fecha?: Date) => {
+  const update = useCallback(async (id: string, text: string, tag: Todo['tag'], fecha?: Date, hora?: string) => {
     const nextFecha = fecha ? fecha.toISOString() : undefined;
-    setTodos((prev) => prev.map((t) => t.id === id ? { ...t, text, tag, fecha: nextFecha } : t));
+    const nextHora = nextFecha && hora ? hora : undefined; // hora solo con fecha
+    setTodos((prev) => prev.map((t) => t.id === id ? { ...t, text, tag, fecha: nextFecha, hora: nextHora } : t));
     const { error } = await supabase.from('todos')
-      .update({ texto: text, tag, fecha: nextFecha ?? null })
+      .update({ texto: text, tag, fecha: nextFecha ?? null, hora: nextHora ?? null })
       .eq('id', id);
     if (error) console.warn('[Dayxo todos] editar:', error.message);
-  }, []);
+    const target = todos.find((t) => t.id === id);
+    scheduleTodoReminders({ id, text, fecha: nextFecha, hora: nextHora, done: target?.done }).catch(() => {});
+  }, [todos]);
 
   const togglePin = useCallback(async (id: string) => {
     const target = todos.find((t) => t.id === id);

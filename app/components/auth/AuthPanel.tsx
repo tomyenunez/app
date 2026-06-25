@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
@@ -7,10 +8,16 @@ import { Dayxo } from '../../constants/dayxo';
 import { useAuth } from '../../context/AuthContext';
 import { isSupabaseConfigured } from '../../services/supabase';
 
+interface AuthPanelProps {
+  onDone: () => void;
+  // El AuthScreen lo usa para pintar el glow/hero según el modo activo.
+  onModeChange?: (mode: 'login' | 'signup') => void;
+}
+
 // Panel de cuenta:
 //  - logueado → estado + cerrar sesión
 //  - sin sesión → login / registro y, al registrarse, paso de código de 6 dígitos
-export function AuthPanel({ onDone }: { onDone: () => void }) {
+export function AuthPanel({ onDone, onModeChange }: AuthPanelProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { user, signIn, signUp, verifyOtp, resendCode, signOut } = useAuth();
@@ -27,6 +34,14 @@ export function AuthPanel({ onDone }: { onDone: () => void }) {
   const [busy, setBusy] = useState(false);
 
   const reset = () => { setError(null); setInfo(null); };
+
+  // Acento de la pantalla: registro = naranja (energía), login = violeta (calma)
+  const accent = mode === 'signup' ? Dayxo.orange : Dayxo.purple;
+
+  // Avisar al padre del modo (para el glow/hero del AuthScreen)
+  useEffect(() => { onModeChange?.(mode); }, [mode, onModeChange]);
+
+  const switchMode = (m: 'login' | 'signup') => { setMode(m); reset(); };
 
   // --- Sesión activa ---
   if (user) {
@@ -155,14 +170,14 @@ export function AuthPanel({ onDone }: { onDone: () => void }) {
     <View style={styles.wrap}>
       <View style={styles.toggle}>
         <TouchableOpacity
-          style={[styles.toggleBtn, mode === 'login' && styles.toggleBtnActive]}
-          onPress={() => { setMode('login'); reset(); }}
+          style={[styles.toggleBtn, mode === 'login' && { backgroundColor: Dayxo.purple }]}
+          onPress={() => switchMode('login')}
         >
           <Text style={[styles.toggleText, mode === 'login' && styles.toggleTextActive]}>Iniciar sesión</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.toggleBtn, mode === 'signup' && styles.toggleBtnActive]}
-          onPress={() => { setMode('signup'); reset(); }}
+          style={[styles.toggleBtn, mode === 'signup' && { backgroundColor: Dayxo.orange }]}
+          onPress={() => switchMode('signup')}
         >
           <Text style={[styles.toggleText, mode === 'signup' && styles.toggleTextActive]}>Crear cuenta</Text>
         </TouchableOpacity>
@@ -229,10 +244,34 @@ export function AuthPanel({ onDone }: { onDone: () => void }) {
       {error && <Text style={styles.error}>{error}</Text>}
       {info && <Text style={styles.info}>{info}</Text>}
 
-      <TouchableOpacity style={[styles.submitBtn, busy && { opacity: 0.6 }]} onPress={submitForm} disabled={busy}>
-        {busy
-          ? <ActivityIndicator color="#fff" />
-          : <Text style={styles.submitText}>{mode === 'login' ? 'Entrar' : 'Crear cuenta'}</Text>}
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={submitForm}
+        disabled={busy}
+        style={[styles.submitWrap, { shadowColor: accent }, busy && { opacity: 0.6 }]}
+      >
+        {mode === 'signup' ? (
+          <LinearGradient colors={['#FF6B00', '#FF8C42']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.submitBtn}>
+            {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Crear cuenta y arrancar →</Text>}
+          </LinearGradient>
+        ) : (
+          <View style={[styles.submitBtn, { backgroundColor: Dayxo.purple }]}>
+            {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Entrar</Text>}
+          </View>
+        )}
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.switchRow}
+        onPress={() => switchMode(mode === 'login' ? 'signup' : 'login')}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Text style={styles.switchText}>
+          {mode === 'login' ? '¿No tenés cuenta? ' : '¿Ya tenés cuenta? '}
+          <Text style={[styles.switchLink, { color: accent }]}>
+            {mode === 'login' ? 'Crear cuenta' : 'Iniciar sesión'}
+          </Text>
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -242,9 +281,8 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   wrap: { paddingHorizontal: 18, paddingTop: 8 },
   toggle: { flexDirection: 'row', gap: 6, backgroundColor: colors.grayVeryLight, borderRadius: 12, padding: 4, marginBottom: 18 },
   toggleBtn: { flex: 1, borderRadius: 9, paddingVertical: 10, alignItems: 'center' },
-  toggleBtnActive: { backgroundColor: colors.card },
   toggleText: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: colors.textSecondary },
-  toggleTextActive: { color: Dayxo.purple },
+  toggleTextActive: { color: '#fff' },
   label: { fontSize: 11, fontFamily: 'Inter_700Bold', color: colors.textSecondary, letterSpacing: 0.5, marginBottom: 8 },
   input: {
     backgroundColor: colors.inputBg, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
@@ -254,8 +292,15 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   eyeBtn: { position: 'absolute', right: 4, top: 0, bottom: 0, width: 44, alignItems: 'center', justifyContent: 'center' },
   error: { fontSize: 13, fontFamily: 'Inter_500Medium', color: colors.error, marginTop: 14 },
   info: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Dayxo.green, marginTop: 14, lineHeight: 18 },
-  submitBtn: { backgroundColor: Dayxo.purple, borderRadius: 12, paddingVertical: 15, alignItems: 'center', marginTop: 20 },
+  submitWrap: {
+    marginTop: 20, borderRadius: 14,
+    shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 6,
+  },
+  submitBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
   submitText: { color: '#fff', fontSize: 15, fontFamily: 'Inter_700Bold' },
+  switchRow: { marginTop: 16, alignItems: 'center' },
+  switchText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: colors.textSecondary },
+  switchLink: { fontFamily: 'Inter_700Bold' },
 
   // Paso código
   codeTitle: { fontSize: 18, fontFamily: 'Inter_800ExtraBold', color: colors.textPrimary },

@@ -21,6 +21,11 @@ async function ensureAndroidChannel(): Promise<void> {
     importance: Notifications.AndroidImportance.DEFAULT,
     sound: 'default',
   });
+  await Notifications.setNotificationChannelAsync('tareas', {
+    name: 'Recordatorios de tareas',
+    importance: Notifications.AndroidImportance.DEFAULT,
+    sound: 'default',
+  });
 }
 
 export async function hasNotificationPermission(): Promise<boolean> {
@@ -103,5 +108,63 @@ export async function syncAllHabitReminders(habitos: Habito[]): Promise<void> {
   if (!(await hasNotificationPermission())) return;
   for (const h of habitos) {
     if (h.recordatorio?.enabled) await scheduleHabitReminders(h);
+  }
+}
+
+// --- Recordatorios de tareas (to-do con fecha + hora) ---
+
+type TodoReminderInput = {
+  id: string;
+  text: string;
+  fecha?: string; // ISO
+  hora?: string;  // "HH:MM"
+  done?: boolean;
+};
+
+export async function cancelTodoReminders(todoId: string): Promise<void> {
+  await Promise.all(
+    [`todo-2h-${todoId}`, `todo-1h-${todoId}`].map((id) =>
+      Notifications.cancelScheduledNotificationAsync(id).catch(() => {})
+    )
+  );
+}
+
+// (Re)programa avisos 2h y 1h antes de la fecha+hora de la tarea. Salta los que
+// ya pasaron; no hace nada si falta fecha/hora o si la tarea está completada.
+// Solo pide permiso de notificaciones si efectivamente hay algo para agendar.
+export async function scheduleTodoReminders(todo: TodoReminderInput): Promise<void> {
+  await cancelTodoReminders(todo.id);
+  if (todo.done || !todo.fecha || !todo.hora) return;
+
+  const target = new Date(todo.fecha);
+  const [hRaw, mRaw] = todo.hora.split(':').map(Number);
+  target.setHours(Number.isFinite(hRaw) ? hRaw : 9, Number.isFinite(mRaw) ? mRaw : 0, 0, 0);
+
+  const now = Date.now();
+  const reminders = [
+    { id: `todo-2h-${todo.id}`, offsetMs: 2 * 60 * 60 * 1000, label: 'en 2 horas' },
+    { id: `todo-1h-${todo.id}`, offsetMs: 60 * 60 * 1000, label: 'en 1 hora' },
+  ].filter((r) => target.getTime() - r.offsetMs > now);
+
+  if (reminders.length === 0) return;
+
+  const granted = await requestNotificationPermission();
+  if (!granted) return;
+
+  for (const r of reminders) {
+    await Notifications.scheduleNotificationAsync({
+      identifier: r.id,
+      content: {
+        title: '📋 Tarea pendiente',
+        body: `${todo.text} — vence ${r.label} (${todo.hora})`,
+        sound: true,
+        data: { type: 'todo_reminder', todoId: todo.id, screen: 'Todo' },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        channelId: 'tareas',
+        date: new Date(target.getTime() - r.offsetMs),
+      },
+    });
   }
 }

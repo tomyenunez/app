@@ -12,6 +12,7 @@ import { useTodos } from '../hooks/useTodos';
 import { useFamilias } from '../hooks/useFamilias';
 import { EmptyState } from '../components/shared/EmptyState';
 import { FamiliasModal } from '../components/shared/FamiliasModal';
+import { TodoHistoryModal } from '../components/todo/TodoHistoryModal';
 import { Todo, Familia } from '../types';
 
 function TagBadge({ familia, styles, colors }: { familia: Familia; styles: Styles; colors: AppColors }) {
@@ -26,12 +27,13 @@ function TagBadge({ familia, styles, colors }: { familia: Familia; styles: Style
 export function TodoScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { todos, pending, done, add, toggle, remove } = useTodos();
+  const { todos, done, add, toggle, remove } = useTodos();
   const { familias, add: addFamilia, update: updateFamilia, remove: removeFamilia, getFamilia } = useFamilias();
   const [text, setText] = useState('');
   const [selectedTag, setSelectedTag] = useState('personal');
   const [filter, setFilter] = useState<string>('all');
   const [familiasVisible, setFamiliasVisible] = useState(false);
+  const [historyVisible, setHistoryVisible] = useState(false);
 
   const effectiveTag = familias.some((f) => f.id === selectedTag)
     ? selectedTag
@@ -49,13 +51,14 @@ export function TodoScreen() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
+  // Solo pendientes activos: las completadas pasan al historial (modal aparte)
   const filtered = useMemo(() => {
     const base = filter === 'all' ? todos : todos.filter((t) => t.tag === filter);
-    return [...base.filter((t) => !t.done), ...base.filter((t) => t.done)];
+    return base.filter((t) => !t.done);
   }, [todos, filter]);
 
-  const pendingCount = filter === 'all' ? pending.length : filtered.filter((t) => !t.done).length;
-  const doneCount = filter === 'all' ? done.length : filtered.filter((t) => t.done).length;
+  const pendingCount = filtered.length;
+  const doneCount = (filter === 'all' ? done : done.filter((t) => t.tag === filter)).length;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -65,10 +68,13 @@ export function TodoScreen() {
           <View style={styles.iconWrap}>
             <Ionicons name="checkmark-circle-outline" size={22} color={colors.violet} />
           </View>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.title}>Pendientes</Text>
-            <Text style={styles.sub}>{pendingCount} pendientes · {doneCount} listos</Text>
+            <Text style={styles.sub}>{pendingCount} pendientes · {doneCount} en historial</Text>
           </View>
+          <TouchableOpacity style={styles.historyBtn} onPress={() => setHistoryVisible(true)}>
+            <Ionicons name="time-outline" size={20} color={colors.violet} />
+          </TouchableOpacity>
         </View>
 
         {/* Filtros por familia */}
@@ -186,6 +192,14 @@ export function TodoScreen() {
           onUpdate={updateFamilia}
           onRemove={removeFamilia}
         />
+
+        <TodoHistoryModal
+          visible={historyVisible}
+          onClose={() => setHistoryVisible(false)}
+          todos={todos}
+          getFamilia={getFamilia}
+          onUndo={toggle}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -202,6 +216,14 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     paddingVertical: 14,
   },
   iconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.violetLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  historyBtn: {
     width: 40,
     height: 40,
     borderRadius: 12,

@@ -14,7 +14,9 @@ export interface Todo {
   tag: string; // id de Familia
   created: string; // "YYYY-M-D"
   fecha?: string; // ISO — fecha asignada por el usuario (opcional); se marca en el calendario
+  hora?: string; // "HH:MM" en 24h — opcional, solo tiene sentido junto con fecha
   pinned?: boolean; // fijado arriba de la lista
+  completedAt?: string; // ISO — cuándo se completó (alimenta el historial)
 }
 
 export interface Deuda {

@@ -22,8 +22,8 @@ interface Props {
   todos: Todo[];
   familias: Familia[];
   getFamilia: (id: string) => Familia;
-  onAdd: (text: string, tag: Todo['tag'], fecha?: Date) => Promise<void> | void;
-  onUpdate: (id: string, text: string, tag: Todo['tag'], fecha?: Date) => Promise<void> | void;
+  onAdd: (text: string, tag: Todo['tag'], fecha?: Date, hora?: string) => Promise<void> | void;
+  onUpdate: (id: string, text: string, tag: Todo['tag'], fecha?: Date, hora?: string) => Promise<void> | void;
   onToggle: (id: string) => Promise<void> | void;
   onRemove: (id: string) => Promise<void> | void;
   onTogglePin: (id: string) => Promise<void> | void;
@@ -111,6 +111,15 @@ function PendienteItem({ item, fam, pal, styles, colors, onToggle, onRemove, onE
   const opacity = useRef(new Animated.Value(1)).current;
   const tx = useRef(new Animated.Value(0)).current;
 
+  // Vencida = fecha + hora ya pasaron (y sigue pendiente, que es el único estado acá)
+  const isOverdue = useMemo(() => {
+    if (!item.fecha || !item.hora) return false;
+    const dt = new Date(item.fecha);
+    const [h, m] = item.hora.split(':').map(Number);
+    dt.setHours(Number.isFinite(h) ? h : 0, Number.isFinite(m) ? m : 0, 0, 0);
+    return dt.getTime() < Date.now();
+  }, [item.fecha, item.hora]);
+
   const check = () => {
     if (completing) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -152,6 +161,13 @@ function PendienteItem({ item, fam, pal, styles, colors, onToggle, onRemove, onE
             <View style={styles.dateRow}>
               <Ionicons name="calendar-outline" size={11} color={colors.textSecondary} />
               <Text style={styles.dateText}>{format(new Date(item.fecha), 'd MMM', { locale: es })}</Text>
+              {item.hora && (
+                <>
+                  <Text style={styles.dateDot}>·</Text>
+                  <Ionicons name="time-outline" size={11} color={isOverdue ? Dayxo.coral : colors.textSecondary} />
+                  <Text style={[styles.dateText, isOverdue && { color: Dayxo.coral }]}>{item.hora}</Text>
+                </>
+              )}
             </View>
           )}
         </View>
@@ -209,6 +225,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   itemTextDone: { textDecorationLine: 'line-through', color: colors.textSecondary },
   dateRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
   dateText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: colors.textSecondary },
+  dateDot: { fontSize: 11, fontFamily: 'Inter_500Medium', color: colors.textSecondary, marginHorizontal: 1 },
   tag: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   tagText: { fontSize: 11, fontFamily: 'Inter_600SemiBold' },
   iconBtn: { padding: 4 },
