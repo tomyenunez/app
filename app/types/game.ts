@@ -70,7 +70,8 @@ export interface Temperature {
 // Datos cacheados del jugador (perfil)
 export interface PlayerProfile {
   username: string;
-  avatarColor: string; // hex
+  avatarColor: string; // hex (fallback cuando no hay foto)
+  avatarUrl?: string; // URL de la foto de perfil (Supabase Storage)
 }
 
 // Resultado de otorgar XP — la UI lo usa para disparar toasts/modales

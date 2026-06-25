@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { Dayxo } from '../../constants/dayxo';
@@ -27,7 +27,9 @@ export function ProfileCard({ onPress }: Props) {
         <TouchableOpacity activeOpacity={0.8} onPress={onPress} style={styles.avatarWrap}>
           <View style={styles.avatarRing}>
             <View style={[styles.avatar, { backgroundColor: profile.avatarColor }]}>
-              <Text style={styles.avatarText}>{initials(profile.username)}</Text>
+              {profile.avatarUrl
+                ? <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImg} />
+                : <Text style={styles.avatarText}>{initials(profile.username)}</Text>}
             </View>
           </View>
           <View style={styles.levelBadge}>
@@ -85,7 +87,8 @@ const styles = StyleSheet.create({
     borderWidth: 3, borderColor: 'rgba(255,255,255,0.9)',
     alignItems: 'center', justifyContent: 'center',
   },
-  avatar: { width: 62, height: 62, borderRadius: 31, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 62, height: 62, borderRadius: 31, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  avatarImg: { width: 62, height: 62, borderRadius: 31 },
   avatarText: { fontSize: 24, fontFamily: 'Inter_800ExtraBold', color: '#fff' },
   levelBadge: {
     position: 'absolute', bottom: -2, right: -2,

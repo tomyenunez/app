@@ -21,7 +21,13 @@
     "plugins": [
       "expo-asset",
       "expo-audio",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Dayxo usa tus fotos para que elijas tu foto de perfil."
+        }
+      ]
     ]
   }
 }

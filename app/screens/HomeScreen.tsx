@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -75,7 +75,9 @@ export function HomeScreen() {
             style={[styles.avatarBtn, { backgroundColor: profile.avatarColor }]}
             onPress={() => nav.navigate('Stats', { editProfile: true })}
           >
-            <Text style={styles.avatarBtnText}>{profile.username.slice(0, 2).toUpperCase()}</Text>
+            {profile.avatarUrl
+              ? <Image source={{ uri: profile.avatarUrl }} style={styles.avatarBtnImg} />
+              : <Text style={styles.avatarBtnText}>{profile.username.slice(0, 2).toUpperCase()}</Text>}
           </TouchableOpacity>
         </View>
 
@@ -191,7 +193,9 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
+  avatarBtnImg: { width: 44, height: 44, borderRadius: 22 },
   avatarBtnText: {
     color: '#fff',
     fontSize: 15,

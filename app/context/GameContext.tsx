@@ -65,13 +65,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('username, avatar_color')
+        .select('username, avatar_color, avatar_url')
         .eq('id', user.id)
         .maybeSingle();
       if (error) console.warn('[Dayxo profiles] leer:', error.message);
       if (!active) return;
       if (data) {
-        setProfileState({ username: data.username, avatarColor: data.avatar_color });
+        setProfileState({ username: data.username, avatarColor: data.avatar_color, avatarUrl: data.avatar_url ?? undefined });
       } else {
         const def = { username: (user.user_metadata?.username as string) || user.email?.split('@')[0] || 'Dayxo', avatarColor: '#6C5CE7' };
         const { error: insErr } = await supabase.from('profiles').upsert({ id: user.id, username: def.username, avatar_color: def.avatarColor });
@@ -106,6 +106,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         id: user.id,
         username: p.username,
         avatar_color: p.avatarColor,
+        avatar_url: p.avatarUrl ?? null,
         updated_at: new Date().toISOString(),
       });
       if (error) console.warn('[Dayxo profiles] guardar:', error.message);

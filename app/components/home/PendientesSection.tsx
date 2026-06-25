@@ -11,6 +11,7 @@ import { AppColors } from '../../constants/colors';
 import { Dayxo } from '../../constants/dayxo';
 import { Familia, Todo } from '../../types';
 import { AddTodoModal } from './AddTodoModal';
+import { TodoHistoryModal } from '../todo/TodoHistoryModal';
 import { SwipeableRow } from '../shared/SwipeableRow';
 
 // LayoutAnimation en Android necesita este flag para animar el cierre del hueco
@@ -34,6 +35,7 @@ export function PendientesSection({ todos, familias, getFamilia, onAdd, onUpdate
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editTodo, setEditTodo] = useState<Todo | null>(null);
+  const [historyVisible, setHistoryVisible] = useState(false);
 
   // Solo pendientes (al marcar como hecho se tacha y se desvanece); fijados arriba
   const ordered = useMemo(
@@ -48,10 +50,19 @@ export function PendientesSection({ todos, familias, getFamilia, onAdd, onUpdate
           <Ionicons name="checkmark-circle-outline" size={18} color={Dayxo.purple} />
           <Text style={styles.sectionTitle}>Pendientes</Text>
         </View>
-        <TouchableOpacity style={styles.addPill} onPress={() => setModalVisible(true)}>
-          <Ionicons name="add" size={16} color="#fff" />
-          <Text style={styles.addPillText}>Agregar</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={styles.historyBtn}
+            onPress={() => setHistoryVisible(true)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="time-outline" size={18} color={Dayxo.purple} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.addPill} onPress={() => setModalVisible(true)}>
+            <Ionicons name="add" size={16} color="#fff" />
+            <Text style={styles.addPillText}>Agregar</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {ordered.length === 0 ? (
@@ -85,6 +96,14 @@ export function PendientesSection({ todos, familias, getFamilia, onAdd, onUpdate
         onAdd={onAdd}
         editing={editTodo}
         onSave={onUpdate}
+      />
+
+      <TodoHistoryModal
+        visible={historyVisible}
+        onClose={() => setHistoryVisible(false)}
+        todos={todos}
+        getFamilia={getFamilia}
+        onUndo={onToggle}
       />
     </View>
   );
@@ -199,6 +218,12 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7,
   },
   addPillText: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: '#fff' },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  historyBtn: {
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: colors.violetLight,
+    alignItems: 'center', justifyContent: 'center',
+  },
   emptyBox: {
     backgroundColor: colors.card, borderRadius: 12,
     paddingVertical: 22, alignItems: 'center',
