@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import {
-  Modal, View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Image, ActivityIndicator, Alert,
-} from 'react-native';
+import { Modal, View, StyleSheet, TouchableOpacity, TextInput, ScrollView, Image, ActivityIndicator, Alert } from 'react-native';
+import { AppText as Text } from '../shared/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';

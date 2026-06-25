@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Todo, Deuda, Transaction, Evento, Familia, OpcionGasto } from '../types';
+import { Todo, Deuda, Transaction, Evento, Familia, OpcionGasto, Nota } from '../types';
 import { supabase } from './supabase';
 
 export const KEYS = {
@@ -8,6 +8,7 @@ export const KEYS = {
   habitos: '@dayxo/habitos',
   txs: '@dayxo/txs',
   eventos: '@dayxo/eventos',
+  notas: '@dayxo/notas',
   familias: '@dayxo/familias',
   habitDone: '@dayxo/habitDone',
   streak: '@dayxo/streak',
@@ -169,6 +170,14 @@ export async function getEventos(): Promise<Evento[]> {
 }
 export async function saveEventos(eventos: Evento[]): Promise<void> {
   return setJSON(KEYS.eventos, eventos);
+}
+
+// --- Notas (local, igual que eventos) ---
+export async function getNotas(): Promise<Nota[]> {
+  return getJSON<Nota[]>(KEYS.notas, []);
+}
+export async function saveNotas(notas: Nota[]): Promise<void> {
+  return setJSON(KEYS.notas, notas);
 }
 
 // --- Familias ---

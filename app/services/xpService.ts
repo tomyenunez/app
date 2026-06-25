@@ -129,6 +129,43 @@ export async function awardXPOnce(key: string, amount: number, reason: string, o
   await awardXP(amount, reason, opts);
 }
 
+/**
+ * Revierte un award puntual (anti XP-fantasma): si la `key` estaba reclamada,
+ * la libera y resta ese XP del total y del día en curso (nunca baja de 0). Es la
+ * operación inversa de `awardXPOnce`, para cuando una acción que sumó puntos se
+ * deshace (desmarcar hábito, descompletar tarea, borrar evento/movimiento).
+ *
+ * Emite un evento con `awarded` negativo: la UI lo usa para refrescar el total,
+ * pero NO dispara toast ni efectos (el overlay solo reacciona a awarded > 0).
+ * Devuelve true si efectivamente revirtió (la key existía).
+ */
+export async function reverseXPOnce(key: string, amount: number): Promise<boolean> {
+  const claims = await getXpClaims();
+  if (!claims[key]) return false; // nunca se otorgó (o ya se revirtió): no-op
+  delete claims[key];
+  await saveXpClaims(claims);
+
+  const prevTotal = await getXpTotal();
+  const newTotal = Math.max(0, prevTotal - amount);
+  await saveXpTotal(newTotal);
+
+  const daily = await getXpDaily();
+  const tk = todayKey();
+  daily[tk] = Math.max(0, (daily[tk] ?? 0) - amount);
+  await saveXpDaily(daily);
+
+  gameEvents.emit({
+    awarded: -amount,
+    reason: 'Acción deshecha',
+    isBonus: false,
+    isStar: false,
+    newTotal,
+    leveledUp: false,
+    newBadges: [],
+  });
+  return true;
+}
+
 // Incrementadores de récords (totales históricos)
 export async function incrementTodoRecord(): Promise<void> {
   const r = await getRecords();
@@ -139,6 +176,19 @@ export async function incrementHabitRecord(isStar: boolean): Promise<void> {
   const r = await getRecords();
   r.totalHabitsCompleted += 1;
   if (isStar) r.totalExtraStars += 1;
+  await saveRecords(r);
+}
+
+// Decrementadores: al deshacer la acción, revierten el conteo (nunca bajan de 0)
+export async function decrementTodoRecord(): Promise<void> {
+  const r = await getRecords();
+  r.totalTodosCompleted = Math.max(0, r.totalTodosCompleted - 1);
+  await saveRecords(r);
+}
+export async function decrementHabitRecord(isStar: boolean): Promise<void> {
+  const r = await getRecords();
+  r.totalHabitsCompleted = Math.max(0, r.totalHabitsCompleted - 1);
+  if (isStar) r.totalExtraStars = Math.max(0, r.totalExtraStars - 1);
   await saveRecords(r);
 }
 

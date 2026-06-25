@@ -1,8 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
-  TextInput, KeyboardAvoidingView, Platform, ScrollView
-} from 'react-native';
+import { View, StyleSheet, FlatList, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { AppText as Text } from '../components/shared/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -12,6 +10,7 @@ import { useTodos } from '../hooks/useTodos';
 import { useFamilias } from '../hooks/useFamilias';
 import { EmptyState } from '../components/shared/EmptyState';
 import { FamiliasModal } from '../components/shared/FamiliasModal';
+import { SwipeableRow } from '../components/shared/SwipeableRow';
 import { TodoHistoryModal } from '../components/todo/TodoHistoryModal';
 import { Todo, Familia } from '../types';
 
@@ -162,21 +161,23 @@ export function TodoScreen() {
             data={filtered}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <View style={styles.item}>
-                <TouchableOpacity
-                  onPress={() => handleToggle(item.id)}
-                  style={[styles.checkbox, item.done && styles.checkboxDone]}
-                >
-                  {item.done && <Ionicons name="checkmark" size={14} color="#fff" />}
-                </TouchableOpacity>
-                <Text style={[styles.itemText, item.done && styles.itemTextDone]} numberOfLines={2}>
-                  {item.text}
-                </Text>
-                <TagBadge familia={getFamilia(item.tag)} styles={styles} colors={colors} />
-                <TouchableOpacity onPress={() => remove(item.id)} style={styles.removeBtn}>
-                  <Ionicons name="close" size={16} color={colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
+              <SwipeableRow onDelete={() => remove(item.id)}>
+                <View style={styles.item}>
+                  <TouchableOpacity
+                    onPress={() => handleToggle(item.id)}
+                    style={[styles.checkbox, item.done && styles.checkboxDone]}
+                  >
+                    {item.done && <Ionicons name="checkmark" size={14} color="#fff" />}
+                  </TouchableOpacity>
+                  <Text style={[styles.itemText, item.done && styles.itemTextDone]} numberOfLines={2}>
+                    {item.text}
+                  </Text>
+                  <TagBadge familia={getFamilia(item.tag)} styles={styles} colors={colors} />
+                  <TouchableOpacity onPress={() => remove(item.id)} style={styles.removeBtn}>
+                    <Ionicons name="close" size={16} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+              </SwipeableRow>
             )}
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}

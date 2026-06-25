@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, StyleSheet, Animated, Pressable } from 'react-native';
+import { AppText as Text } from '../shared/AppText';
 import Svg, { Circle } from 'react-native-svg';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
@@ -9,6 +10,7 @@ interface Props {
   score: number; // puede superar 100 con bonus
   completed: number;
   total: number;
+  onPress?: () => void; // si se pasa, el card es tappable (abre el detalle del día)
 }
 
 const SIZE = 72;
@@ -16,7 +18,7 @@ const STROKE = 6;
 const R = (SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * R;
 
-export function ScoreBanner({ score, completed, total }: Props) {
+export function ScoreBanner({ score, completed, total, onPress }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const animVal = useRef(new Animated.Value(0)).current;
@@ -37,8 +39,8 @@ export function ScoreBanner({ score, completed, total }: Props) {
 
   const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-  return (
-    <View style={styles.banner}>
+  const content = (
+    <>
       <View style={styles.left}>
         <Text style={styles.scoreLabel}>Score de hoy</Text>
         <Text style={styles.scoreNumber}>{score}%</Text>
@@ -72,7 +74,20 @@ export function ScoreBanner({ score, completed, total }: Props) {
           <Text style={styles.scoreCenterText}>{score}</Text>
         </View>
       </View>
-    </View>
+    </>
+  );
+
+  if (!onPress) {
+    return <View style={styles.banner}>{content}</View>;
+  }
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.banner, pressed && styles.bannerPressed]}
+    >
+      {content}
+    </Pressable>
   );
 }
 
@@ -91,6 +106,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
+  bannerPressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
   left: { flex: 1 },
   scoreLabel: {
     color: colors.textSecondary,

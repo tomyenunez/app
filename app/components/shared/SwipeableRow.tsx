@@ -6,36 +6,57 @@ import { Dayxo } from '../../constants/dayxo';
 
 interface Props {
   children: React.ReactNode;
-  onPin: () => void;
-  onEdit: () => void;
+  onPin?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
   pinned?: boolean;
   pinColor?: string;
   editColor?: string;
+  deleteColor?: string;
   containerStyle?: StyleProp<ViewStyle>;
 }
 
-// Fila deslizable: arrastrando hacia la derecha (desde la izquierda) revela dos
-// acciones — fijar (pin) y editar. Reutilizable en todas las listas de la app.
+// Fila deslizable reutilizable. Cada acción es opcional (solo se muestra si se
+// pasa el handler):
+//  - swipe hacia la derecha → fijar (pin) y/o editar
+//  - swipe hacia la izquierda → borrar
 export function SwipeableRow({
-  children, onPin, onEdit, pinned,
-  pinColor = Dayxo.purple, editColor = Dayxo.blue, containerStyle,
+  children, onPin, onEdit, onDelete, pinned,
+  pinColor = Dayxo.purple, editColor = Dayxo.blue, deleteColor = Dayxo.coral, containerStyle,
 }: Props) {
   const ref = useRef<Swipeable>(null);
   const close = () => ref.current?.close();
 
+  const hasLeft = !!onPin || !!onEdit;
+
   const renderLeftActions = () => (
     <View style={styles.actions}>
+      {onPin && (
+        <RectButton
+          style={[styles.action, styles.actionFirst, { backgroundColor: pinColor }]}
+          onPress={() => { close(); onPin(); }}
+        >
+          <Ionicons name={pinned ? 'pin' : 'pin-outline'} size={20} color="#fff" />
+        </RectButton>
+      )}
+      {onEdit && (
+        <RectButton
+          style={[styles.action, !onPin && styles.actionFirst, { backgroundColor: editColor }]}
+          onPress={() => { close(); onEdit(); }}
+        >
+          <Ionicons name="pencil" size={19} color="#fff" />
+        </RectButton>
+      )}
+    </View>
+  );
+
+  const renderRightActions = () => (
+    <View style={styles.actions}>
       <RectButton
-        style={[styles.action, styles.actionFirst, { backgroundColor: pinColor }]}
-        onPress={() => { close(); onPin(); }}
+        style={[styles.action, styles.actionLast, { backgroundColor: deleteColor }]}
+        onPress={() => { close(); onDelete?.(); }}
       >
-        <Ionicons name={pinned ? 'pin' : 'pin-outline'} size={20} color="#fff" />
-      </RectButton>
-      <RectButton
-        style={[styles.action, { backgroundColor: editColor }]}
-        onPress={() => { close(); onEdit(); }}
-      >
-        <Ionicons name="pencil" size={19} color="#fff" />
+        <Ionicons name="trash" size={20} color="#fff" />
       </RectButton>
     </View>
   );
@@ -43,9 +64,12 @@ export function SwipeableRow({
   return (
     <Swipeable
       ref={ref}
-      renderLeftActions={renderLeftActions}
+      renderLeftActions={hasLeft ? renderLeftActions : undefined}
+      renderRightActions={onDelete ? renderRightActions : undefined}
       overshootLeft={false}
+      overshootRight={false}
       leftThreshold={36}
+      rightThreshold={36}
       friction={2}
       containerStyle={containerStyle}
     >
@@ -58,4 +82,5 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', alignItems: 'stretch' },
   action: { width: 58, alignItems: 'center', justifyContent: 'center' },
   actionFirst: { borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
+  actionLast: { borderTopRightRadius: 12, borderBottomRightRadius: 12 },
 });

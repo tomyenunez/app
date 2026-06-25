@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
-import {
-  View, Text, StyleSheet, TouchableOpacity, Animated, LayoutAnimation, Platform, UIManager,
-} from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Animated, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { AppText as Text } from '../shared/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { format } from 'date-fns';
@@ -167,6 +166,7 @@ function PendienteItem({ item, fam, pal, styles, colors, onToggle, onRemove, onE
       containerStyle={styles.itemSpacing}
       onPin={onPin}
       onEdit={onEdit}
+      onDelete={() => onRemove(item.id)}
     >
       <Animated.View style={[styles.item, item.pinned && styles.itemPinned, { opacity, transform: [{ translateX: tx }] }]}>
         <TouchableOpacity onPress={check} style={[styles.checkbox, completing && styles.checkboxDone]}>

@@ -1,8 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
-  TextInput, KeyboardAvoidingView, Platform,
-} from 'react-native';
+import { View, StyleSheet, FlatList, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { AppText as Text } from '../components/shared/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -11,6 +9,7 @@ import { AppColors } from '../constants/colors';
 import { useHabitos } from '../hooks/useHabitos';
 import { EmptyState } from '../components/shared/EmptyState';
 import { HabitCard } from '../components/habits/HabitCard';
+import { SwipeableRow } from '../components/shared/SwipeableRow';
 import { AddHabitModal } from '../components/home/AddHabitModal';
 import { Habito } from '../types';
 
@@ -100,15 +99,19 @@ export function HabitosScreen() {
             <EmptyState icon="flame-outline" text="Agregá tu primer hábito arriba" />
           }
           renderItem={({ item }) => (
-            <HabitCard
-              habito={item}
-              onToggleToday={() => handleToggleToday(item.id)}
-              onRemove={() => remove(item.id)}
-              onEdit={() => setEditHabit(item)}
-              isDoneToday={isDoneToday(item.id)}
-              isDoneOnDate={isDoneOnDate}
-              weekStats={weekStats(item)}
-            />
+            <SwipeableRow onDelete={() => remove(item.id)} containerStyle={styles.habitSwipe}>
+              <HabitCard
+                habito={item}
+                onToggleToday={() => handleToggleToday(item.id)}
+                onRemove={() => remove(item.id)}
+                onEdit={() => setEditHabit(item)}
+                isDoneToday={isDoneToday(item.id)}
+                isDoneOnDate={isDoneOnDate}
+                weekStats={weekStats(item)}
+                embedded
+                style={styles.habitCardNoMargin}
+              />
+            </SwipeableRow>
           )}
           contentContainerStyle={{ paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
@@ -201,4 +204,6 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   },
   addBtnDisabled: { opacity: 0.5 },
   addBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
+  habitSwipe: { marginHorizontal: 14, marginBottom: 10 },
+  habitCardNoMargin: { marginBottom: 0 },
 });

@@ -1,8 +1,6 @@
 import React, { useMemo } from 'react';
-import {
-  View, Text, StyleSheet, TouchableOpacity,
-  StyleProp, ViewStyle, TextStyle,
-} from 'react-native';
+import { View, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, TextStyle } from 'react-native';
+import { AppText as Text } from '../shared/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
@@ -15,7 +13,6 @@ export const BONUS_COLOR = '#FF9F43';
 interface Props {
   habito: Habito;
   onToggleToday: () => void;
-  onRemove: () => void;
   isDoneToday: boolean;
   isDoneOnDate: (id: string, date: Date) => boolean;
   weekStats: { applies: number; done: number; bonus: number };
@@ -26,7 +23,7 @@ interface Props {
 }
 
 export function HabitCard({
-  habito, onToggleToday, onRemove, isDoneToday, isDoneOnDate, weekStats, embedded, onTogglePin, onEdit, style,
+  habito, onToggleToday, isDoneToday, isDoneOnDate, weekStats, embedded, onTogglePin, onEdit, style,
 }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);

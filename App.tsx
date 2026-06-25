@@ -20,6 +20,7 @@ import { GameOverlay } from './app/components/game/GameOverlay';
 import { ThemeProvider, useTheme } from './app/context/ThemeContext';
 import { GameProvider } from './app/context/GameContext';
 import { AuthProvider, useAuth } from './app/context/AuthContext';
+import { AccessibilityProvider } from './app/context/AccessibilityContext';
 import { runMigrationIfNeeded } from './app/services/migration';
 import { syncAllHabitReminders } from './app/services/notificationService';
 import { supabase } from './app/services/supabase';
@@ -125,13 +126,15 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ThemeProvider>
-          <AuthProvider>
-            <GameProvider>
-              <AppContent />
-            </GameProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <AccessibilityProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <GameProvider>
+                <AppContent />
+              </GameProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </AccessibilityProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

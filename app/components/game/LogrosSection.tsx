@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { AppText as Text } from '../shared/AppText';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
 import { useGame } from '../../context/GameContext';

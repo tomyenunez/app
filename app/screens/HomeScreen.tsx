@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity, Image
-} from 'react-native';
+import { View, ScrollView, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { AppText as Text } from '../components/shared/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,13 +13,17 @@ import { ScoreBanner } from '../components/home/ScoreBanner';
 import { WeekStrip } from '../components/home/WeekStrip';
 import { PendientesSection } from '../components/home/PendientesSection';
 import { HabitosSection } from '../components/home/HabitosSection';
+import { NotasSection } from '../components/home/NotasSection';
 import { SideMenu } from '../components/home/SideMenu';
+import { DayDetailSheet } from '../components/home/DayDetailSheet';
 import { CalendarModal } from '../components/agenda/CalendarModal';
+import { getHabitsStatusToday, getTodosStatusToday, getTotalXPToday } from '../utils/dayDetailUtils';
 import { useGame } from '../context/GameContext';
 import { useTodos } from '../hooks/useTodos';
 import { useFamilias } from '../hooks/useFamilias';
 import { useHabitos } from '../hooks/useHabitos';
 import { useAgenda } from '../hooks/useAgenda';
+import { useNotas } from '../hooks/useNotas';
 import { useStreak } from '../hooks/useStreak';
 
 export function HomeScreen() {
@@ -31,15 +34,17 @@ export function HomeScreen() {
   const { todos, add: addTodo, update: updateTodo, toggle: toggleTodo, remove: removeTodo, togglePin: togglePinTodo } = useTodos();
   const { familias, getFamilia } = useFamilias();
   const {
-    habitos, todayHabits, completadosHoy,
+    habitos, habitDone, todayHabits, completadosHoy,
     add: addHabito, update: updateHabito, remove: removeHabito, togglePin: togglePinHabito, toggleToday,
     isDoneToday, isDoneOnDate, weekStats,
   } = useHabitos();
   const { hasEvents, eventosForDay, add: addEvento, remove: removeEvento } = useAgenda();
+  const { notas, add: addNota, update: updateNota, remove: removeNota, togglePin: togglePinNota } = useNotas();
   const streak = useStreak();
   const [menuVisible, setMenuVisible] = useState(false);
   const [calVisible, setCalVisible] = useState(false);
   const [calDay, setCalDay] = useState<Date | null>(null);
+  const [dayDetailVisible, setDayDetailVisible] = useState(false);
 
   const openCalendar = (day: Date | null) => {
     setCalDay(day);
@@ -61,6 +66,12 @@ export function HomeScreen() {
   const totalScore = todayHabits.length + todayTodos.length;
   const doneScore = completadosHoy + todayTodos.filter((t) => t.done).length;
   const score = totalScore === 0 ? 0 : Math.round((doneScore / totalScore) * 100);
+
+  // Desglose para el bottom sheet "Tu día de hoy"
+  const habitsStatus = useMemo(() => getHabitsStatusToday(habitos, habitDone), [habitos, habitDone]);
+  const todosStatus = useMemo(() => getTodosStatusToday(todos), [todos]);
+  const totalXPToday = useMemo(() => getTotalXPToday(habitsStatus, todosStatus), [habitsStatus, todosStatus]);
+  const pendingToday = totalScore - doneScore;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -107,7 +118,7 @@ export function HomeScreen() {
 
         {/* Score Banner */}
         <View style={{ marginTop: 14 }}>
-          <ScoreBanner score={score} completed={doneScore} total={totalScore} />
+          <ScoreBanner score={score} completed={doneScore} total={totalScore} onPress={() => setDayDetailVisible(true)} />
         </View>
 
         {/* Pendientes */}
@@ -135,8 +146,28 @@ export function HomeScreen() {
           weekStats={weekStats}
         />
 
+        {/* Notas */}
+        <NotasSection
+          notas={notas}
+          onAdd={addNota}
+          onUpdate={updateNota}
+          onRemove={removeNota}
+          onTogglePin={togglePinNota}
+        />
+
         <View style={{ height: 96 }} />
       </ScrollView>
+
+      {/* Detalle del día (al tocar el Score) */}
+      <DayDetailSheet
+        visible={dayDetailVisible}
+        onClose={() => setDayDetailVisible(false)}
+        score={score}
+        habits={habitsStatus}
+        todos={todosStatus}
+        totalXP={totalXPToday}
+        pendingCount={pendingToday}
+      />
 
       {/* Menú lateral (incluye Misiones adentro) */}
       <SideMenu visible={menuVisible} onClose={() => setMenuVisible(false)} />

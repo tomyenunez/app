@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Modal, View, StyleSheet, TouchableOpacity } from 'react-native';
+import { AppText as Text } from '../shared/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';

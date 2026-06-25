@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { AppText as Text } from '../shared/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../context/ThemeContext';
@@ -68,6 +69,7 @@ export function HabitosSection({
             containerStyle={styles.cardSpacing}
             onPin={() => onTogglePin(habito.id)}
             onEdit={() => setEditHabit(habito)}
+            onDelete={() => onRemove(habito.id)}
           >
             <HabitCard
               habito={habito}

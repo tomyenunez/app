@@ -3,7 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Evento } from '../types';
 import { getEventos, saveEventos } from '../services/storage';
 import { isSameDay, isPast } from '../utils/dateUtils';
-import { awardXPOnce } from '../services/xpService';
+import { awardXPOnce, reverseXPOnce } from '../services/xpService';
 import { XP_VALUES } from '../constants/xpValues';
 
 export function useAgenda() {
@@ -35,6 +35,7 @@ export function useAgenda() {
     const updated = eventos.filter((e) => e.id !== id);
     setEventos(updated);
     await saveEventos(updated);
+    await reverseXPOnce(`event-${id}`, XP_VALUES.ADD_EVENT); // revierte el XP de agregarlo
   }, [eventos]);
 
   const upcomingEventos = useMemo(() =>

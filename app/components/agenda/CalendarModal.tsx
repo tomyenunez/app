@@ -1,8 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import {
-  View, Text, StyleSheet, TouchableOpacity,
-  TextInput, Modal, ScrollView,
-} from 'react-native';
+import { View, StyleSheet, TouchableOpacity, TextInput, Modal, ScrollView } from 'react-native';
+import { AppText as Text } from '../shared/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';

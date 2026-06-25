@@ -70,6 +70,15 @@ export interface Evento {
   hora: string; // "HH:MM" o ""
 }
 
+export interface Nota {
+  id: string;
+  titulo: string;
+  cuerpo: string;
+  fechaCreacion: string; // ISO
+  fechaEdicion: string; // ISO
+  pinned?: boolean; // fijada arriba de la lista
+}
+
 export interface AppState {
   todos: Todo[];
   deudas: Deuda[];

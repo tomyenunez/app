@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import {
-  Modal, View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions, Switch, ScrollView,
-} from 'react-native';
+import { Modal, View, StyleSheet, TouchableOpacity, Animated, Dimensions, Switch, ScrollView } from 'react-native';
+import { AppText as Text } from '../shared/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -9,6 +8,7 @@ import { AppColors } from '../../constants/colors';
 import { MissionsSection } from '../game/MissionsSection';
 import { AuthPanel } from '../auth/AuthPanel';
 import { useAuth } from '../../context/AuthContext';
+import { useAccessibility, FONT_SIZE_OPTIONS } from '../../context/AccessibilityContext';
 import { awardXP } from '../../services/xpService';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -22,6 +22,7 @@ interface Props {
 export function SideMenu({ visible, onClose }: Props) {
   const { colors, isDark, setThemeMode } = useTheme();
   const { user } = useAuth();
+  const { fontSizeKey, isBold, setFontSizeKey, setIsBold } = useAccessibility();
   const styles = useMemo(() => createStyles(colors), [colors]);
   // Leemos los insets acá (con contexto del provider); dentro del Modal el
   // SafeAreaView no mide bien la primera vez, así que aplicamos padding a mano.
@@ -29,6 +30,7 @@ export function SideMenu({ visible, onClose }: Props) {
   const [mounted, setMounted] = useState(visible);
   const [missionsOpen, setMissionsOpen] = useState(false);
   const [cuentaOpen, setCuentaOpen] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
   const translateX = useRef(new Animated.Value(-PANEL_W)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
@@ -42,6 +44,7 @@ export function SideMenu({ visible, onClose }: Props) {
     } else if (mounted) {
       setMissionsOpen(false);
       setCuentaOpen(false);
+      setConfigOpen(false);
       Animated.parallel([
         Animated.timing(translateX, { toValue: -PANEL_W, duration: 200, useNativeDriver: true }),
         Animated.timing(overlayOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
@@ -98,6 +101,14 @@ export function SideMenu({ visible, onClose }: Props) {
                     <Text style={styles.rowLabel}>Cuenta</Text>
                     <Text style={styles.rowSub} numberOfLines={1}>{user ? user.email : 'Iniciá sesión o registrate'}</Text>
                   </View>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.row} onPress={() => setConfigOpen(true)} activeOpacity={0.7}>
+                <View style={styles.rowLeft}>
+                  <Ionicons name="text-outline" size={20} color={colors.violet} />
+                  <Text style={styles.rowLabel}>Accesibilidad</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
               </TouchableOpacity>
@@ -166,6 +177,56 @@ export function SideMenu({ visible, onClose }: Props) {
             </ScrollView>
           </View>
         )}
+
+        {/* Accesibilidad: tamaño de texto + negrita */}
+        {configOpen && (
+          <View style={[styles.missionsCover, safePad]}>
+            <View style={styles.missionsHeader}>
+              <TouchableOpacity onPress={() => setConfigOpen(false)} style={styles.backBtn}>
+                <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+              </TouchableOpacity>
+              <Text style={styles.missionsTitle}>Accesibilidad</Text>
+              <View style={{ width: 36 }} />
+            </View>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 24, paddingTop: 10, paddingHorizontal: 18 }}
+            >
+              <Text style={styles.configLabel}>TAMAÑO DE TEXTO</Text>
+              {FONT_SIZE_OPTIONS.map((opt) => {
+                const active = fontSizeKey === opt.key;
+                return (
+                  <TouchableOpacity
+                    key={opt.key}
+                    style={[styles.optionRow, active && { borderColor: colors.violet, backgroundColor: colors.violetLight }]}
+                    onPress={() => setFontSizeKey(opt.key)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.optionLabel, active && { color: colors.violet }]}>{opt.label}</Text>
+                    {active && <Ionicons name="checkmark-circle" size={20} color={colors.violet} />}
+                  </TouchableOpacity>
+                );
+              })}
+
+              <View style={styles.previewCard}>
+                <Text style={styles.previewText}>Así se ve el texto en Dayxo.</Text>
+              </View>
+
+              <View style={styles.configToggleRow}>
+                <View style={styles.rowLeft}>
+                  <Ionicons name="text" size={20} color={colors.violet} />
+                  <Text style={styles.rowLabel}>Negrita</Text>
+                </View>
+                <Switch
+                  value={isBold}
+                  onValueChange={setIsBold}
+                  trackColor={{ false: colors.grayLight, true: colors.violet }}
+                  thumbColor="#fff"
+                />
+              </View>
+            </ScrollView>
+          </View>
+        )}
       </View>
     </Modal>
   );
@@ -231,4 +292,25 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     backgroundColor: colors.violetLight,
   },
   debugBtnText: { fontSize: 14, fontFamily: 'Inter_700Bold', color: colors.violet },
+  // Accesibilidad
+  configLabel: {
+    fontSize: 11, fontFamily: 'Inter_700Bold', color: colors.textSecondary,
+    letterSpacing: 0.5, marginBottom: 10, marginTop: 2,
+  },
+  optionRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 14, marginBottom: 8,
+    borderRadius: 12, borderWidth: 1.5, borderColor: colors.border,
+    backgroundColor: colors.inputBg,
+  },
+  optionLabel: { fontSize: 15, fontFamily: 'Inter_600SemiBold', color: colors.textPrimary },
+  previewCard: {
+    marginTop: 8, marginBottom: 18, padding: 16, borderRadius: 12,
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+  },
+  previewText: { fontSize: 16, fontFamily: 'Inter_500Medium', color: colors.textPrimary },
+  configToggleRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 14, borderTopWidth: 1, borderTopColor: colors.border,
+  },
 });

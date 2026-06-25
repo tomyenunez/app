@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { Habito, HabitReminder } from '../types';
 import { todayKey, todayIdx, weekDays, dateKey } from '../utils/dateUtils';
-import { awardXPOnce, incrementHabitRecord, weeklyStarsCount } from '../services/xpService';
+import { awardXPOnce, incrementHabitRecord, decrementHabitRecord, reverseXPOnce, weeklyStarsCount } from '../services/xpService';
 import { scheduleHabitReminders, cancelHabitReminders } from '../services/notificationService';
 import { XP_VALUES } from '../constants/xpValues';
 import { supabase } from '../services/supabase';
@@ -133,10 +133,18 @@ export function useHabitos() {
         }
       );
     } else {
-      // desmarcar: borra la fila
+      // desmarcar: borra la fila y revierte el XP/récord que sumó esa marca
       const { error } = await supabase.from('habit_done')
         .delete().eq('habit_id', habitId).eq('fecha', fecha);
       if (error) console.warn('[Dayxo habitos] desmarcar:', error.message);
+
+      const habito = habitos.find((h) => h.id === habitId);
+      const isStar = !(habito?.days.includes(todayIdx()) ?? false); // mismo criterio que al marcar
+      const reverted = await reverseXPOnce(
+        `habit-${key}`,
+        isStar ? XP_VALUES.COMPLETE_HABIT_EXTRA_DAY : XP_VALUES.COMPLETE_HABIT,
+      );
+      if (reverted) await decrementHabitRecord(isStar);
     }
   }, [habitDone, habitos, userId]);
 

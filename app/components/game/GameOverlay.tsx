@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Animated, Modal, TouchableOpacity, Easing } from 'react-native';
+import { View, StyleSheet, Animated, Modal, TouchableOpacity, Easing } from 'react-native';
+import { AppText as Text } from '../shared/AppText';
 import * as Haptics from 'expo-haptics';
 import { gameEvents } from '../../services/xpService';
 import { AwardResult, Badge, UserLevel } from '../../types/game';

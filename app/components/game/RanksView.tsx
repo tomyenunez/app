@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
+import { View, StyleSheet, Animated, Easing } from 'react-native';
+import { AppText as Text } from '../shared/AppText';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';

@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { Todo } from '../types';
 import { todayKey } from '../utils/dateUtils';
-import { awardXPOnce, incrementTodoRecord } from '../services/xpService';
+import { awardXPOnce, incrementTodoRecord, decrementTodoRecord, reverseXPOnce } from '../services/xpService';
 import { XP_VALUES } from '../constants/xpValues';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -94,6 +94,9 @@ export function useTodos() {
       incrementTodoRecord();
       awardXPOnce(`todo-${id}`, XP_VALUES.COMPLETE_TODO, 'Tarea completada');
     } else {
+      // descompletar (incluye el "deshacer" del historial): revierte XP/récord
+      const reverted = await reverseXPOnce(`todo-${id}`, XP_VALUES.COMPLETE_TODO);
+      if (reverted) await decrementTodoRecord();
       scheduleTodoReminders({ ...target, done: false }).catch(() => {}); // restaurada → reprogramar
     }
   }, [todos]);

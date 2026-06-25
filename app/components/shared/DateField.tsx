@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Keyboard } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Keyboard } from 'react-native';
+import { AppText as Text } from './AppText';
 import { Ionicons } from '@expo/vector-icons';
 import {
   format, addMonths, subMonths, startOfMonth, endOfMonth,

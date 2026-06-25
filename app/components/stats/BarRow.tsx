@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { AppText as Text } from '../shared/AppText';
 import { useTheme } from '../../context/ThemeContext';
 
 interface Props {
