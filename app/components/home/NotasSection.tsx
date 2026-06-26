@@ -86,13 +86,6 @@ export function NotasSection({ notas, onAdd, onUpdate, onRemove, onTogglePin }: 
                 )}
                 <Text style={styles.cardDate}>{format(new Date(nota.fechaEdicion), "d 'de' MMM", { locale: es })}</Text>
               </View>
-              <TouchableOpacity
-                onPress={() => confirmRemove(nota)}
-                style={styles.deleteBtn}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Ionicons name="close" size={16} color={colors.textSecondary} />
-              </TouchableOpacity>
             </TouchableOpacity>
           </SwipeableRow>
         ))

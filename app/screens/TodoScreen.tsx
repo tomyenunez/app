@@ -173,9 +173,6 @@ export function TodoScreen() {
                     {item.text}
                   </Text>
                   <TagBadge familia={getFamilia(item.tag)} styles={styles} colors={colors} />
-                  <TouchableOpacity onPress={() => remove(item.id)} style={styles.removeBtn}>
-                    <Ionicons name="close" size={16} color={colors.textSecondary} />
-                  </TouchableOpacity>
                 </View>
               </SwipeableRow>
             )}

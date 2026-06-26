@@ -193,9 +193,6 @@ function PendienteItem({ item, fam, pal, styles, colors, onToggle, onRemove, onE
         <View style={[styles.tag, { backgroundColor: pal.bg }]}>
           <Text style={[styles.tagText, { color: pal.fg }]}>{fam.nombre}</Text>
         </View>
-        <TouchableOpacity onPress={() => onRemove(item.id)} style={styles.iconBtn}>
-          <Ionicons name="close" size={16} color={colors.textSecondary} />
-        </TouchableOpacity>
       </Animated.View>
     </SwipeableRow>
   );

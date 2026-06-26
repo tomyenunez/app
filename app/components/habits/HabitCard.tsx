@@ -53,9 +53,6 @@ export function HabitCard({
               <Ionicons name={habito.pinned ? 'pin' : 'pin-outline'} size={15} color={habito.pinned ? colors.orange : colors.textSecondary} />
             </TouchableOpacity>
           )}
-          <TouchableOpacity onPress={onRemove} style={{ padding: 4 }}>
-            <Ionicons name="close" size={16} color={colors.textSecondary} />
-          </TouchableOpacity>
         </View>
       </View>
 

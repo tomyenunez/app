@@ -103,7 +103,6 @@ export function HabitosScreen() {
               <HabitCard
                 habito={item}
                 onToggleToday={() => handleToggleToday(item.id)}
-                onRemove={() => remove(item.id)}
                 onEdit={() => setEditHabit(item)}
                 isDoneToday={isDoneToday(item.id)}
                 isDoneOnDate={isDoneOnDate}

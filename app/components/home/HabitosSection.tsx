@@ -74,7 +74,6 @@ export function HabitosSection({
             <HabitCard
               habito={habito}
               onToggleToday={() => handleToggleToday(habito.id)}
-              onRemove={() => onRemove(habito.id)}
               isDoneToday={isDoneToday(habito.id)}
               isDoneOnDate={isDoneOnDate}
               weekStats={weekStats(habito)}
