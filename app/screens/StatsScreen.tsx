@@ -25,6 +25,7 @@ import { ProfileCard } from '../components/profile/ProfileCard';
 import { EditProfileModal } from '../components/profile/EditProfileModal';
 import { ActivityGrid } from '../components/profile/ActivityGrid';
 import { LogrosSection } from '../components/game/LogrosSection';
+import { SocialModal } from '../components/social/SocialModal';
 import { useFamilias } from '../hooks/useFamilias';
 import {
   habitInsights, taskInsights, financeInsights, evolutionInsights, buildSmartInsights,
@@ -610,21 +611,8 @@ export function StatsScreen() {
         </View>
       </ScrollView>
 
-      {/* Social — próximamente */}
-      <Modal visible={socialVisible} transparent animationType="fade" onRequestClose={() => setSocialVisible(false)}>
-        <TouchableOpacity style={styles.csOverlay} activeOpacity={1} onPress={() => setSocialVisible(false)}>
-          <View style={styles.csCard}>
-            <View style={styles.csIcon}>
-              <Ionicons name="people" size={30} color={Dayxo.purple} />
-            </View>
-            <Text style={styles.csTitle}>Social</Text>
-            <Text style={styles.csText}>Próximamente 🚀</Text>
-            <TouchableOpacity style={styles.csBtn} onPress={() => setSocialVisible(false)}>
-              <Text style={styles.csBtnText}>Dale</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+      {/* Social — amigos */}
+      <SocialModal visible={socialVisible} onClose={() => setSocialVisible(false)} />
 
       {/* Pop-up de perfil: editar nombre/color + rangos */}
       <EditProfileModal visible={editVisible} onClose={() => setEditVisible(false)} />
