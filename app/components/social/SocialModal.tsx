@@ -13,6 +13,7 @@ import { Dayxo } from '../../constants/dayxo';
 import { initials } from '../../utils/formatters';
 import { useFriends } from '../../hooks/useFriends';
 import { PublicUser } from '../../services/friends';
+import { GroupsListScreen } from '../../screens/GroupsListScreen';
 
 function MiniAvatar({ user, size = 44 }: { user: PublicUser; size?: number }) {
   return (
@@ -36,6 +37,7 @@ export function SocialModal({ visible, onClose }: { visible: boolean; onClose: (
   const [found, setFound] = useState<PublicUser | null>(null);
   const [searching, setSearching] = useState(false);
   const [feedback, setFeedback] = useState<{ text: string; ok: boolean } | null>(null);
+  const [groupsOpen, setGroupsOpen] = useState(false);
 
   const resetSearch = () => { setCodeInput(''); setFound(null); setFeedback(null); };
 
@@ -87,6 +89,18 @@ export function SocialModal({ visible, onClose }: { visible: boolean; onClose: (
                 <Text style={styles.shareBtnText}>Compartir mi código</Text>
               </TouchableOpacity>
             </LinearGradient>
+
+            {/* Grupos → abre la pantalla de Lista de Grupos */}
+            <TouchableOpacity style={styles.groupsEntry} onPress={() => setGroupsOpen(true)} activeOpacity={0.7}>
+              <View style={styles.groupsEntryIcon}>
+                <Ionicons name="people" size={20} color={Dayxo.purple} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.groupsEntryTitle}>Grupos</Text>
+                <Text style={styles.groupsEntrySub}>Competí y sumá XP con tus amigos</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
 
             {/* Agregar por código */}
             <Text style={styles.sectionLabel}>AGREGAR AMIGO</Text>
@@ -177,6 +191,9 @@ export function SocialModal({ visible, onClose }: { visible: boolean; onClose: (
             <View style={{ height: 30 }} />
           </ScrollView>
         </KeyboardAvoidingView>
+
+        {/* Cover de Grupos (sin modal anidado) */}
+        {groupsOpen && <GroupsListScreen onBack={() => setGroupsOpen(false)} />}
       </SafeAreaView>
     </Modal>
   );
@@ -202,6 +219,18 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     backgroundColor: '#fff', borderRadius: 12, paddingVertical: 9, paddingHorizontal: 16,
   },
   shareBtnText: { fontSize: 13, fontFamily: 'Inter_700Bold', color: Dayxo.purple },
+
+  groupsEntry: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 16,
+    backgroundColor: colors.card, borderRadius: 14, padding: 12,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  groupsEntryIcon: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: colors.violetLight, alignItems: 'center', justifyContent: 'center',
+  },
+  groupsEntryTitle: { fontSize: 15, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
+  groupsEntrySub: { fontSize: 11, fontFamily: 'Inter_400Regular', color: colors.textSecondary, marginTop: 2 },
 
   sectionLabel: { fontSize: 11, fontFamily: 'Inter_700Bold', color: colors.textSecondary, letterSpacing: 0.5, marginTop: 24, marginBottom: 10 },
 
