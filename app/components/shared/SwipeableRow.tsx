@@ -53,16 +53,16 @@ export function SwipeableRow({
   const renderLeftActions = (progress: Animated.AnimatedInterpolation<number>) => (
     <View style={styles.leftActions}>
       {onPin && (
-        // Pin = el más externo → redondea su lado izquierdo (sale de "editar")
-        <RectButton style={[styles.action, styles.roundLeft, { backgroundColor: pinColor }]} onPress={() => { close(); onPin(); }}>
+        // Pin = el más externo: redondea su izquierda y se mete por debajo de "editar"
+        <RectButton style={[styles.actionTuckRight, styles.roundLeft, { backgroundColor: pinColor }]} onPress={() => { close(); onPin(); }}>
           <Animated.View style={iconAnim(progress)}>
             <Ionicons name={pinned ? 'pin' : 'pin-outline'} size={20} color="#fff" />
           </Animated.View>
         </RectButton>
       )}
       {onEdit && (
-        // Editar se mete por debajo de la burbuja (lado derecho); redondea izquierda solo si no hay pin
-        <RectButton style={[styles.actionTuckRight, !onPin && styles.roundLeft, { backgroundColor: editColor }]} onPress={() => { close(); onEdit(); }}>
+        // Editar: su flap redondeado (izquierda) tapa al pin, y se mete bajo la burbuja
+        <RectButton style={[styles.actionTuckRight, styles.roundLeft, { backgroundColor: editColor }]} onPress={() => { close(); onEdit(); }}>
           <Animated.View style={iconAnim(progress)}>
             <Ionicons name="pencil" size={19} color="#fff" />
           </Animated.View>
