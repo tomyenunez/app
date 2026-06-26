@@ -39,7 +39,7 @@ export function HomeScreen() {
     isDoneToday, isDoneOnDate, weekStats,
   } = useHabitos();
   const { hasEvents, eventosForDay, add: addEvento, remove: removeEvento } = useAgenda();
-  const { notas, draft: notaDraft, setDraft: setNotaDraft, saveDraft: saveNotaDraft, clearDraft: clearNotaDraft, remove: removeNota, togglePin: togglePinNota } = useNotas();
+  const { notas, draft: notaDraft, setDraft: setNotaDraft, saveDraft: saveNotaDraft, clearDraft: clearNotaDraft, update: updateNota, remove: removeNota, togglePin: togglePinNota } = useNotas();
   const streak = useStreak();
   const [menuVisible, setMenuVisible] = useState(false);
   const [calVisible, setCalVisible] = useState(false);
@@ -128,6 +128,7 @@ export function HomeScreen() {
           setDraft={setNotaDraft}
           saveDraft={saveNotaDraft}
           clearDraft={clearNotaDraft}
+          onUpdate={updateNota}
           onRemove={removeNota}
           onTogglePin={togglePinNota}
         />

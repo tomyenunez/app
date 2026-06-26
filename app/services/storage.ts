@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Todo, Deuda, Transaction, Evento, Familia, OpcionGasto, Nota } from '../types';
+import { Todo, Deuda, Transaction, Evento, Familia, OpcionGasto, Nota, NotaDraft } from '../types';
 import { supabase } from './supabase';
 
 export const KEYS = {
@@ -181,12 +181,16 @@ export async function saveNotas(notas: Nota[]): Promise<void> {
   return setJSON(KEYS.notas, notas);
 }
 
-// Borrador del Anotador: un único texto suelto que persiste entre sesiones.
-export async function getNotaDraft(): Promise<string> {
-  return getJSON<string>(KEYS.notaDraft, '');
+// Borrador del Anotador: título + cuerpo que persisten entre sesiones.
+// Normaliza el formato viejo (cuando el borrador era solo un string).
+export async function getNotaDraft(): Promise<NotaDraft> {
+  const raw = await getJSON<any>(KEYS.notaDraft, null);
+  if (!raw) return { titulo: '', cuerpo: '' };
+  if (typeof raw === 'string') return { titulo: '', cuerpo: raw };
+  return { titulo: raw.titulo ?? '', cuerpo: raw.cuerpo ?? '' };
 }
-export async function saveNotaDraft(text: string): Promise<void> {
-  return setJSON(KEYS.notaDraft, text);
+export async function saveNotaDraft(draft: NotaDraft): Promise<void> {
+  return setJSON(KEYS.notaDraft, draft);
 }
 
 // --- Familias ---

@@ -1,71 +1,74 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Modal, View, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { AppText as Text } from '../shared/AppText';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
 import { Dayxo } from '../../constants/dayxo';
-import { NotaDraft } from '../../types';
+import { Nota } from '../../types';
 import { useKeyboardHeight } from '../../hooks/useKeyboardHeight';
 
 interface Props {
-  visible: boolean;
+  nota: Nota | null;
   onClose: () => void;
-  draft: NotaDraft;
-  onChangeDraft: (patch: Partial<NotaDraft>) => void;
-  onGuardar: () => Promise<void> | void; // archiva el borrador en el historial
-  onBorrar: () => Promise<void> | void;  // descarta el borrador (sin guardar)
+  onSave: (id: string, titulo: string, cuerpo: string) => Promise<void> | void;
+  onRemove: (id: string) => Promise<void> | void;
 }
 
-// Anotador: scratchpad con título + cuerpo. "Guardar" lo archiva en el historial,
-// "Borrar" lo descarta. El texto persiste solo (draft) al cerrar con la X.
-export function AnotadorModal({ visible, onClose, draft, onChangeDraft, onGuardar, onBorrar }: Props) {
+// Ver / editar una nota guardada. Se abre al tocar una nota del historial.
+export function NotaViewModal({ nota, onClose, onSave, onRemove }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const kbHeight = useKeyboardHeight();
+  const [titulo, setTitulo] = useState('');
+  const [cuerpo, setCuerpo] = useState('');
 
-  const hasText = (draft.titulo + draft.cuerpo).trim().length > 0;
-  const isEmpty = !draft.titulo && !draft.cuerpo;
+  useEffect(() => {
+    if (nota) { setTitulo(nota.titulo); setCuerpo(nota.cuerpo); }
+  }, [nota]);
+
+  const hasText = (titulo + cuerpo).trim().length > 0;
+  const dirty = !!nota && (titulo.trim() !== nota.titulo.trim() || cuerpo.trim() !== nota.cuerpo.trim());
 
   const handleGuardar = async () => {
-    if (!hasText) return;
-    await onGuardar();
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (!nota || !hasText) return;
+    if (dirty) await onSave(nota.id, titulo.trim(), cuerpo.trim());
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onClose();
   };
 
   const handleBorrar = () => {
-    if (!hasText) return;
+    if (!nota) return;
     Alert.alert(
-      'Borrar lo escrito',
-      '¿Querés borrar el texto del anotador? No se guardará.',
+      'Borrar nota',
+      '¿Seguro que querés borrar esta nota?',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Borrar', style: 'destructive', onPress: () => onBorrar() },
+        { text: 'Borrar', style: 'destructive', onPress: async () => { await onRemove(nota.id); onClose(); } },
       ],
     );
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal visible={!!nota} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.handleWrap}><View style={styles.handle} /></View>
 
         <View style={styles.header}>
           <View style={styles.headerSide} />
           <View style={styles.titleWrap}>
-            <LinearGradient
-              colors={[Dayxo.orange, Dayxo.purple]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.titlePill}
-            >
-              <Text style={styles.title}>Anotador</Text>
-            </LinearGradient>
+            <Text style={styles.title}>Nota</Text>
+            {!!nota && (
+              <Text style={styles.subtitle}>
+                {format(new Date(nota.fechaEdicion), "d 'de' MMMM · HH:mm", { locale: es })}
+              </Text>
+            )}
           </View>
           <TouchableOpacity onPress={onClose} style={styles.headerSide} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="close" size={24} color={colors.textPrimary} />
@@ -73,16 +76,12 @@ export function AnotadorModal({ visible, onClose, draft, onChangeDraft, onGuarda
         </View>
 
         <View style={styles.body}>
-          <View style={styles.newLabel}>
-            <Ionicons name="create-outline" size={14} color={colors.textPrimary} />
-            <Text style={styles.newLabelText}>Nueva nota rápida</Text>
-          </View>
           <TextInput
             style={styles.tituloInput}
             placeholder="Título"
             placeholderTextColor={colors.textTertiary}
-            value={draft.titulo}
-            onChangeText={(t) => onChangeDraft({ titulo: t })}
+            value={titulo}
+            onChangeText={setTitulo}
             returnKeyType="next"
             maxLength={120}
           />
@@ -91,12 +90,11 @@ export function AnotadorModal({ visible, onClose, draft, onChangeDraft, onGuarda
               style={styles.input}
               placeholder="Escribí algo..."
               placeholderTextColor={colors.textSecondary}
-              value={draft.cuerpo}
-              onChangeText={(t) => onChangeDraft({ cuerpo: t })}
+              value={cuerpo}
+              onChangeText={setCuerpo}
               multiline
               textAlignVertical="top"
               selectionColor={Dayxo.orange}
-              autoFocus={isEmpty}
             />
           </View>
         </View>
@@ -105,22 +103,24 @@ export function AnotadorModal({ visible, onClose, draft, onChangeDraft, onGuarda
           styles.footer,
           { marginBottom: kbHeight, paddingBottom: kbHeight > 0 ? 10 : Math.max(insets.bottom, 10) },
         ]}>
-          <TouchableOpacity
-            onPress={handleBorrar}
-            disabled={!hasText}
-            style={[styles.btnBorrar, !hasText && styles.btnDisabled]}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="trash-outline" size={18} color={hasText ? Dayxo.coral : colors.textTertiary} />
-            <Text style={[styles.btnBorrarText, !hasText && { color: colors.textTertiary }]}>Borrar</Text>
+          <TouchableOpacity onPress={handleBorrar} style={styles.btnBorrar} activeOpacity={0.8}>
+            <Ionicons name="trash-outline" size={18} color={Dayxo.coral} />
+            <Text style={styles.btnBorrarText}>Borrar</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleGuardar}
             disabled={!hasText}
-            style={[styles.btnGuardar, !hasText && styles.btnDisabled]}
+            style={[styles.btnGuardarWrap, !hasText && styles.btnDisabled]}
             activeOpacity={0.85}
           >
-            <Text style={styles.btnGuardarText}>Guardar</Text>
+            <LinearGradient
+              colors={[Dayxo.orange, Dayxo.purple]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.btnGuardar}
+            >
+              <Text style={styles.btnGuardarText}>{dirty ? 'Guardar cambios' : 'Listo'}</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -138,15 +138,11 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     paddingHorizontal: 16, paddingTop: 6, paddingBottom: 12,
   },
   headerSide: { width: 28, alignItems: 'flex-end', justifyContent: 'center' },
-  titleWrap: { flex: 1, alignItems: 'center' },
-  titlePill: {
-    paddingHorizontal: 20, paddingVertical: 8, borderRadius: 16, overflow: 'hidden',
-  },
-  title: { fontSize: 25, fontFamily: 'Inter_800ExtraBold', color: '#fff', textAlign: 'center' },
+  titleWrap: { flex: 1, alignItems: 'center', gap: 1 },
+  title: { fontSize: 20, fontFamily: 'Inter_800ExtraBold', color: colors.textPrimary, textAlign: 'center' },
+  subtitle: { fontSize: 13, fontFamily: 'Inter_500Medium', color: colors.textSecondary, textAlign: 'center' },
 
   body: { flex: 1, paddingHorizontal: 16, paddingTop: 14 },
-  newLabel: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8, marginLeft: 2 },
-  newLabelText: { fontSize: 12.5, fontFamily: 'Inter_600SemiBold', color: colors.textPrimary },
   tituloInput: {
     backgroundColor: colors.inputBg,
     borderRadius: 12, borderWidth: 1, borderColor: colors.border,
@@ -175,9 +171,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     backgroundColor: colors.grayVeryLight,
   },
   btnBorrarText: { fontSize: 15, fontFamily: 'Inter_600SemiBold', color: Dayxo.coral },
-  btnGuardar: {
-    flex: 1, backgroundColor: Dayxo.orange, borderRadius: 12,
-    paddingVertical: 15, alignItems: 'center', justifyContent: 'center',
-  },
+  btnGuardarWrap: { flex: 1, borderRadius: 12, overflow: 'hidden' },
+  btnGuardar: { paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
   btnGuardarText: { fontSize: 15, fontFamily: 'Inter_700Bold', color: '#fff' },
 });

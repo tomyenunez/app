@@ -79,6 +79,12 @@ export interface Nota {
   pinned?: boolean; // fijada arriba de la lista
 }
 
+// Borrador del Anotador (scratchpad): título + cuerpo que persisten sin guardar.
+export interface NotaDraft {
+  titulo: string;
+  cuerpo: string;
+}
+
 export interface AppState {
   todos: Todo[];
   deudas: Deuda[];
