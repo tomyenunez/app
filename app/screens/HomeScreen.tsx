@@ -13,7 +13,7 @@ import { ScoreBanner } from '../components/home/ScoreBanner';
 import { WeekStrip } from '../components/home/WeekStrip';
 import { PendientesSection } from '../components/home/PendientesSection';
 import { HabitosSection } from '../components/home/HabitosSection';
-import { NotasSection } from '../components/home/NotasSection';
+import { QuickNotesCard } from '../components/home/QuickNotesCard';
 import { SideMenu } from '../components/home/SideMenu';
 import { DayDetailSheet } from '../components/home/DayDetailSheet';
 import { CalendarModal } from '../components/agenda/CalendarModal';
@@ -39,7 +39,7 @@ export function HomeScreen() {
     isDoneToday, isDoneOnDate, weekStats,
   } = useHabitos();
   const { hasEvents, eventosForDay, add: addEvento, remove: removeEvento } = useAgenda();
-  const { notas, add: addNota, update: updateNota, remove: removeNota, togglePin: togglePinNota } = useNotas();
+  const { notas, draft: notaDraft, setDraft: setNotaDraft, saveDraft: saveNotaDraft, clearDraft: clearNotaDraft, remove: removeNota, togglePin: togglePinNota } = useNotas();
   const streak = useStreak();
   const [menuVisible, setMenuVisible] = useState(false);
   const [calVisible, setCalVisible] = useState(false);
@@ -121,6 +121,17 @@ export function HomeScreen() {
           <ScoreBanner score={score} completed={doneScore} total={totalScore} onPress={() => setDayDetailVisible(true)} />
         </View>
 
+        {/* Notas rápidas (Anotador + historial) */}
+        <QuickNotesCard
+          notas={notas}
+          draft={notaDraft}
+          setDraft={setNotaDraft}
+          saveDraft={saveNotaDraft}
+          clearDraft={clearNotaDraft}
+          onRemove={removeNota}
+          onTogglePin={togglePinNota}
+        />
+
         {/* Pendientes */}
         <PendientesSection
           todos={todos}
@@ -144,15 +155,6 @@ export function HomeScreen() {
           isDoneToday={isDoneToday}
           isDoneOnDate={isDoneOnDate}
           weekStats={weekStats}
-        />
-
-        {/* Notas */}
-        <NotasSection
-          notas={notas}
-          onAdd={addNota}
-          onUpdate={updateNota}
-          onRemove={removeNota}
-          onTogglePin={togglePinNota}
         />
 
         <View style={{ height: 96 }} />

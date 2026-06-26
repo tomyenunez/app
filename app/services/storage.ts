@@ -9,6 +9,7 @@ export const KEYS = {
   txs: '@dayxo/txs',
   eventos: '@dayxo/eventos',
   notas: '@dayxo/notas',
+  notaDraft: '@dayxo/notaDraft', // borrador del Anotador (scratchpad, texto suelto)
   familias: '@dayxo/familias',
   habitDone: '@dayxo/habitDone',
   streak: '@dayxo/streak',
@@ -178,6 +179,14 @@ export async function getNotas(): Promise<Nota[]> {
 }
 export async function saveNotas(notas: Nota[]): Promise<void> {
   return setJSON(KEYS.notas, notas);
+}
+
+// Borrador del Anotador: un único texto suelto que persiste entre sesiones.
+export async function getNotaDraft(): Promise<string> {
+  return getJSON<string>(KEYS.notaDraft, '');
+}
+export async function saveNotaDraft(text: string): Promise<void> {
+  return setJSON(KEYS.notaDraft, text);
 }
 
 // --- Familias ---
