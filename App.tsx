@@ -21,6 +21,7 @@ import { ThemeProvider, useTheme } from './app/context/ThemeContext';
 import { GameProvider } from './app/context/GameContext';
 import { AuthProvider, useAuth } from './app/context/AuthContext';
 import { AccessibilityProvider } from './app/context/AccessibilityContext';
+import { TabBarProvider } from './app/context/TabBarContext';
 import { runMigrationIfNeeded } from './app/services/migration';
 import { syncAllHabitReminders } from './app/services/notificationService';
 import { supabase } from './app/services/supabase';
@@ -87,9 +88,11 @@ function AppContent() {
         <AuthScreen />
       ) : (
         <NavigationContainer ref={navigationRef} theme={navTheme}>
-          <AppNavigator />
-          {/* Toasts de XP, badges y modal de subida de nivel */}
-          <GameOverlay />
+          <TabBarProvider>
+            <AppNavigator />
+            {/* Toasts de XP, badges y modal de subida de nivel */}
+            <GameOverlay />
+          </TabBarProvider>
         </NavigationContainer>
       )}
     </Animated.View>

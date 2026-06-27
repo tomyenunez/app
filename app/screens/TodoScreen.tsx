@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../context/ThemeContext';
+import { useTabBar } from '../context/TabBarContext';
 import { AppColors } from '../constants/colors';
 import { useTodos } from '../hooks/useTodos';
 import { useFamilias } from '../hooks/useFamilias';
@@ -26,6 +27,7 @@ function TagBadge({ familia, styles, colors }: { familia: Familia; styles: Style
 export function TodoScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { handleScroll } = useTabBar();
   const { todos, done, add, toggle, remove } = useTodos();
   const { familias, add: addFamilia, update: updateFamilia, remove: removeFamilia, getFamilia } = useFamilias();
   const [text, setText] = useState('');
@@ -179,6 +181,8 @@ export function TodoScreen() {
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
           />
         )}
 

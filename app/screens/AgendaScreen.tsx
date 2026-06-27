@@ -4,6 +4,7 @@ import { AppText as Text } from '../components/shared/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { useTabBar } from '../context/TabBarContext';
 import { AppColors } from '../constants/colors';
 import { useAgenda } from '../hooks/useAgenda';
 import { useFamilias } from '../hooks/useFamilias';
@@ -42,6 +43,7 @@ function EventCard({ evento, familia, onRemove, styles, colors }: {
 export function AgendaScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { handleScroll } = useTabBar();
   const { upcomingEventos, pastEventos, add, remove, hasEvents, eventosForDay } = useAgenda();
   const { familias, getFamilia } = useFamilias();
   const [modalVisible, setModalVisible] = useState(false);
@@ -80,7 +82,12 @@ export function AgendaScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 24 }}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
         {groupedUpcoming.length === 0 && pastEventos.length === 0 && (
           <EmptyState icon="calendar-outline" text="Sin eventos próximos" />
         )}

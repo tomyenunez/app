@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useTheme } from '../context/ThemeContext';
+import { useTabBar } from '../context/TabBarContext';
 import { AppColors } from '../constants/colors';
 import { Dayxo } from '../constants/dayxo';
 import { Transaction, Deuda } from '../types';
@@ -36,6 +37,7 @@ const DEFAULT_ORDER = ['gastos', 'deudas', 'ingresos'];
 export function PresupuestoScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { handleScrollOffset } = useTabBar();
   const { ingresos, gastos, saldo, ingresosList, gastosList, add, update, remove, togglePin, resetMes } = usePresupuesto();
   const deudas = useDeudas();
   const categorias = useCategoriasGasto();
@@ -97,6 +99,7 @@ export function PresupuestoScreen() {
         containerStyle={styles.rowSpacing}
         onPin={() => togglePin(item.id)}
         onEdit={() => { setVerTodo(null); setEditGasto(item); }}
+        onDelete={() => remove(item.id)}
       >
         <View style={[styles.row, item.pinned && { borderWidth: 1.5, borderColor: Dayxo.coral }]}>
           <View style={[styles.rowIcon, { backgroundColor: Dayxo.coral + '66' }]}>
@@ -119,15 +122,12 @@ export function PresupuestoScreen() {
             </View>
           </View>
           <Text style={[styles.rowMonto, { color: Dayxo.coral }]}>− {formatARS(item.monto)}</Text>
-          <TouchableOpacity onPress={() => remove(item.id)} style={styles.delBtn}>
-            <Ionicons name="trash-outline" size={16} color={colors.error} />
-          </TouchableOpacity>
         </View>
       </SwipeableRow>
     );
   };
 
-  // --- Fila de ingreso (swipe: pin + editar) ---
+  // --- Fila de ingreso (swipe: pin + editar + borrar) ---
   const renderIngresoRow = (item: Transaction) => (
     <SwipeableRow
       key={item.id}
@@ -137,6 +137,7 @@ export function PresupuestoScreen() {
       containerStyle={styles.rowSpacing}
       onPin={() => togglePin(item.id)}
       onEdit={() => { setVerTodo(null); setEditIngreso(item); }}
+      onDelete={() => remove(item.id)}
     >
       <View style={[styles.row, item.pinned && { borderWidth: 1.5, borderColor: Dayxo.green }]}>
         <View style={[styles.rowIcon, { backgroundColor: Dayxo.green + '66' }]}>
@@ -147,14 +148,11 @@ export function PresupuestoScreen() {
           <Text style={styles.metaFecha}>{item.fechaStr}</Text>
         </View>
         <Text style={[styles.rowMonto, { color: Dayxo.green }]}>+ {formatARS(item.monto)}</Text>
-        <TouchableOpacity onPress={() => remove(item.id)} style={styles.delBtn}>
-          <Ionicons name="trash-outline" size={16} color={colors.error} />
-        </TouchableOpacity>
       </View>
     </SwipeableRow>
   );
 
-  // --- Fila de deuda (swipe: pin + editar) ---
+  // --- Fila de deuda (swipe: pin + editar + borrar) ---
   const renderDeudaRow = (d: Deuda) => {
     const meDebe = d.tipo === 'me-debe';
     const accent = meDebe ? Dayxo.green : Dayxo.coral;
@@ -167,6 +165,7 @@ export function PresupuestoScreen() {
         containerStyle={styles.rowSpacing}
         onPin={() => deudas.togglePin(d.id)}
         onEdit={() => { setVerTodo(null); setEditDeuda(d); }}
+        onDelete={() => deudas.remove(d.id)}
       >
         <View style={[styles.row, d.pinned && { borderWidth: 1.5, borderColor: accent }]}>
           <View style={[styles.rowIcon, { backgroundColor: accent + '66' }]}>
@@ -179,9 +178,6 @@ export function PresupuestoScreen() {
           <Text style={[styles.rowMonto, { color: accent }]}>
             {meDebe ? '+' : '−'} {formatARS(d.monto)}
           </Text>
-          <TouchableOpacity onPress={() => deudas.remove(d.id)} style={styles.delBtn}>
-            <Ionicons name="trash-outline" size={16} color={colors.error} />
-          </TouchableOpacity>
         </View>
       </SwipeableRow>
     );
@@ -356,8 +352,9 @@ export function PresupuestoScreen() {
         onDragEnd={onDragEnd}
         ListHeaderComponent={Header}
         ListFooterComponent={Footer}
-        contentContainerStyle={{ paddingBottom: 96 }}
+        contentContainerStyle={{ paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
+        onScrollOffsetChange={handleScrollOffset}
       />
 
       {/* Menú lateral (incluye Misiones adentro) */}
@@ -497,7 +494,6 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   miniBadge: { borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 },
   miniBadgeText: { fontSize: 10, fontFamily: 'Inter_600SemiBold' },
   rowMonto: { fontSize: 15, fontFamily: 'Inter_700Bold' },
-  delBtn: { padding: 4 },
   addBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     borderRadius: 14, paddingVertical: 13, marginTop: 8, marginBottom: 12,

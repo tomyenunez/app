@@ -6,6 +6,7 @@ import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/nativ
 import { Ionicons } from '@expo/vector-icons';
 import { startOfWeek, startOfMonth, subMonths, addMonths, subDays } from 'date-fns';
 import { useTheme } from '../context/ThemeContext';
+import { useTabBar } from '../context/TabBarContext';
 import { AppColors } from '../constants/colors';
 import { Dayxo } from '../constants/dayxo';
 import { useTodos } from '../hooks/useTodos';
@@ -47,6 +48,7 @@ export function StatsScreen() {
   const nav = useNavigation<any>();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { handleScroll } = useTabBar();
   const { todos } = useTodos();
   const { habitos, habitDone } = useHabitos();
   const { txs } = usePresupuesto();
@@ -242,7 +244,12 @@ export function StatsScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 96 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 32 }}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
         {/* Header: home · título · social */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.iconBtn} onPress={() => nav.navigate('Home')}>

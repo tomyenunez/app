@@ -6,6 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { useTabBar } from '../context/TabBarContext';
 import { AppColors } from '../constants/colors';
 import { Dayxo } from '../constants/dayxo';
 import { formatMonth, isSameDay } from '../utils/dateUtils';
@@ -30,6 +31,7 @@ export function HomeScreen() {
   const nav = useNavigation<any>();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { handleScroll } = useTabBar();
   const { profile } = useGame();
   const { todos, add: addTodo, update: updateTodo, toggle: toggleTodo, remove: removeTodo, togglePin: togglePinTodo } = useTodos();
   const { familias, getFamilia } = useFamilias();
@@ -75,7 +77,7 @@ export function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" onScroll={handleScroll} scrollEventThrottle={16}>
         {/* Header: menú · título · avatar */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.iconBtn} onPress={() => setMenuVisible(true)}>
@@ -158,7 +160,7 @@ export function HomeScreen() {
           weekStats={weekStats}
         />
 
-        <View style={{ height: 96 }} />
+        <View style={{ height: 32 }} />
       </ScrollView>
 
       {/* Detalle del día (al tocar el Score) */}

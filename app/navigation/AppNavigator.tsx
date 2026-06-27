@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { useTabBar } from '../context/TabBarContext';
 import { AppColors } from '../constants/colors';
 import { HomeScreen } from '../screens/HomeScreen';
 import { TodoScreen } from '../screens/TodoScreen';
@@ -34,9 +35,13 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
   const borderColor = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)';
+  const { translateY, show } = useTabBar();
+
+  // Al cambiar de pestaña, la barra siempre se muestra.
+  React.useEffect(() => { show(); }, [state.index, show]);
 
   return (
-    <View style={[styles.wrap, { bottom: Math.max(insets.bottom, 10) }]}>
+    <Animated.View style={[styles.wrap, { bottom: Math.max(insets.bottom, 10), transform: [{ translateY }] }]}>
       <BlurView intensity={55} tint={isDark ? 'dark' : 'light'} style={[styles.pill, { borderColor }]}>
         {state.routes.map((route) => {
           if (HIDDEN_TABS.includes(route.name)) return null;
@@ -63,7 +68,7 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
           );
         })}
       </BlurView>
-    </View>
+    </Animated.View>
   );
 }
 

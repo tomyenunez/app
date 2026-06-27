@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../context/ThemeContext';
+import { useTabBar } from '../context/TabBarContext';
 import { AppColors } from '../constants/colors';
 import { useHabitos } from '../hooks/useHabitos';
 import { EmptyState } from '../components/shared/EmptyState';
@@ -18,6 +19,7 @@ const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 export function HabitosScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { handleScroll } = useTabBar();
   const { habitos, todayHabits, completadosHoy, bonusHoy, add, update, remove, toggleToday, isDoneToday, isDoneOnDate, weekStats } = useHabitos();
   const [name, setName] = useState('');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
@@ -114,6 +116,8 @@ export function HabitosScreen() {
           )}
           contentContainerStyle={{ paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
         />
 
         <AddHabitModal

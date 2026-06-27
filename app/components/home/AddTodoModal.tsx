@@ -3,6 +3,7 @@ import { Modal, View, StyleSheet, TouchableOpacity, TextInput, ScrollView, Keybo
 import { AppText as Text } from '../shared/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import {
   format, addMonths, subMonths, startOfMonth, endOfMonth,
@@ -11,6 +12,7 @@ import {
 import { es } from 'date-fns/locale';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
+import { Dayxo } from '../../constants/dayxo';
 import { Familia, Todo } from '../../types';
 import { TimeField } from '../shared/TimeField';
 
@@ -74,8 +76,18 @@ export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSav
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.handleWrap}><View style={styles.handle} /></View>
           <View style={styles.header}>
-            <Text style={styles.title}>{editing ? 'Editar pendiente' : 'Nuevo pendiente'}</Text>
-            <TouchableOpacity onPress={onClose}>
+            <View style={styles.headerSide} />
+            <View style={styles.titleWrap}>
+              <LinearGradient
+                colors={[Dayxo.orange, Dayxo.purple]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.titlePill}
+              >
+                <Text style={styles.title}>{editing ? 'Editar pendiente' : 'Nuevo pendiente'}</Text>
+              </LinearGradient>
+            </View>
+            <TouchableOpacity onPress={onClose} style={styles.headerSide} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
@@ -210,11 +222,13 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   handleWrap: { alignItems: 'center', paddingTop: 10, paddingBottom: 6 },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border },
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: colors.border,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingTop: 6, paddingBottom: 12,
   },
-  title: { fontSize: 18, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
+  headerSide: { width: 28, alignItems: 'flex-end', justifyContent: 'center' },
+  titleWrap: { flex: 1, alignItems: 'center' },
+  titlePill: { paddingHorizontal: 18, paddingVertical: 7, borderRadius: 15, overflow: 'hidden' },
+  title: { fontSize: 19, fontFamily: 'Inter_800ExtraBold', color: '#fff', textAlign: 'center' },
   body: { padding: 16 },
   label: {
     fontSize: 11, fontFamily: 'Inter_700Bold', color: colors.textSecondary,
