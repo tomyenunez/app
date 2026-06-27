@@ -40,10 +40,13 @@ export function getHabitsStatusToday(
     .sort((a, b) => (a.isExtra ? 1 : 0) - (b.isExtra ? 1 : 0));
 }
 
-// Tareas con fecha de hoy: completadas / total (mismo criterio que el score)
+// Tareas que cuentan hoy (mismo criterio que el score del Home): las activas
+// (sin completar) + las completadas hoy. Completadas / total.
 export function getTodosStatusToday(todos: Todo[]): TodoDayStatus {
   const today = new Date();
-  const hoy = todos.filter((t) => t.fecha && isSameDay(new Date(t.fecha), today));
+  const hoy = todos.filter((t) =>
+    !t.done || (t.completedAt && isSameDay(new Date(t.completedAt), today))
+  );
   return { completadas: hoy.filter((t) => t.done).length, total: hoy.length };
 }
 

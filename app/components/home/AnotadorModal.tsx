@@ -2,9 +2,9 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Modal, View, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AppText as Text } from '../shared/AppText';
+import { ModalHeader } from '../shared/ModalHeader';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useTheme } from '../../context/ThemeContext';
@@ -76,17 +76,7 @@ export function AnotadorModal({
         <SafeAreaView style={styles.safe} edges={['top']}>
           <View style={styles.handleWrap}><View style={styles.handle} /></View>
 
-          <View style={styles.header}>
-            <View style={styles.headerSide} />
-            <View style={styles.titleWrap}>
-              <LinearGradient colors={[Dayxo.orange, Dayxo.purple]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.titlePill}>
-                <Text style={styles.title}>Anotador</Text>
-              </LinearGradient>
-            </View>
-            <TouchableOpacity onPress={handleClose} style={styles.headerSide} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="close" size={24} color={colors.textPrimary} />
-            </TouchableOpacity>
-          </View>
+          <ModalHeader title="Anotador" onClose={handleClose} />
 
           <ScrollView
             contentContainerStyle={styles.body}
@@ -166,14 +156,6 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   handleWrap: { alignItems: 'center', paddingTop: 10, paddingBottom: 6 },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border },
 
-  header: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingTop: 6, paddingBottom: 12,
-  },
-  headerSide: { width: 28, alignItems: 'flex-end', justifyContent: 'center' },
-  titleWrap: { flex: 1, alignItems: 'center' },
-  titlePill: { paddingHorizontal: 20, paddingVertical: 8, borderRadius: 16, overflow: 'hidden' },
-  title: { fontSize: 23, fontFamily: 'Inter_800ExtraBold', color: '#fff', textAlign: 'center' },
 
   body: { paddingHorizontal: 14, paddingTop: 8 },
   newLabel: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8, marginLeft: 2 },

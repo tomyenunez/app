@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Modal, View, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { LinearGradient } from 'expo-linear-gradient';
 import { AppText as Text } from '../shared/AppText';
+import { ModalHeader } from '../shared/ModalHeader';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -67,25 +67,11 @@ export function NotasHistoryModal({ visible, onClose, notas, onUpdate, onRemove,
         <SafeAreaView style={styles.safe} edges={['top']}>
           <View style={styles.handleWrap}><View style={styles.handle} /></View>
 
-        <View style={styles.header}>
-          <View style={styles.headerSide} />
-          <View style={styles.titleWrap}>
-            <LinearGradient
-              colors={[Dayxo.orange, Dayxo.purple]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.titlePill}
-            >
-              <Text style={styles.title}>Notas guardadas</Text>
-            </LinearGradient>
-            <Text style={styles.sub}>
-              {notas.length} {notas.length === 1 ? 'nota guardada' : 'notas guardadas'}
-            </Text>
-          </View>
-          <TouchableOpacity onPress={onClose} style={styles.headerSide} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="close" size={24} color={colors.textPrimary} />
-          </TouchableOpacity>
-        </View>
+        <ModalHeader
+          title="Notas guardadas"
+          subtitle={`${notas.length} ${notas.length === 1 ? 'nota guardada' : 'notas guardadas'}`}
+          onClose={onClose}
+        />
 
         {ordered.length === 0 ? (
           <EmptyState icon="document-text-outline" text="Todavía no guardaste ninguna nota" />
@@ -173,17 +159,6 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   handleWrap: { alignItems: 'center', paddingTop: 10, paddingBottom: 6 },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border },
 
-  header: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingTop: 6, paddingBottom: 14,
-  },
-  headerSide: { width: 28, alignItems: 'flex-end', justifyContent: 'center' },
-  titleWrap: { flex: 1, alignItems: 'center' },
-  titlePill: {
-    paddingHorizontal: 18, paddingVertical: 7, borderRadius: 15, overflow: 'hidden',
-  },
-  title: { fontSize: 21, fontFamily: 'Inter_800ExtraBold', color: '#fff', textAlign: 'center' },
-  sub: { fontSize: 12, fontFamily: 'Inter_400Regular', color: colors.textSecondary, marginTop: 5, textAlign: 'center' },
 
   searchWrap: {
     flexDirection: 'row', alignItems: 'center', gap: 8,

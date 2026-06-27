@@ -39,7 +39,7 @@ export function HomeScreen() {
   const { todos, add: addTodo, update: updateTodo, toggle: toggleTodo, remove: removeTodo, togglePin: togglePinTodo } = useTodos();
   const { familias, getFamilia } = useFamilias();
   const {
-    habitos, habitDone, todayHabits, completadosHoy,
+    habitos, habitDone, todayHabits, completadosHoy, bonusHoy,
     add: addHabito, update: updateHabito, remove: removeHabito, togglePin: togglePinHabito, toggleToday,
     isDoneToday, isDoneOnDate, weekStats,
   } = useHabitos();
@@ -65,11 +65,22 @@ export function HomeScreen() {
     hasEvents(date) || todos.some((t) => t.fecha && isSameDay(new Date(t.fecha), date)),
     [hasEvents, todos]);
 
-  // Score del día: hábitos de hoy + pendientes con fecha de hoy
-  const todayTodos = useMemo(() =>
-    todos.filter((t) => t.fecha && isSameDay(new Date(t.fecha), new Date())), [todos]);
-  const totalScore = todayHabits.length + todayTodos.length;
-  const doneScore = completadosHoy + todayTodos.filter((t) => t.done).length;
+  // Score del día: combina hábitos y pendientes para reflejar el trabajo real
+  // que se ve en el Home.
+  //  · Hábitos: los que tocan hoy + los completados hoy aunque no tocaran (⭐).
+  //  · Pendientes: las activas (sin completar) + las completadas hoy.
+  // Así el score se mueve al completar/destildar y no queda "0/0" cuando hay
+  // pendientes o hábitos hechos en el día.
+  const scoreTodos = useMemo(() => {
+    const hoy = new Date();
+    return todos.filter((t) =>
+      !t.done || (t.completedAt && isSameDay(new Date(t.completedAt), hoy))
+    );
+  }, [todos]);
+  const doneTodos = useMemo(() => scoreTodos.filter((t) => t.done).length, [scoreTodos]);
+
+  const totalScore = todayHabits.length + bonusHoy + scoreTodos.length;
+  const doneScore = completadosHoy + bonusHoy + doneTodos;
   const score = totalScore === 0 ? 0 : Math.round((doneScore / totalScore) * 100);
 
   // Desglose para el bottom sheet "Tu día de hoy"

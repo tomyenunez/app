@@ -1,13 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Modal, View, StyleSheet, TouchableOpacity, TextInput, ScrollView, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { AppText as Text } from '../shared/AppText';
+import { ModalHeader } from '../shared/ModalHeader';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
-import { Dayxo } from '../../constants/dayxo';
 import { OpcionGasto, FamiliaColor, Transaction } from '../../types';
 import { DateField } from '../shared/DateField';
 import { QuickOptionModal } from './QuickOptionModal';
@@ -100,22 +99,7 @@ export function AddGastoModal({ visible, onClose, categorias, metodos, onAdd, ed
       <SafeAreaView style={styles.safe} edges={['top']}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.handleWrap}><View style={styles.handle} /></View>
-          <View style={styles.header}>
-            <View style={styles.headerSide} />
-            <View style={styles.titleWrap}>
-              <LinearGradient
-                colors={[Dayxo.orange, Dayxo.purple]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.titlePill}
-              >
-                <Text style={styles.title}>{editing ? 'Editar gasto' : 'Nuevo gasto'}</Text>
-              </LinearGradient>
-            </View>
-            <TouchableOpacity onPress={onClose} style={styles.headerSide} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="close" size={24} color={colors.textPrimary} />
-            </TouchableOpacity>
-          </View>
+          <ModalHeader title={editing ? 'Editar gasto' : 'Nuevo gasto'} onClose={onClose} />
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
             <Text style={styles.label}>DESCRIPCIÓN</Text>
@@ -176,14 +160,6 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.card },
   handleWrap: { alignItems: 'center', paddingTop: 10, paddingBottom: 6 },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border },
-  header: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingTop: 6, paddingBottom: 12,
-  },
-  headerSide: { width: 28, alignItems: 'flex-end', justifyContent: 'center' },
-  titleWrap: { flex: 1, alignItems: 'center' },
-  titlePill: { paddingHorizontal: 18, paddingVertical: 7, borderRadius: 15, overflow: 'hidden' },
-  title: { fontSize: 19, fontFamily: 'Inter_800ExtraBold', color: '#fff', textAlign: 'center' },
   body: { padding: 16 },
   label: { fontSize: 11, fontFamily: 'Inter_700Bold', color: colors.textSecondary, letterSpacing: 0.5, marginBottom: 8 },
   input: {

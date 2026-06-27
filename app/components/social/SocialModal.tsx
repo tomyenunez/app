@@ -13,7 +13,9 @@ import { Dayxo } from '../../constants/dayxo';
 import { initials } from '../../utils/formatters';
 import { useFriends } from '../../hooks/useFriends';
 import { PublicUser } from '../../services/friends';
-import { GroupsListScreen } from '../../screens/GroupsListScreen';
+import { GroupsListScreen, MOCK_GROUPS, sortGroupsByRelevance } from '../../screens/GroupsListScreen';
+import { GroupCarouselCard } from '../groups/GroupCarouselCard';
+import { ModalHeader } from '../shared/ModalHeader';
 
 function MiniAvatar({ user, size = 44 }: { user: PublicUser; size?: number }) {
   return (
@@ -38,6 +40,12 @@ export function SocialModal({ visible, onClose }: { visible: boolean; onClose: (
   const [searching, setSearching] = useState(false);
   const [feedback, setFeedback] = useState<{ text: string; ok: boolean } | null>(null);
   const [groupsOpen, setGroupsOpen] = useState(false);
+  const [initialGroupId, setInitialGroupId] = useState<string | undefined>(undefined);
+
+  const groups = useMemo(() => sortGroupsByRelevance(MOCK_GROUPS), []);
+
+  const openGroups = (groupId?: string) => { setInitialGroupId(groupId); setGroupsOpen(true); };
+  const closeGroups = () => { setGroupsOpen(false); setInitialGroupId(undefined); };
 
   const resetSearch = () => { setCodeInput(''); setFound(null); setFeedback(null); };
 
@@ -69,41 +77,15 @@ export function SocialModal({ visible, onClose }: { visible: boolean; onClose: (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.handleWrap}><View style={styles.handle} /></View>
-          <View style={styles.header}>
-            <View style={styles.titleWrap}>
-              <Ionicons name="people" size={22} color={Dayxo.purple} />
-              <Text style={styles.title}>Amigos</Text>
-            </View>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="close" size={24} color={colors.textPrimary} />
-            </TouchableOpacity>
-          </View>
+          <ModalHeader
+            title="Social"
+            subtitle={`${friends.length} ${friends.length === 1 ? 'amigo' : 'amigos'}`}
+            onClose={onClose}
+          />
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-            {/* Mi código */}
-            <LinearGradient colors={[Dayxo.orange, Dayxo.purple]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.codeCard}>
-              <Text style={styles.codeLabel}>TU CÓDIGO DE AMIGO</Text>
-              <Text style={styles.codeValue}>{myCode ?? '········'}</Text>
-              <TouchableOpacity style={styles.shareBtn} onPress={shareCode} disabled={!myCode}>
-                <Ionicons name="share-outline" size={16} color={Dayxo.purple} />
-                <Text style={styles.shareBtnText}>Compartir mi código</Text>
-              </TouchableOpacity>
-            </LinearGradient>
-
-            {/* Grupos → abre la pantalla de Lista de Grupos */}
-            <TouchableOpacity style={styles.groupsEntry} onPress={() => setGroupsOpen(true)} activeOpacity={0.7}>
-              <View style={styles.groupsEntryIcon}>
-                <Ionicons name="people" size={20} color={Dayxo.purple} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.groupsEntryTitle}>Grupos</Text>
-                <Text style={styles.groupsEntrySub}>Competí y sumá XP con tus amigos</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
-
-            {/* Agregar por código */}
-            <Text style={styles.sectionLabel}>AGREGAR AMIGO</Text>
+            {/* Agregar amigo — arriba de todo */}
+            <Text style={[styles.sectionLabel, styles.firstLabel]}>AGREGAR AMIGO</Text>
             <View style={styles.addRow}>
               <TextInput
                 style={styles.input}
@@ -132,6 +114,46 @@ export function SocialModal({ visible, onClose }: { visible: boolean; onClose: (
             )}
             {feedback && (
               <Text style={[styles.feedback, { color: feedback.ok ? Dayxo.green : colors.error }]}>{feedback.text}</Text>
+            )}
+
+            {/* Mi código */}
+            <LinearGradient colors={[Dayxo.orange, Dayxo.purple]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.codeCard}>
+              <Text style={styles.codeLabel}>TU CÓDIGO DE AMIGO</Text>
+              <Text style={styles.codeValue}>{myCode ?? '········'}</Text>
+              <TouchableOpacity style={styles.shareBtn} onPress={shareCode} disabled={!myCode}>
+                <Ionicons name="share-outline" size={16} color={Dayxo.purple} />
+                <Text style={styles.shareBtnText}>Compartir mi código</Text>
+              </TouchableOpacity>
+            </LinearGradient>
+
+            {/* Grupos — carrusel seleccionable */}
+            <View style={styles.groupsHeader}>
+              <Text style={[styles.sectionLabel, { marginTop: 0, marginBottom: 0 }]}>GRUPOS</Text>
+              <TouchableOpacity onPress={() => openGroups()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={styles.seeAll}>Ver todos</Text>
+              </TouchableOpacity>
+            </View>
+            {groups.length === 0 ? (
+              <TouchableOpacity style={styles.groupsEntry} onPress={() => openGroups()} activeOpacity={0.7}>
+                <View style={styles.groupsEntryIcon}>
+                  <Ionicons name="people" size={20} color={Dayxo.purple} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.groupsEntryTitle}>Sumate a un grupo</Text>
+                  <Text style={styles.groupsEntrySub}>Competí y sumá XP con tus amigos</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.carousel}
+              >
+                {groups.map((g) => (
+                  <GroupCarouselCard key={g.id} group={g} onPress={() => openGroups(g.id)} />
+                ))}
+              </ScrollView>
             )}
 
             {/* Solicitudes entrantes */}
@@ -193,7 +215,7 @@ export function SocialModal({ visible, onClose }: { visible: boolean; onClose: (
         </KeyboardAvoidingView>
 
         {/* Cover de Grupos (sin modal anidado) */}
-        {groupsOpen && <GroupsListScreen onBack={() => setGroupsOpen(false)} />}
+        {groupsOpen && <GroupsListScreen onBack={closeGroups} initialGroupId={initialGroupId} />}
       </SafeAreaView>
     </Modal>
   );
@@ -203,15 +225,9 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   handleWrap: { alignItems: 'center', paddingTop: 10, paddingBottom: 6 },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border,
-  },
-  titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { fontSize: 18, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
   body: { padding: 16 },
 
-  codeCard: { borderRadius: 18, padding: 18, alignItems: 'center' },
+  codeCard: { borderRadius: 18, padding: 18, alignItems: 'center', marginTop: 20 },
   codeLabel: { fontSize: 11, fontFamily: 'Inter_700Bold', color: 'rgba(255,255,255,0.85)', letterSpacing: 1 },
   codeValue: { fontSize: 30, fontFamily: 'Inter_800ExtraBold', color: '#fff', letterSpacing: 3, marginTop: 6 },
   shareBtn: {
@@ -233,6 +249,11 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   groupsEntrySub: { fontSize: 11, fontFamily: 'Inter_400Regular', color: colors.textSecondary, marginTop: 2 },
 
   sectionLabel: { fontSize: 11, fontFamily: 'Inter_700Bold', color: colors.textSecondary, letterSpacing: 0.5, marginTop: 24, marginBottom: 10 },
+  firstLabel: { marginTop: 2 },
+
+  groupsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 12 },
+  seeAll: { fontSize: 13, fontFamily: 'Inter_700Bold', color: Dayxo.purple },
+  carousel: { gap: 10, paddingVertical: 2, paddingRight: 4 },
 
   addRow: { flexDirection: 'row', gap: 8 },
   input: {

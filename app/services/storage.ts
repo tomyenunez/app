@@ -250,6 +250,26 @@ export async function saveFinanceOrder(order: string[]): Promise<void> {
   if (error) console.warn('[Dayxo finance_order] guardar:', error.message);
 }
 
+// Orden de los módulos de Stats (reordenable por el usuario). Local (AsyncStorage),
+// sin tocar backend: es preferencia de UI del dispositivo.
+const STATS_ORDER_KEY = '@dayxo/statsOrder';
+export async function getStatsOrder(): Promise<string[] | null> {
+  try {
+    const raw = await AsyncStorage.getItem(STATS_ORDER_KEY);
+    const arr = raw ? JSON.parse(raw) : null;
+    return Array.isArray(arr) ? arr : null;
+  } catch {
+    return null;
+  }
+}
+export async function saveStatsOrder(order: string[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(STATS_ORDER_KEY, JSON.stringify(order));
+  } catch {
+    // preferencia no crítica
+  }
+}
+
 // --- Gamificación ---
 import { PersonalRecords, PlayerProfile } from '../types/game';
 

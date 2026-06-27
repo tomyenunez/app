@@ -1,5 +1,6 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
+import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
 import { AppText as Text } from '../components/shared/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
@@ -31,8 +32,15 @@ import { useFamilias } from '../hooks/useFamilias';
 import {
   habitInsights, taskInsights, financeInsights, evolutionInsights, buildSmartInsights,
 } from '../utils/statsInsights';
+import { getStatsOrder, saveStatsOrder } from '../services/storage';
 
 type Periodo = 'mes-anterior' | 'mes' | 'todo';
+
+// Módulos reordenables de Stats (orden por defecto = orden visual original).
+const STATS_MODULES = [
+  'stats', 'resumen', 'actividad', 'logros', 'motivacion',
+  'gastos', 'habitos', 'productividad', 'financiero', 'evolucion', 'insights',
+];
 
 // Versión oscura tintada de un color de acento (fondo de card relacionado a su tema)
 function darkTint(hex: string): string {
@@ -48,7 +56,7 @@ export function StatsScreen() {
   const nav = useNavigation<any>();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { handleScroll } = useTabBar();
+  const { handleScrollOffset } = useTabBar();
   const { todos } = useTodos();
   const { habitos, habitDone } = useHabitos();
   const { txs } = usePresupuesto();
@@ -60,6 +68,23 @@ export function StatsScreen() {
   const [socialVisible, setSocialVisible] = useState(false);
   const [editVisible, setEditVisible] = useState(false);
   const [logrosVisible, setLogrosVisible] = useState(false);
+
+  // Orden de los módulos (persistido local, reordenable manteniendo apretado)
+  const [order, setOrder] = useState<string[]>(STATS_MODULES);
+  useEffect(() => {
+    getStatsOrder().then((saved) => {
+      if (!saved) return;
+      const merged = [
+        ...saved.filter((k) => STATS_MODULES.includes(k)),
+        ...STATS_MODULES.filter((k) => !saved.includes(k)),
+      ];
+      setOrder(merged);
+    });
+  }, []);
+  const onDragEnd = useCallback(({ data }: { data: string[] }) => {
+    setOrder(data);
+    saveStatsOrder(data);
+  }, []);
 
   // El avatar del Home navega acá con { editProfile: true } para abrir el pop-up
   const route = useRoute<any>();
@@ -242,29 +267,32 @@ export function StatsScreen() {
     { key: 'todo', label: 'Todo' },
   ];
 
-  return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 32 }}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-      >
-        {/* Header: home · título · social */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => nav.navigate('Home')}>
-            <Ionicons name="home-outline" size={22} color={colors.textPrimary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Stats</Text>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => setSocialVisible(true)}>
-            <Ionicons name="people-outline" size={22} color={colors.textPrimary} />
-          </TouchableOpacity>
-        </View>
+  // Header fijo (no se reordena): barra superior + card de perfil + hint.
+  const Header = (
+    <>
+      {/* Header: home · título · social */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => nav.navigate('Home')}>
+          <Ionicons name="home-outline" size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Stats</Text>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => setSocialVisible(true)}>
+          <Ionicons name="people-outline" size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
+      </View>
 
-        {/* Card de perfil — tap en avatar/nombre abre el pop-up de editar */}
-        <ProfileCard onPress={() => setEditVisible(true)} />
+      {/* Card de perfil — tap en avatar/nombre abre el pop-up de editar */}
+      <ProfileCard onPress={() => setEditVisible(true)} />
 
-        {/* Cards de stats: fondo neutro + ícono llamativo de fondo */}
+      <Text style={styles.dragHint}>Mantené apretado un módulo para moverlo</Text>
+    </>
+  );
+
+  // Cada módulo se renderiza según su key; el orden visual lo maneja `order`.
+  const renderItem = ({ item, drag, isActive }: RenderItemParams<string>) => (
+    <ScaleDecorator>
+      <TouchableOpacity activeOpacity={0.9} onLongPress={drag} delayLongPress={220} disabled={isActive}>
+        {item === 'stats' ? (
         <View style={styles.statsGrid}>
           {cards.map((c, i) => (
             <View key={i} style={styles.statCard}>
@@ -275,14 +303,12 @@ export function StatsScreen() {
             </View>
           ))}
         </View>
-
-        {/* Resumen semanal + Próximo logro */}
+        ) : item === 'resumen' ? (
         <View style={styles.duoRow}>
           <WeeklySummaryCard pct={semana.pct} done={semana.done} total={semana.total} days={semana.days} />
           <NextBadgeCard badges={nextBadges} />
         </View>
-
-        {/* Actividad — heatmap del último mes */}
+        ) : item === 'actividad' ? (
         <View style={styles.section}>
           <View style={styles.actHead}>
             <Text style={styles.sectionTitle}>Actividad — último mes</Text>
@@ -290,8 +316,7 @@ export function StatsScreen() {
           </View>
           <ActivityGrid weeks={5} accent={Dayxo.orange} />
         </View>
-
-        {/* Logros */}
+        ) : item === 'logros' ? (
         <View style={[styles.section, styles.logrosSection]}>
           <View style={styles.logrosHead}>
             <View style={styles.logrosTitleWrap}>
@@ -324,8 +349,7 @@ export function StatsScreen() {
               })}
           </ScrollView>
         </View>
-
-        {/* Banner motivacional */}
+        ) : item === 'motivacion' ? (
         <View style={styles.motivBanner}>
           <View style={styles.motivIcon}><Text style={styles.motivEmoji}>🚀</Text></View>
           <View style={{ flex: 1 }}>
@@ -333,8 +357,8 @@ export function StatsScreen() {
             <Text style={styles.motivText}>Tu racha es de {streak} {streak === 1 ? 'día' : 'días'}. ¡Vos podés más!</Text>
           </View>
         </View>
-
-        {/* Selector de período */}
+        ) : item === 'gastos' ? (
+        <>
         <View style={styles.periodRow}>
           {PERIODOS.map((p) => {
             const active = periodo === p.key;
@@ -376,8 +400,8 @@ export function StatsScreen() {
             </View>
           )}
         </View>
-
-        {/* A) Stats de hábitos */}
+        </>
+        ) : item === 'habitos' ? (
         <View style={styles.section}>
           <View style={styles.sectionHead}>
             <View style={[styles.sectionIcon, { backgroundColor: Dayxo.habitos + '22' }]}>
@@ -424,8 +448,7 @@ export function StatsScreen() {
             </>
           )}
         </View>
-
-        {/* B) Stats de pendientes / tareas */}
+        ) : item === 'productividad' ? (
         <View style={styles.section}>
           <View style={styles.sectionHead}>
             <View style={[styles.sectionIcon, { backgroundColor: Dayxo.purple + '22' }]}>
@@ -464,8 +487,7 @@ export function StatsScreen() {
             </>
           )}
         </View>
-
-        {/* C) Stats financieras */}
+        ) : item === 'financiero' ? (
         <View style={styles.section}>
           <View style={styles.sectionHead}>
             <View style={[styles.sectionIcon, { backgroundColor: Dayxo.blue + '22' }]}>
@@ -528,8 +550,7 @@ export function StatsScreen() {
             </>
           )}
         </View>
-
-        {/* D) Stats de evolución */}
+        ) : item === 'evolucion' ? (
         <View style={styles.section}>
           <View style={styles.sectionHead}>
             <View style={[styles.sectionIcon, { backgroundColor: Dayxo.green + '22' }]}>
@@ -594,8 +615,7 @@ export function StatsScreen() {
             </>
           )}
         </View>
-
-        {/* E) Insights inteligentes */}
+        ) : item === 'insights' ? (
         <View style={styles.section}>
           <View style={styles.sectionHead}>
             <View style={[styles.sectionIcon, { backgroundColor: Dayxo.purple + '22' }]}>
@@ -616,7 +636,23 @@ export function StatsScreen() {
             ))
           )}
         </View>
-      </ScrollView>
+        ) : null}
+      </TouchableOpacity>
+    </ScaleDecorator>
+  );
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <DraggableFlatList
+        data={order}
+        keyExtractor={(k) => k}
+        renderItem={renderItem}
+        onDragEnd={onDragEnd}
+        ListHeaderComponent={Header}
+        contentContainerStyle={{ paddingBottom: 32 }}
+        showsVerticalScrollIndicator={false}
+        onScrollOffsetChange={handleScrollOffset}
+      />
 
       {/* Social — amigos */}
       <SocialModal visible={socialVisible} onClose={() => setSocialVisible(false)} />
@@ -655,11 +691,13 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     borderWidth: 1, borderColor: colors.border,
   },
   headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
+  dragHint: { fontSize: 11, fontFamily: 'Inter_500Medium', color: colors.textTertiary, textAlign: 'center', marginTop: 12, marginBottom: 2 },
 
   // Cards de stats (fondo neutro + ícono de fondo)
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, margin: 14 },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, margin: 12 },
   statCard: {
-    width: '47%',
+    flexBasis: '45%',
+    flexGrow: 1,
     borderRadius: 16,
     padding: 12,
     backgroundColor: colors.card,

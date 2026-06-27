@@ -22,7 +22,7 @@ export function ScoreBanner({ score, completed, total, onPress, compact, style }
   const styles = useMemo(() => createStyles(colors, !!compact), [colors, compact]);
   const animVal = useRef(new Animated.Value(0)).current;
 
-  const SIZE = compact ? 56 : 72;
+  const SIZE = compact ? 66 : 72;
   const R = (SIZE - STROKE) / 2;
   const CIRCUMFERENCE = 2 * Math.PI * R;
 
@@ -45,9 +45,13 @@ export function ScoreBanner({ score, completed, total, onPress, compact, style }
   const content = (
     <>
       <View style={styles.left}>
-        <Text style={styles.scoreLabel}>Score de hoy</Text>
-        <Text style={styles.scoreNumber}>{score}%</Text>
-        <Text style={styles.scoreSub}>{completed} de {total} completados</Text>
+        <View>
+          <Text style={styles.scoreLabel} numberOfLines={1}>Score de hoy</Text>
+          <Text style={styles.scoreNumber} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{score}%</Text>
+        </View>
+        <Text style={styles.scoreSub} numberOfLines={1}>
+          {compact ? `${completed}/${total}` : `${completed} de ${total} completados`}
+        </Text>
       </View>
       <View style={styles.right}>
         <Svg width={SIZE} height={SIZE}>
@@ -99,10 +103,11 @@ const createStyles = (colors: AppColors, compact: boolean) => StyleSheet.create(
     backgroundColor: colors.card,
     borderRadius: 18,
     marginHorizontal: compact ? 0 : 14,
-    padding: compact ? 14 : 20,
+    padding: compact ? 16 : 20,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     justifyContent: 'space-between',
+    gap: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -110,26 +115,24 @@ const createStyles = (colors: AppColors, compact: boolean) => StyleSheet.create(
     elevation: 2,
   },
   bannerPressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
-  left: { flex: 1 },
+  left: { flex: 1, justifyContent: 'space-between' },
   scoreLabel: {
     color: colors.textSecondary,
-    fontSize: compact ? 11 : 12,
-    fontFamily: 'Inter_500Medium',
-    marginBottom: compact ? 2 : 4,
+    fontSize: compact ? 13 : 12,
+    fontFamily: 'Inter_600SemiBold',
   },
   scoreNumber: {
     color: Dayxo.orange,
-    fontSize: compact ? 26 : 34,
+    fontSize: compact ? 36 : 34,
     fontFamily: 'Inter_800ExtraBold',
-    lineHeight: compact ? 30 : 38,
+    lineHeight: compact ? 40 : 38,
   },
   scoreSub: {
     color: colors.textSecondary,
-    fontSize: compact ? 10 : 11,
-    fontFamily: 'Inter_400Regular',
-    marginTop: compact ? 2 : 4,
+    fontSize: compact ? 15 : 13,
+    fontFamily: compact ? 'Inter_700Bold' : 'Inter_400Regular',
   },
-  right: { alignItems: 'center', justifyContent: 'center' },
+  right: { alignSelf: 'center', alignItems: 'center', justifyContent: 'center' },
   scoreCenter: {
     position: 'absolute',
     alignItems: 'center',
@@ -137,7 +140,7 @@ const createStyles = (colors: AppColors, compact: boolean) => StyleSheet.create(
   },
   scoreCenterText: {
     color: Dayxo.orange,
-    fontSize: compact ? 15 : 18,
+    fontSize: compact ? 18 : 18,
     fontFamily: 'Inter_700Bold',
   },
 });
