@@ -9,10 +9,14 @@ import { GroupStreakBanner } from '../components/groups/GroupStreakBanner';
 import { ActiveGameCard } from '../components/groups/ActiveGameCard';
 import { GroupRankingList } from '../components/groups/GroupRankingList';
 import { GroupActionsRow } from '../components/groups/GroupActionsRow';
+import { GroupBadgesSection } from '../components/groups/GroupBadgesSection';
+import { GroupBadgeDetailModal } from '../components/groups/GroupBadgeDetailModal';
 import { GroupSettingsScreen } from './GroupSettingsScreen';
+import { ChooseGroupGameScreen } from './ChooseGroupGameScreen';
 import {
   GROUP_COVER_GRADIENTS, GroupListItem, GroupMember, RankingEntry, ActiveGroupGame,
 } from '../components/groups/types';
+import { GroupBadgeDisplay } from '../constants/groupBadges';
 
 // ⚠️ El rol y todos los datos los define el backend de Mateo. Por ahora marcamos
 // al usuario como admin para poder ver toda la UI (⚙️, ruleta, etc.).
@@ -24,6 +28,8 @@ export function GroupDetailScreen({ group, onBack }: { group: GroupListItem; onB
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { profile } = useGame();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [chooseGameOpen, setChooseGameOpen] = useState(false);
+  const [selectedBadge, setSelectedBadge] = useState<GroupBadgeDisplay | null>(null);
   const [gradientIndex] = useState(0);
 
   // --- Datos de ejemplo (placeholder) ---
@@ -94,9 +100,16 @@ export function GroupDetailScreen({ group, onBack }: { group: GroupListItem; onB
             totalMembers={members.length}
           />
 
-          <ActiveGameCard game={game} isAdmin={IS_ADMIN} onChooseGame={soon} />
+          <ActiveGameCard
+            game={game}
+            isAdmin={IS_ADMIN}
+            onChooseGame={() => setChooseGameOpen(true)}
+            onChangeGame={() => setChooseGameOpen(true)}
+          />
 
           <GroupRankingList entries={ranking} />
+
+          <GroupBadgesSection onBadgePress={setSelectedBadge} />
 
           <GroupActionsRow isAdmin={IS_ADMIN} rouletteUsed={false} onRoulette={soon} onLeave={confirmLeave} />
         </View>
@@ -112,6 +125,11 @@ export function GroupDetailScreen({ group, onBack }: { group: GroupListItem; onB
           onBack={() => setSettingsOpen(false)}
         />
       )}
+
+      {chooseGameOpen && <ChooseGroupGameScreen onBack={() => setChooseGameOpen(false)} />}
+
+      {/* Detalle de badge (overlay centrado) */}
+      <GroupBadgeDetailModal badge={selectedBadge} onClose={() => setSelectedBadge(null)} />
     </View>
   );
 }
