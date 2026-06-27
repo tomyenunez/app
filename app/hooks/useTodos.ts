@@ -16,6 +16,7 @@ function fromRow(r: any): Todo {
     done: !!r.done,
     tag: r.tag,
     created: r.created,
+    ...(r.descripcion ? { descripcion: r.descripcion } : {}),
     ...(r.fecha ? { fecha: r.fecha } : {}),
     ...(r.hora ? { hora: r.hora } : {}),
     ...(r.pinned ? { pinned: true } : {}),
@@ -27,6 +28,7 @@ function toRow(t: Todo, userId: string) {
     id: t.id,
     user_id: userId,
     texto: t.text,
+    descripcion: t.descripcion ?? null,
     done: t.done,
     tag: t.tag,
     created: t.created,
@@ -62,7 +64,7 @@ export function useTodos() {
     }, [userId])
   );
 
-  const add = useCallback(async (text: string, tag: Todo['tag'], fecha?: Date, hora?: string) => {
+  const add = useCallback(async (text: string, tag: Todo['tag'], fecha?: Date, hora?: string, descripcion?: string) => {
     if (!userId) return;
     const next: Todo = {
       id: Date.now().toString(),
@@ -70,6 +72,7 @@ export function useTodos() {
       done: false,
       tag,
       created: todayKey(),
+      ...(descripcion?.trim() ? { descripcion: descripcion.trim() } : {}),
       ...(fecha ? { fecha: fecha.toISOString() } : {}),
       ...(fecha && hora ? { hora } : {}), // la hora solo tiene sentido con fecha
     };
@@ -108,12 +111,13 @@ export function useTodos() {
     if (error) console.warn('[Dayxo todos] borrar:', error.message);
   }, []);
 
-  const update = useCallback(async (id: string, text: string, tag: Todo['tag'], fecha?: Date, hora?: string) => {
+  const update = useCallback(async (id: string, text: string, tag: Todo['tag'], fecha?: Date, hora?: string, descripcion?: string) => {
     const nextFecha = fecha ? fecha.toISOString() : undefined;
     const nextHora = nextFecha && hora ? hora : undefined; // hora solo con fecha
-    setTodos((prev) => prev.map((t) => t.id === id ? { ...t, text, tag, fecha: nextFecha, hora: nextHora } : t));
+    const nextDesc = descripcion?.trim() || undefined;
+    setTodos((prev) => prev.map((t) => t.id === id ? { ...t, text, tag, descripcion: nextDesc, fecha: nextFecha, hora: nextHora } : t));
     const { error } = await supabase.from('todos')
-      .update({ texto: text, tag, fecha: nextFecha ?? null, hora: nextHora ?? null })
+      .update({ texto: text, descripcion: nextDesc ?? null, tag, fecha: nextFecha ?? null, hora: nextHora ?? null })
       .eq('id', id);
     if (error) console.warn('[Dayxo todos] editar:', error.message);
     const target = todos.find((t) => t.id === id);

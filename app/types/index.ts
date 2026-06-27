@@ -10,6 +10,7 @@ export interface Familia {
 export interface Todo {
   id: string;
   text: string;
+  descripcion?: string; // descripción/detalle opcional de la tarea
   done: boolean;
   tag: string; // id de Familia
   created: string; // "YYYY-M-D"

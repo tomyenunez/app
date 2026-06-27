@@ -20,15 +20,16 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   familias: Familia[];
-  onAdd: (text: string, tag: Todo['tag'], fecha?: Date, hora?: string) => Promise<void> | void;
+  onAdd: (text: string, tag: Todo['tag'], fecha?: Date, hora?: string, descripcion?: string) => Promise<void> | void;
   editing?: Todo | null;
-  onSave?: (id: string, text: string, tag: Todo['tag'], fecha?: Date, hora?: string) => Promise<void> | void;
+  onSave?: (id: string, text: string, tag: Todo['tag'], fecha?: Date, hora?: string, descripcion?: string) => Promise<void> | void;
 }
 
 export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSave }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [text, setText] = useState('');
+  const [descripcion, setDescripcion] = useState('');
   const [selectedTag, setSelectedTag] = useState<string>('personal');
   const [fecha, setFecha] = useState<Date | null>(null);
   const [hora, setHora] = useState<string | null>(null);
@@ -39,6 +40,7 @@ export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSav
   useEffect(() => {
     if (visible) {
       setText(editing?.text ?? '');
+      setDescripcion(editing?.descripcion ?? '');
       setSelectedTag(editing?.tag ?? familias[0]?.id ?? 'personal');
       setFecha(editing?.fecha ? new Date(editing.fecha) : null);
       setHora(editing?.hora ?? null);
@@ -61,10 +63,11 @@ export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSav
   const handleSubmit = async () => {
     if (!text.trim()) return;
     const horaArg = fecha && hora ? hora : undefined; // la hora solo viaja si hay fecha
+    const descArg = descripcion.trim() || undefined;
     if (editing && onSave) {
-      await onSave(editing.id, text.trim(), effectiveTag as Todo['tag'], fecha ?? undefined, horaArg);
+      await onSave(editing.id, text.trim(), effectiveTag as Todo['tag'], fecha ?? undefined, horaArg, descArg);
     } else {
-      await onAdd(text.trim(), effectiveTag as Todo['tag'], fecha ?? undefined, horaArg);
+      await onAdd(text.trim(), effectiveTag as Todo['tag'], fecha ?? undefined, horaArg, descArg);
     }
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onClose();
@@ -102,6 +105,17 @@ export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSav
               onChangeText={setText}
               returnKeyType="done"
               autoFocus
+            />
+
+            <Text style={[styles.label, { marginTop: 16 }]}>DESCRIPCIÓN (OPCIONAL)</Text>
+            <TextInput
+              style={styles.descInput}
+              placeholder="Agregá detalles..."
+              placeholderTextColor={colors.textSecondary}
+              value={descripcion}
+              onChangeText={setDescripcion}
+              multiline
+              textAlignVertical="top"
             />
 
             <Text style={[styles.label, { marginTop: 16 }]}>CATEGORÍA</Text>
@@ -239,6 +253,13 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
     fontSize: 16, fontFamily: 'Inter_400Regular', color: colors.textPrimary,
     borderWidth: 1, borderColor: colors.border,
+  },
+  descInput: {
+    backgroundColor: colors.inputBg,
+    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 15, fontFamily: 'Inter_400Regular', color: colors.textPrimary,
+    borderWidth: 1, borderColor: colors.border,
+    minHeight: 80, lineHeight: 21,
   },
   tagWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tagChip: {

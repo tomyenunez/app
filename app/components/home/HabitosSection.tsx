@@ -65,15 +65,14 @@ export function HabitosSection({
             key={habito.id}
             pinned={habito.pinned}
             pinColor={colors.orange}
-            editColor={Dayxo.blue}
             containerStyle={styles.cardSpacing}
             onPin={() => onTogglePin(habito.id)}
-            onEdit={() => setEditHabit(habito)}
             onDelete={() => onRemove(habito.id)}
           >
             <HabitCard
               habito={habito}
               onToggleToday={() => handleToggleToday(habito.id)}
+              onEdit={() => setEditHabit(habito)}
               isDoneToday={isDoneToday(habito.id)}
               isDoneOnDate={isDoneOnDate}
               weekStats={weekStats(habito)}

@@ -27,6 +27,9 @@ import { useAgenda } from '../hooks/useAgenda';
 import { useNotas } from '../hooks/useNotas';
 import { useStreak } from '../hooks/useStreak';
 
+// Lado del cuadrado de Notas (perfecto). El Score ocupa el resto de la fila a la misma altura.
+const NOTES_TILE = 118;
+
 export function HomeScreen() {
   const nav = useNavigation<any>();
   const { colors } = useTheme();
@@ -118,22 +121,28 @@ export function HomeScreen() {
           <WeekStrip hasEventOnDay={hasMark} onDayPress={openCalendar} onColor />
         </LinearGradient>
 
-        {/* Score Banner */}
-        <View style={{ marginTop: 14 }}>
-          <ScoreBanner score={score} completed={doneScore} total={totalScore} onPress={() => setDayDetailVisible(true)} />
+        {/* Notas (cuadrado, izquierda) + Score comprimido (rectángulo, derecha) */}
+        <View style={styles.topRow}>
+          <QuickNotesCard
+            size={NOTES_TILE}
+            notas={notas}
+            draft={notaDraft}
+            setDraft={setNotaDraft}
+            saveDraft={saveNotaDraft}
+            clearDraft={clearNotaDraft}
+            onUpdate={updateNota}
+            onRemove={removeNota}
+            onTogglePin={togglePinNota}
+          />
+          <ScoreBanner
+            score={score}
+            completed={doneScore}
+            total={totalScore}
+            compact
+            style={styles.scoreCompact}
+            onPress={() => setDayDetailVisible(true)}
+          />
         </View>
-
-        {/* Notas rápidas (Anotador + historial) */}
-        <QuickNotesCard
-          notas={notas}
-          draft={notaDraft}
-          setDraft={setNotaDraft}
-          saveDraft={saveNotaDraft}
-          clearDraft={clearNotaDraft}
-          onUpdate={updateNota}
-          onRemove={removeNota}
-          onTogglePin={togglePinNota}
-        />
 
         {/* Pendientes */}
         <PendientesSection
@@ -197,6 +206,8 @@ export function HomeScreen() {
 const createStyles = (colors: AppColors) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   scroll: { flex: 1 },
+  topRow: { flexDirection: 'row', gap: 12, marginHorizontal: 14, marginTop: 14 },
+  scoreCompact: { flex: 1, height: NOTES_TILE },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

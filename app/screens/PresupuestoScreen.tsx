@@ -95,7 +95,6 @@ export function PresupuestoScreen() {
         key={item.id}
         pinned={item.pinned}
         pinColor={Dayxo.coral}
-        editColor={Dayxo.blue}
         containerStyle={styles.rowSpacing}
         onPin={() => togglePin(item.id)}
         onEdit={() => { setVerTodo(null); setEditGasto(item); }}
@@ -105,7 +104,7 @@ export function PresupuestoScreen() {
           <View style={[styles.rowIcon, { backgroundColor: Dayxo.coral + '66' }]}>
             <Ionicons name="arrow-up-outline" size={18} color={Dayxo.coral} />
           </View>
-          <View style={{ flex: 1 }}>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.6} onPress={() => { setVerTodo(null); setEditGasto(item); }}>
             <Text style={styles.rowDesc}>{item.desc}</Text>
             <View style={styles.metaRow}>
               <Text style={styles.metaFecha}>{item.fechaStr}</Text>
@@ -120,7 +119,7 @@ export function PresupuestoScreen() {
                 </View>
               )}
             </View>
-          </View>
+          </TouchableOpacity>
           <Text style={[styles.rowMonto, { color: Dayxo.coral }]}>− {formatARS(item.monto)}</Text>
         </View>
       </SwipeableRow>
@@ -133,7 +132,6 @@ export function PresupuestoScreen() {
       key={item.id}
       pinned={item.pinned}
       pinColor={Dayxo.green}
-      editColor={Dayxo.blue}
       containerStyle={styles.rowSpacing}
       onPin={() => togglePin(item.id)}
       onEdit={() => { setVerTodo(null); setEditIngreso(item); }}
@@ -143,10 +141,10 @@ export function PresupuestoScreen() {
         <View style={[styles.rowIcon, { backgroundColor: Dayxo.green + '66' }]}>
           <Ionicons name="arrow-down-outline" size={18} color={Dayxo.green} />
         </View>
-        <View style={{ flex: 1 }}>
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.6} onPress={() => { setVerTodo(null); setEditIngreso(item); }}>
           <Text style={styles.rowDesc}>{item.desc}</Text>
           <Text style={styles.metaFecha}>{item.fechaStr}</Text>
-        </View>
+        </TouchableOpacity>
         <Text style={[styles.rowMonto, { color: Dayxo.green }]}>+ {formatARS(item.monto)}</Text>
       </View>
     </SwipeableRow>
@@ -161,7 +159,6 @@ export function PresupuestoScreen() {
         key={d.id}
         pinned={d.pinned}
         pinColor={accent}
-        editColor={Dayxo.blue}
         containerStyle={styles.rowSpacing}
         onPin={() => deudas.togglePin(d.id)}
         onEdit={() => { setVerTodo(null); setEditDeuda(d); }}
@@ -171,10 +168,10 @@ export function PresupuestoScreen() {
           <View style={[styles.rowIcon, { backgroundColor: accent + '66' }]}>
             <Ionicons name={meDebe ? 'arrow-down-outline' : 'arrow-up-outline'} size={18} color={accent} />
           </View>
-          <View style={{ flex: 1 }}>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.6} onPress={() => { setVerTodo(null); setEditDeuda(d); }}>
             <Text style={styles.rowDesc}>{d.nombre}</Text>
             <Text style={styles.metaFecha}>{fmtFecha(d.fecha)}</Text>
-          </View>
+          </TouchableOpacity>
           <Text style={[styles.rowMonto, { color: accent }]}>
             {meDebe ? '+' : '−'} {formatARS(d.monto)}
           </Text>

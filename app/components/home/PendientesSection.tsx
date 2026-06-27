@@ -22,8 +22,8 @@ interface Props {
   todos: Todo[];
   familias: Familia[];
   getFamilia: (id: string) => Familia;
-  onAdd: (text: string, tag: Todo['tag'], fecha?: Date, hora?: string) => Promise<void> | void;
-  onUpdate: (id: string, text: string, tag: Todo['tag'], fecha?: Date, hora?: string) => Promise<void> | void;
+  onAdd: (text: string, tag: Todo['tag'], fecha?: Date, hora?: string, descripcion?: string) => Promise<void> | void;
+  onUpdate: (id: string, text: string, tag: Todo['tag'], fecha?: Date, hora?: string, descripcion?: string) => Promise<void> | void;
   onToggle: (id: string) => Promise<void> | void;
   onRemove: (id: string) => Promise<void> | void;
   onTogglePin: (id: string) => Promise<void> | void;
@@ -162,20 +162,21 @@ function PendienteItem({ item, fam, pal, styles, colors, onToggle, onRemove, onE
     <SwipeableRow
       pinned={item.pinned}
       pinColor={Dayxo.purple}
-      editColor={Dayxo.blue}
       containerStyle={styles.itemSpacing}
       onPin={onPin}
-      onEdit={onEdit}
       onDelete={() => onRemove(item.id)}
     >
       <Animated.View style={[styles.item, item.pinned && styles.itemPinned, { opacity, transform: [{ translateX: tx }] }]}>
         <TouchableOpacity onPress={check} style={[styles.checkbox, completing && styles.checkboxDone]}>
           {completing && <Ionicons name="checkmark" size={14} color="#fff" />}
         </TouchableOpacity>
-        <View style={styles.itemBody}>
+        <TouchableOpacity style={styles.itemBody} activeOpacity={0.6} onPress={onEdit}>
           <Text style={[styles.itemText, completing && styles.itemTextDone]} numberOfLines={2}>
             {item.text}
           </Text>
+          {!!item.descripcion && (
+            <Text style={styles.descText} numberOfLines={2}>{item.descripcion}</Text>
+          )}
           {item.fecha && (
             <View style={styles.dateRow}>
               <Ionicons name="calendar-outline" size={11} color={colors.textSecondary} />
@@ -189,7 +190,7 @@ function PendienteItem({ item, fam, pal, styles, colors, onToggle, onRemove, onE
               )}
             </View>
           )}
-        </View>
+        </TouchableOpacity>
         <View style={[styles.tag, { backgroundColor: pal.bg }]}>
           <Text style={[styles.tagText, { color: pal.fg }]}>{fam.nombre}</Text>
         </View>
@@ -245,6 +246,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   itemBody: { flex: 1 },
   itemText: { fontSize: 15, fontFamily: 'Inter_400Regular', color: colors.textPrimary },
   itemTextDone: { textDecorationLine: 'line-through', color: colors.textSecondary },
+  descText: { fontSize: 12.5, fontFamily: 'Inter_400Regular', color: colors.textSecondary, marginTop: 2, lineHeight: 17 },
   dateRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
   dateText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: colors.textSecondary },
   dateDot: { fontSize: 11, fontFamily: 'Inter_500Medium', color: colors.textSecondary, marginHorizontal: 1 },

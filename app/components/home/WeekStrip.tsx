@@ -15,7 +15,7 @@ interface Props {
 export function WeekStrip({ hasEventOnDay, onDayPress, onColor }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const days = weekDays().slice(0, 5); // lunes a viernes de la semana actual
+  const days = weekDays(); // lunes a domingo de la semana actual (7 días)
   const today = new Date();
 
   return (

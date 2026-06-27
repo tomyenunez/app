@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useMemo } from 'react';
-import { View, StyleSheet, Animated, Pressable } from 'react-native';
+import { View, StyleSheet, Animated, Pressable, StyleProp, ViewStyle } from 'react-native';
 import { AppText as Text } from '../shared/AppText';
 import Svg, { Circle } from 'react-native-svg';
 import { useTheme } from '../../context/ThemeContext';
@@ -11,17 +11,20 @@ interface Props {
   completed: number;
   total: number;
   onPress?: () => void; // si se pasa, el card es tappable (abre el detalle del día)
+  compact?: boolean;    // versión comprimida (al lado del cuadrado de Notas)
+  style?: StyleProp<ViewStyle>; // override del contenedor (flex/height en el row)
 }
 
-const SIZE = 72;
 const STROKE = 6;
-const R = (SIZE - STROKE) / 2;
-const CIRCUMFERENCE = 2 * Math.PI * R;
 
-export function ScoreBanner({ score, completed, total, onPress }: Props) {
+export function ScoreBanner({ score, completed, total, onPress, compact, style }: Props) {
   const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors, !!compact), [colors, compact]);
   const animVal = useRef(new Animated.Value(0)).current;
+
+  const SIZE = compact ? 56 : 72;
+  const R = (SIZE - STROKE) / 2;
+  const CIRCUMFERENCE = 2 * Math.PI * R;
 
   useEffect(() => {
     // El score puede pasar de 100 con bonus; el anillo se llena hasta 100 como máximo
@@ -78,25 +81,25 @@ export function ScoreBanner({ score, completed, total, onPress }: Props) {
   );
 
   if (!onPress) {
-    return <View style={styles.banner}>{content}</View>;
+    return <View style={[styles.banner, style]}>{content}</View>;
   }
 
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.banner, pressed && styles.bannerPressed]}
+      style={({ pressed }) => [styles.banner, style, pressed && styles.bannerPressed]}
     >
       {content}
     </Pressable>
   );
 }
 
-const createStyles = (colors: AppColors) => StyleSheet.create({
+const createStyles = (colors: AppColors, compact: boolean) => StyleSheet.create({
   banner: {
     backgroundColor: colors.card,
     borderRadius: 18,
-    marginHorizontal: 14,
-    padding: 20,
+    marginHorizontal: compact ? 0 : 14,
+    padding: compact ? 14 : 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -110,21 +113,21 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   left: { flex: 1 },
   scoreLabel: {
     color: colors.textSecondary,
-    fontSize: 12,
+    fontSize: compact ? 11 : 12,
     fontFamily: 'Inter_500Medium',
-    marginBottom: 4,
+    marginBottom: compact ? 2 : 4,
   },
   scoreNumber: {
     color: Dayxo.orange,
-    fontSize: 34,
+    fontSize: compact ? 26 : 34,
     fontFamily: 'Inter_800ExtraBold',
-    lineHeight: 38,
+    lineHeight: compact ? 30 : 38,
   },
   scoreSub: {
     color: colors.textSecondary,
-    fontSize: 11,
+    fontSize: compact ? 10 : 11,
     fontFamily: 'Inter_400Regular',
-    marginTop: 4,
+    marginTop: compact ? 2 : 4,
   },
   right: { alignItems: 'center', justifyContent: 'center' },
   scoreCenter: {
@@ -134,7 +137,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   },
   scoreCenterText: {
     color: Dayxo.orange,
-    fontSize: 18,
+    fontSize: compact ? 15 : 18,
     fontFamily: 'Inter_700Bold',
   },
 });
