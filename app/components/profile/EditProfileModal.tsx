@@ -10,6 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import { initials } from '../../utils/formatters';
 import { pickAndUploadAvatar } from '../../services/avatarUpload';
 import { RanksView } from '../game/RanksView';
+import { ModalHeader } from '../shared/ModalHeader';
 
 const AVATAR_COLORS = ['#6C5CE7', '#00B894', '#E17055', '#0984E3', '#E84393', '#FDCB6E'];
 
@@ -62,12 +63,7 @@ export function EditProfileModal({ visible, onClose }: Props) {
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={close}>
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.handleWrap}><View style={styles.handle} /></View>
-        <View style={styles.header}>
-          <Text style={styles.title}>Mi perfil</Text>
-          <TouchableOpacity onPress={close}>
-            <Ionicons name="close" size={24} color={colors.textPrimary} />
-          </TouchableOpacity>
-        </View>
+        <ModalHeader title="Mi perfil" onClose={close} />
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
           {/* Avatar — tocar para cambiar la foto */}
@@ -134,11 +130,6 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   handleWrap: { alignItems: 'center', paddingTop: 10, paddingBottom: 6 },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border,
-  },
-  title: { fontSize: 18, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
   body: { padding: 16, paddingBottom: 32 },
   avatar: {
     width: 88, height: 88, borderRadius: 44, alignSelf: 'center',

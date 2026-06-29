@@ -41,7 +41,9 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     paddingBottom: 12,
   },
   titleWrap: { alignItems: 'center' },
-  title: { fontSize: 19, fontFamily: 'Inter_800ExtraBold', color: colors.textPrimary, letterSpacing: -0.2, textAlign: 'center' },
+  // Mismo tamaño/fuente que el título "Inicio" del Home, para que quede acorde.
+  // color: textPrimary → se adapta solo a modo claro y oscuro.
+  title: { fontSize: 18, fontFamily: 'Inter_700Bold', color: colors.textPrimary, textAlign: 'center' },
   sub: { fontSize: 12, fontFamily: 'Inter_400Regular', color: colors.textSecondary, marginTop: 4, textAlign: 'center' },
   close: { position: 'absolute', right: 16, top: 6, padding: 2 },
 });

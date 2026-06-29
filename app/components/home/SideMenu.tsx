@@ -244,7 +244,6 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 18, paddingVertical: 16,
-    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   title: { fontSize: 18, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
   closeBtn: { padding: 4 },
@@ -278,7 +277,6 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   missionsHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 12, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   backBtn: { padding: 6 },
   missionsTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', color: colors.textPrimary },

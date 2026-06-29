@@ -86,7 +86,7 @@ export function PresupuestoScreen() {
     );
   };
 
-  // --- Fila de gasto (swipe: pin + editar) ---
+  // --- Fila de gasto (swipe: pin / borrar · tap en el texto: editar) ---
   const renderGastoRow = (item: Transaction) => {
     const cat = item.categoria ? categorias.getItem(item.categoria) : null;
     const met = item.metodo ? metodos.getItem(item.metodo) : null;
@@ -97,7 +97,6 @@ export function PresupuestoScreen() {
         pinColor={Dayxo.coral}
         containerStyle={styles.rowSpacing}
         onPin={() => togglePin(item.id)}
-        onEdit={() => { setVerTodo(null); setEditGasto(item); }}
         onDelete={() => remove(item.id)}
       >
         <View style={[styles.row, item.pinned && { borderWidth: 1.5, borderColor: Dayxo.coral }]}>
@@ -126,7 +125,7 @@ export function PresupuestoScreen() {
     );
   };
 
-  // --- Fila de ingreso (swipe: pin + editar + borrar) ---
+  // --- Fila de ingreso (swipe: pin / borrar · tap en el texto: editar) ---
   const renderIngresoRow = (item: Transaction) => (
     <SwipeableRow
       key={item.id}
@@ -134,7 +133,6 @@ export function PresupuestoScreen() {
       pinColor={Dayxo.green}
       containerStyle={styles.rowSpacing}
       onPin={() => togglePin(item.id)}
-      onEdit={() => { setVerTodo(null); setEditIngreso(item); }}
       onDelete={() => remove(item.id)}
     >
       <View style={[styles.row, item.pinned && { borderWidth: 1.5, borderColor: Dayxo.green }]}>
@@ -150,7 +148,7 @@ export function PresupuestoScreen() {
     </SwipeableRow>
   );
 
-  // --- Fila de deuda (swipe: pin + editar + borrar) ---
+  // --- Fila de deuda (swipe: pin / borrar · tap en el texto: editar) ---
   const renderDeudaRow = (d: Deuda) => {
     const meDebe = d.tipo === 'me-debe';
     const accent = meDebe ? Dayxo.green : Dayxo.coral;
@@ -161,7 +159,6 @@ export function PresupuestoScreen() {
         pinColor={accent}
         containerStyle={styles.rowSpacing}
         onPin={() => deudas.togglePin(d.id)}
-        onEdit={() => { setVerTodo(null); setEditDeuda(d); }}
         onDelete={() => deudas.remove(d.id)}
       >
         <View style={[styles.row, d.pinned && { borderWidth: 1.5, borderColor: accent }]}>

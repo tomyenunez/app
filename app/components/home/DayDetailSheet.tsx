@@ -9,6 +9,7 @@ import { AppColors } from '../../constants/colors';
 import { Dayxo } from '../../constants/dayxo';
 import { capitalizeFirst, formatFullDate } from '../../utils/dateUtils';
 import { HabitDayStatus, TodoDayStatus, getMotivationalMessage } from '../../utils/dayDetailUtils';
+import { ModalHeader } from '../shared/ModalHeader';
 
 interface Props {
   visible: boolean;
@@ -33,12 +34,7 @@ export function DayDetailSheet({ visible, onClose, score, habits, todos, totalXP
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.handleWrap}><View style={styles.handle} /></View>
-        <View style={styles.headerBar}>
-          <Text style={styles.headerTitle}>Tu día de hoy</Text>
-          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="close" size={24} color={colors.textPrimary} />
-          </TouchableOpacity>
-        </View>
+        <ModalHeader title="Tu día de hoy" onClose={onClose} />
 
         <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
           {/* Header: fecha + anillo grande */}
@@ -148,11 +144,6 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.card },
   handleWrap: { alignItems: 'center', paddingTop: 10, paddingBottom: 6 },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border },
-  headerBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingBottom: 8,
-  },
-  headerTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
   body: { paddingHorizontal: 18, paddingBottom: 28 },
 
   date: { fontSize: 12, fontFamily: 'Inter_500Medium', color: colors.textSecondary, textAlign: 'center' },
