@@ -63,6 +63,12 @@ export function AnotadorModal({
     onClose();
   };
 
+  // Guarda la nota desde el botón y deja listo para escribir otra.
+  const handleGuardar = async () => {
+    await onGuardar();
+    tituloRef.current?.focus();
+  };
+
   const confirmRemove = (nota: Nota) => {
     Alert.alert('Borrar nota', '¿Seguro que querés borrar esta nota?', [
       { text: 'Cancelar', style: 'cancel' },
@@ -112,6 +118,14 @@ export function AnotadorModal({
               textAlignVertical="top"
               selectionColor={Dayxo.orange}
             />
+
+            {/* Botón de guardar (estilo finanzas, en color de notas). Solo con texto. */}
+            {hasText && (
+              <TouchableOpacity style={styles.saveBtn} activeOpacity={0.85} onPress={handleGuardar}>
+                <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                <Text style={styles.saveBtnText}>Guardar nota</Text>
+              </TouchableOpacity>
+            )}
 
             {/* Todas las notas */}
             <Text style={styles.allLabel}>TODAS LAS NOTAS ({notas.length})</Text>
@@ -173,6 +187,12 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 12, minHeight: 92, maxHeight: 132,
     fontSize: 16, fontFamily: 'Inter_400Regular', color: colors.textPrimary, lineHeight: 22,
   },
+
+  saveBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: Dayxo.orange, borderRadius: 12, paddingVertical: 15, marginTop: 12,
+  },
+  saveBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
 
   allLabel: {
     fontSize: 11, fontFamily: 'Inter_700Bold', color: colors.textSecondary,

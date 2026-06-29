@@ -270,6 +270,26 @@ export async function saveStatsOrder(order: string[]): Promise<void> {
   }
 }
 
+// Módulos de Stats ocultos por el usuario (puede mostrarlos/ocultarlos desde
+// "Personalizar"). Local, sin tocar backend: es preferencia de UI del dispositivo.
+const STATS_HIDDEN_KEY = '@dayxo/statsHidden';
+export async function getStatsHidden(): Promise<string[] | null> {
+  try {
+    const raw = await AsyncStorage.getItem(STATS_HIDDEN_KEY);
+    const arr = raw ? JSON.parse(raw) : null;
+    return Array.isArray(arr) ? arr : null;
+  } catch {
+    return null;
+  }
+}
+export async function saveStatsHidden(hidden: string[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(STATS_HIDDEN_KEY, JSON.stringify(hidden));
+  } catch {
+    // preferencia no crítica
+  }
+}
+
 // --- Gamificación ---
 import { PersonalRecords, PlayerProfile } from '../types/game';
 

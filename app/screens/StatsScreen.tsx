@@ -28,11 +28,12 @@ import { EditProfileModal } from '../components/profile/EditProfileModal';
 import { ActivityGrid } from '../components/profile/ActivityGrid';
 import { LogrosSection } from '../components/game/LogrosSection';
 import { SocialModal } from '../components/social/SocialModal';
+import { ModalHeader } from '../components/shared/ModalHeader';
 import { useFamilias } from '../hooks/useFamilias';
 import {
   habitInsights, taskInsights, financeInsights, evolutionInsights, buildSmartInsights,
 } from '../utils/statsInsights';
-import { getStatsOrder, saveStatsOrder } from '../services/storage';
+import { getStatsOrder, saveStatsOrder, getStatsHidden, saveStatsHidden } from '../services/storage';
 
 type Periodo = 'mes-anterior' | 'mes' | 'todo';
 
@@ -41,6 +42,21 @@ const STATS_MODULES = [
   'stats', 'resumen', 'actividad', 'logros', 'motivacion',
   'gastos', 'habitos', 'productividad', 'financiero', 'evolucion', 'insights',
 ];
+
+// Nombre legible de cada módulo (para el panel "Personalizar").
+const MODULE_LABELS: Record<string, string> = {
+  stats: 'Tarjetas de resumen',
+  resumen: 'Resumen semanal',
+  actividad: 'Actividad (último mes)',
+  logros: 'Logros',
+  motivacion: 'Mensaje motivacional',
+  gastos: '¿En qué gastás?',
+  habitos: 'Tus hábitos',
+  productividad: 'Productividad',
+  financiero: 'Resumen financiero',
+  evolucion: 'Tu evolución',
+  insights: 'Insights',
+};
 
 // Versión oscura tintada de un color de acento (fondo de card relacionado a su tema)
 function darkTint(hex: string): string {
@@ -68,9 +84,12 @@ export function StatsScreen() {
   const [socialVisible, setSocialVisible] = useState(false);
   const [editVisible, setEditVisible] = useState(false);
   const [logrosVisible, setLogrosVisible] = useState(false);
+  const [customizeVisible, setCustomizeVisible] = useState(false);
 
   // Orden de los módulos (persistido local, reordenable manteniendo apretado)
   const [order, setOrder] = useState<string[]>(STATS_MODULES);
+  // Módulos ocultos por el usuario (no se renderizan, pero quedan en `order`)
+  const [hidden, setHidden] = useState<string[]>([]);
   useEffect(() => {
     getStatsOrder().then((saved) => {
       if (!saved) return;
@@ -80,10 +99,30 @@ export function StatsScreen() {
       ];
       setOrder(merged);
     });
+    getStatsHidden().then((saved) => {
+      if (saved) setHidden(saved.filter((k) => STATS_MODULES.includes(k)));
+    });
   }, []);
+
+  // Solo los módulos visibles se muestran/reordenan en la lista.
+  const visibleOrder = useMemo(() => order.filter((k) => !hidden.includes(k)), [order, hidden]);
+
   const onDragEnd = useCallback(({ data }: { data: string[] }) => {
-    setOrder(data);
-    saveStatsOrder(data);
+    // `data` es el nuevo orden de los visibles; reinsertamos los ocultos en su lugar.
+    setOrder((prev) => {
+      let vi = 0;
+      const merged = prev.map((k) => (hidden.includes(k) ? k : data[vi++]));
+      saveStatsOrder(merged);
+      return merged;
+    });
+  }, [hidden]);
+
+  const toggleModule = useCallback((key: string) => {
+    setHidden((prev) => {
+      const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key];
+      saveStatsHidden(next);
+      return next;
+    });
   }, []);
 
   // El avatar del Home navega acá con { editProfile: true } para abrir el pop-up
@@ -284,7 +323,13 @@ export function StatsScreen() {
       {/* Card de perfil — tap en avatar/nombre abre el pop-up de editar */}
       <ProfileCard onPress={() => setEditVisible(true)} />
 
-      <Text style={styles.dragHint}>Mantené apretado un módulo para moverlo</Text>
+      <View style={styles.customizeRow}>
+        <Text style={styles.dragHint}>Mantené apretado un módulo para moverlo</Text>
+        <TouchableOpacity style={styles.customizeBtn} onPress={() => setCustomizeVisible(true)}>
+          <Ionicons name="options-outline" size={15} color={Dayxo.purple} />
+          <Text style={styles.customizeBtnText}>Personalizar</Text>
+        </TouchableOpacity>
+      </View>
     </>
   );
 
@@ -644,7 +689,7 @@ export function StatsScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <DraggableFlatList
-        data={order}
+        data={visibleOrder}
         keyExtractor={(k) => k}
         renderItem={renderItem}
         onDragEnd={onDragEnd}
@@ -659,6 +704,41 @@ export function StatsScreen() {
 
       {/* Pop-up de perfil: editar nombre/color + rangos */}
       <EditProfileModal visible={editVisible} onClose={() => setEditVisible(false)} />
+
+      {/* Personalizar Stats — mostrar/ocultar módulos */}
+      <Modal visible={customizeVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setCustomizeVisible(false)}>
+        <SafeAreaView style={styles.safe} edges={['top']}>
+          <View style={styles.modalHandleWrap}><View style={styles.modalHandle} /></View>
+          <ModalHeader
+            title="Personalizar Stats"
+            subtitle="Mostrá u ocultá los módulos"
+            onClose={() => setCustomizeVisible(false)}
+          />
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 14, paddingBottom: 40 }}>
+            {order.map((key) => {
+              const visible = !hidden.includes(key);
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={styles.custRow}
+                  activeOpacity={0.7}
+                  onPress={() => toggleModule(key)}
+                >
+                  <Text style={[styles.custLabel, !visible && { color: colors.textTertiary }]} numberOfLines={1}>
+                    {MODULE_LABELS[key] ?? key}
+                  </Text>
+                  <View style={[styles.custToggle, visible ? styles.custToggleOn : styles.custToggleOff]}>
+                    <Ionicons name={visible ? 'eye' : 'eye-off'} size={15} color={visible ? '#fff' : colors.textSecondary} />
+                    <Text style={[styles.custToggleText, { color: visible ? '#fff' : colors.textSecondary }]}>
+                      {visible ? 'Visible' : 'Oculto'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
 
       {/* Ver todos los logros */}
       <Modal visible={logrosVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setLogrosVisible(false)}>
@@ -691,7 +771,18 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     borderWidth: 1, borderColor: colors.border,
   },
   headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
-  dragHint: { fontSize: 11, fontFamily: 'Inter_500Medium', color: colors.textTertiary, textAlign: 'center', marginTop: 12, marginBottom: 2 },
+  customizeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 16, marginTop: 12, marginBottom: 2 },
+  dragHint: { flex: 1, fontSize: 11, fontFamily: 'Inter_500Medium', color: colors.textTertiary },
+  customizeBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, backgroundColor: Dayxo.purple + '14', borderWidth: 1, borderColor: Dayxo.purple + '33' },
+  customizeBtnText: { fontSize: 12, fontFamily: 'Inter_700Bold', color: Dayxo.purple },
+
+  // Filas del panel "Personalizar"
+  custRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, backgroundColor: colors.card, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 16, marginTop: 10, borderWidth: 1, borderColor: colors.border },
+  custLabel: { flex: 1, fontSize: 14, fontFamily: 'Inter_600SemiBold', color: colors.textPrimary },
+  custToggle: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 },
+  custToggleOn: { backgroundColor: Dayxo.purple },
+  custToggleOff: { backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border },
+  custToggleText: { fontSize: 12, fontFamily: 'Inter_700Bold' },
 
   // Cards de stats (fondo neutro + ícono de fondo)
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, margin: 12 },

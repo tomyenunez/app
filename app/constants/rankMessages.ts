@@ -6,9 +6,9 @@ export const RANK_UP_MESSAGES: Record<string, string> = {
   Zafiro: 'Estás entre los pocos que llegan hasta acá.',
   Rubí: 'Esta disciplina no la tiene cualquiera.',
   Amatista: 'Te superaste. Ya sos otra versión de vos.',
-  Platino: 'Élite. Muy pocos llegan hasta acá.',
+  Platino: 'Élite. Cada rango anterior valió la pena.',
   Diamante: 'Casi nadie ve esto. Vos sí.',
-  Obsidiana: 'Leyenda. No hay nada más arriba.',
+  Obsidiana: 'Leyenda. Ya no hay límite, solo versiones tuyas por superar.',
 };
 
 export function rankUpMessage(rankName: string): string {
