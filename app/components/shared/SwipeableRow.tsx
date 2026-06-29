@@ -9,10 +9,13 @@ interface Props {
   onPin?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onSettle?: () => void; // acción "saldar" (tilde) al deslizar a la izquierda
+  deleteOnLeft?: boolean; // borrar va a la izquierda (junto al pin) en vez de a la derecha
   pinned?: boolean;
   pinColor?: string;
   editColor?: string;
   deleteColor?: string;
+  settleColor?: string;
   containerStyle?: StyleProp<ViewStyle>;
 }
 
@@ -25,10 +28,11 @@ let openRow: Swipeable | null = null;
 // Fila deslizable reutilizable. Cada acción es opcional (solo se muestra si se
 // pasa el handler):
 //  - swipe hacia la derecha → fijar (pin) y/o editar
-//  - swipe hacia la izquierda → borrar
+//  - swipe hacia la izquierda → saldar (tilde) y/o borrar
 export function SwipeableRow({
-  children, onPin, onEdit, onDelete, pinned,
-  pinColor = Dayxo.purple, editColor = Dayxo.blue, deleteColor = Dayxo.coral, containerStyle,
+  children, onPin, onEdit, onDelete, onSettle, deleteOnLeft, pinned,
+  pinColor = Dayxo.purple, editColor = Dayxo.blue, deleteColor = Dayxo.coral, settleColor = Dayxo.green,
+  containerStyle,
 }: Props) {
   const ref = useRef<Swipeable>(null);
   const close = () => ref.current?.close();
@@ -39,7 +43,9 @@ export function SwipeableRow({
   };
   const handleClose = () => { if (openRow === ref.current) openRow = null; };
 
-  const hasLeft = !!onPin || !!onEdit;
+  const deleteLeft = !!onDelete && !!deleteOnLeft;   // borrar va a la izquierda
+  const deleteRight = !!onDelete && !deleteOnLeft;    // borrar va a la derecha (default)
+  const hasLeft = !!onPin || !!onEdit || deleteLeft;
 
   // Micro-animación: el ícono aparece con un leve escalado + opacidad a medida
   // que se revela la acción (sutil, pero le da fluidez al desliz).
@@ -68,16 +74,34 @@ export function SwipeableRow({
           </Animated.View>
         </RectButton>
       )}
+      {deleteLeft && (
+        // Borrar al lado del pin (cuando deleteOnLeft): el más pegado a la burbuja.
+        <RectButton style={[styles.actionTuckRight, styles.roundLeft, { backgroundColor: deleteColor }]} onPress={() => { close(); onDelete?.(); }}>
+          <Animated.View style={iconAnim(progress)}>
+            <Ionicons name="trash" size={20} color="#fff" />
+          </Animated.View>
+        </RectButton>
+      )}
     </View>
   );
 
   const renderRightActions = (progress: Animated.AnimatedInterpolation<number>) => (
     <View style={styles.rightActions}>
-      <RectButton style={[styles.actionTuckLeft, styles.roundRight, { backgroundColor: deleteColor }]} onPress={() => { close(); onDelete?.(); }}>
-        <Animated.View style={iconAnim(progress)}>
-          <Ionicons name="trash" size={20} color="#fff" />
-        </Animated.View>
-      </RectButton>
+      {onSettle && (
+        // Saldar: tilde, el más pegado a la burbuja (se mete por debajo).
+        <RectButton style={[styles.actionTuckLeft, !deleteRight && styles.roundRight, { backgroundColor: settleColor }]} onPress={() => { close(); onSettle(); }}>
+          <Animated.View style={iconAnim(progress)}>
+            <Ionicons name="checkmark" size={22} color="#fff" />
+          </Animated.View>
+        </RectButton>
+      )}
+      {deleteRight && (
+        <RectButton style={[onSettle ? styles.action : styles.actionTuckLeft, styles.roundRight, { backgroundColor: deleteColor }]} onPress={() => { close(); onDelete?.(); }}>
+          <Animated.View style={iconAnim(progress)}>
+            <Ionicons name="trash" size={20} color="#fff" />
+          </Animated.View>
+        </RectButton>
+      )}
     </View>
   );
 
@@ -85,7 +109,7 @@ export function SwipeableRow({
     <Swipeable
       ref={ref}
       renderLeftActions={hasLeft ? renderLeftActions : undefined}
-      renderRightActions={onDelete ? renderRightActions : undefined}
+      renderRightActions={(deleteRight || onSettle) ? renderRightActions : undefined}
       overshootLeft={false}
       overshootRight={false}
       leftThreshold={36}

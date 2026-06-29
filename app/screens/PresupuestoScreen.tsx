@@ -15,12 +15,14 @@ import { Dayxo } from '../constants/dayxo';
 import { Transaction, Deuda } from '../types';
 import { usePresupuesto } from '../hooks/usePresupuesto';
 import { useDeudas } from '../hooks/useDeudas';
+import { useAhorros } from '../hooks/useAhorros';
 import { useCategoriasGasto, useMetodosPago } from '../hooks/useOpcionesGasto';
-import { getFinanceOrder, saveFinanceOrder } from '../services/storage';
+import { getFinanceOrder, saveFinanceOrder, getAhorrosVisible, saveAhorrosVisible } from '../services/storage';
 import { SideMenu } from '../components/home/SideMenu';
 import { AddGastoModal } from '../components/finance/AddGastoModal';
 import { AddIngresoModal } from '../components/finance/AddIngresoModal';
 import { AddDeudaModal } from '../components/finance/AddDeudaModal';
+import { AddAhorroModal, AhorroMode } from '../components/finance/AddAhorroModal';
 import { DisponibleModal } from '../components/finance/DisponibleModal';
 import { SwipeableRow } from '../components/shared/SwipeableRow';
 import { FinanzasGraphsModal } from '../components/finance/FinanzasGraphsModal';
@@ -32,7 +34,7 @@ function fmtFecha(key: string): string {
   return format(new Date(y, m - 1, d), 'd MMM', { locale: es });
 }
 
-const DEFAULT_ORDER = ['gastos', 'deudas', 'ingresos'];
+const DEFAULT_ORDER = ['gastos', 'deudas', 'ingresos', 'ahorros'];
 
 export function PresupuestoScreen() {
   const { colors } = useTheme();
@@ -40,6 +42,7 @@ export function PresupuestoScreen() {
   const { handleScrollOffset } = useTabBar();
   const { ingresos, gastos, saldo, ingresosList, gastosList, add, update, remove, togglePin, resetMes } = usePresupuesto();
   const deudas = useDeudas();
+  const ahorros = useAhorros();
   const categorias = useCategoriasGasto();
   const metodos = useMetodosPago();
 
@@ -53,6 +56,13 @@ export function PresupuestoScreen() {
   const [editIngreso, setEditIngreso] = useState<Transaction | null>(null);
   const [editDeuda, setEditDeuda] = useState<Deuda | null>(null);
   const [verTodo, setVerTodo] = useState<'gastos' | 'ingresos' | 'deudas' | null>(null);
+  const [ahorroMode, setAhorroMode] = useState<AhorroMode | null>(null);
+
+  // Burbuja de Ahorros: oculta por defecto (no todos la usan). Local.
+  const [ahorrosVisible, setAhorrosVisible] = useState(false);
+  useEffect(() => { getAhorrosVisible().then(setAhorrosVisible); }, []);
+  const showAhorros = useCallback(() => { setAhorrosVisible(true); saveAhorrosVisible(true); }, []);
+  const hideAhorros = useCallback(() => { setAhorrosVisible(false); saveAhorrosVisible(false); }, []);
 
   // Orden de las burbujas (persistido, reordenable arrastrando)
   const [order, setOrder] = useState<string[]>(DEFAULT_ORDER);
@@ -65,10 +75,27 @@ export function PresupuestoScreen() {
       setOrder(merged.length === DEFAULT_ORDER.length ? merged : DEFAULT_ORDER);
     });
   }, []);
+
+  // La burbuja de Ahorros solo se muestra (y reordena) cuando está activada.
+  const visibleOrder = useMemo(
+    () => order.filter((k) => k !== 'ahorros' || ahorrosVisible),
+    [order, ahorrosVisible],
+  );
   const onDragEnd = useCallback(({ data }: { data: string[] }) => {
-    setOrder(data);
-    saveFinanceOrder(data);
-  }, []);
+    // `data` = orden de los visibles; si Ahorros está oculto, lo dejo en su lugar.
+    setOrder((prev) => {
+      let vi = 0;
+      const merged = prev.map((k) => (k === 'ahorros' && !ahorrosVisible) ? k : data[vi++]);
+      saveFinanceOrder(merged);
+      return merged;
+    });
+  }, [ahorrosVisible]);
+
+  const handleAhorroConfirm = useCallback(async (monto: number) => {
+    if (ahorroMode === 'depositar') ahorros.depositar(monto);
+    else if (ahorroMode === 'retirar') ahorros.retirar(monto);
+    else if (ahorroMode === 'set') await ahorros.set(monto);
+  }, [ahorroMode, ahorros]);
 
   const txs = useMemo(() => [...ingresosList, ...gastosList], [ingresosList, gastosList]);
 
@@ -148,6 +175,32 @@ export function PresupuestoScreen() {
     </SwipeableRow>
   );
 
+  // Saldar una deuda: registra el movimiento de plata y elimina la deuda.
+  // me-debe → ingreso (te pagaron) · le-debo → gasto (pagaste). No guarda historial.
+  const confirmSaldar = (d: Deuda) => {
+    const meDebe = d.tipo === 'me-debe';
+    Alert.alert(
+      meDebe ? 'Cobrar deuda' : 'Pagar deuda',
+      meDebe
+        ? `Se registra un ingreso de ${formatARS(d.monto)} y se elimina la deuda de ${d.nombre}.`
+        : `Se registra un gasto de ${formatARS(d.monto)} y se elimina la deuda con ${d.nombre}.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: meDebe ? 'Cobré' : 'Pagué',
+          onPress: async () => {
+            await add(
+              meDebe ? `Cobro de deuda: ${d.nombre}` : `Pago de deuda: ${d.nombre}`,
+              d.monto,
+              meDebe ? 'ingreso' : 'gasto',
+            );
+            await deudas.remove(d.id);
+          },
+        },
+      ],
+    );
+  };
+
   // --- Fila de deuda (swipe: pin / borrar · tap en el texto: editar) ---
   const renderDeudaRow = (d: Deuda) => {
     const meDebe = d.tipo === 'me-debe';
@@ -156,10 +209,13 @@ export function PresupuestoScreen() {
       <SwipeableRow
         key={d.id}
         pinned={d.pinned}
-        pinColor={accent}
+        pinColor={Dayxo.purple}
+        settleColor={accent}
         containerStyle={styles.rowSpacing}
         onPin={() => deudas.togglePin(d.id)}
+        onSettle={() => confirmSaldar(d)}
         onDelete={() => deudas.remove(d.id)}
+        deleteOnLeft
       >
         <View style={[styles.row, d.pinned && { borderWidth: 1.5, borderColor: accent }]}>
           <View style={[styles.rowIcon, { backgroundColor: accent + '66' }]}>
@@ -279,8 +335,47 @@ export function PresupuestoScreen() {
     </View>
   );
 
+  // --- Burbuja: Ahorros (caja aparte, local) ---
+  const renderAhorros = () => (
+    <View style={[styles.bubble, styles.bubbleAhorros]}>
+      <View style={styles.bubbleHead}>
+        <Text style={[styles.bubbleTitle, { color: Dayxo.blue }]}>Ahorros</Text>
+        <View style={styles.ahorrosHeadRight}>
+          <TouchableOpacity onPress={hideAhorros} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="eye-off-outline" size={18} color={colors.textTertiary} />
+          </TouchableOpacity>
+          <Ionicons name="reorder-three" size={20} color={colors.textTertiary} />
+        </View>
+      </View>
+
+      <TouchableOpacity activeOpacity={0.7} onPress={() => setAhorroMode('set')} style={styles.ahorroTotal}>
+        <Text style={styles.ahorroTotalLabel}>Total ahorrado</Text>
+        <Text style={[styles.ahorroTotalValue, { color: Dayxo.blue }]}>{formatARS(ahorros.balance)}</Text>
+        <Text style={styles.ahorroEditHint}>Tocá para editar el total</Text>
+      </TouchableOpacity>
+
+      <View style={styles.ahorroBtns}>
+        <TouchableOpacity style={[styles.ahorroBtn, { backgroundColor: Dayxo.blue }]} onPress={() => setAhorroMode('depositar')}>
+          <Ionicons name="arrow-down" size={18} color="#fff" />
+          <Text style={styles.ahorroBtnText}>Guardar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.ahorroBtn, styles.ahorroBtnOutline, ahorros.balance <= 0 && { opacity: 0.4 }]}
+          onPress={() => setAhorroMode('retirar')}
+          disabled={ahorros.balance <= 0}
+        >
+          <Ionicons name="arrow-up" size={18} color={Dayxo.blue} />
+          <Text style={[styles.ahorroBtnText, { color: Dayxo.blue }]}>Usar</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   const renderItem = ({ item, drag, isActive }: RenderItemParams<string>) => {
-    const content = item === 'gastos' ? renderGastos() : item === 'deudas' ? renderDeudas() : renderIngresos();
+    const content = item === 'gastos' ? renderGastos()
+      : item === 'deudas' ? renderDeudas()
+      : item === 'ingresos' ? renderIngresos()
+      : renderAhorros();
     return (
       <ScaleDecorator>
         <TouchableOpacity activeOpacity={0.9} onLongPress={drag} delayLongPress={220} disabled={isActive}>
@@ -326,7 +421,15 @@ export function PresupuestoScreen() {
         </LinearGradient>
       </View>
 
-      <Text style={styles.dragHint}>Mantené apretada una sección para reordenarla</Text>
+      <View style={styles.hintRow}>
+        <Text style={styles.dragHint}>Mantené apretada una sección para reordenarla</Text>
+        {!ahorrosVisible && (
+          <TouchableOpacity style={styles.activarAhorros} onPress={showAhorros} activeOpacity={0.8}>
+            <Ionicons name="add" size={15} color={Dayxo.blue} />
+            <Text style={styles.activarAhorrosText}>Mostrar ahorros</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </>
   );
 
@@ -340,7 +443,7 @@ export function PresupuestoScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <DraggableFlatList
-        data={order}
+        data={visibleOrder}
         keyExtractor={(k) => k}
         renderItem={renderItem}
         onDragEnd={onDragEnd}
@@ -353,6 +456,15 @@ export function PresupuestoScreen() {
 
       {/* Menú lateral (incluye Misiones adentro) */}
       <SideMenu visible={menuVisible} onClose={() => setMenuVisible(false)} />
+
+      {/* Guardar / usar / editar ahorros */}
+      <AddAhorroModal
+        visible={ahorroMode !== null}
+        mode={ahorroMode ?? 'depositar'}
+        balance={ahorros.balance}
+        onClose={() => setAhorroMode(null)}
+        onConfirm={handleAhorroConfirm}
+      />
 
       {/* Popups de finanzas */}
       <FinanzasGraphsModal
@@ -444,10 +556,19 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   topLabel: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: 'rgba(255,255,255,0.9)' },
   topIcon: { width: 30, height: 30, borderRadius: 10, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   topValue: { fontSize: 22, fontFamily: 'Inter_800ExtraBold', color: '#fff' },
-  dragHint: {
-    fontSize: 11, fontFamily: 'Inter_500Medium', color: colors.textTertiary,
-    textAlign: 'center', marginTop: 14, marginBottom: -6,
+  hintRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    gap: 10, paddingHorizontal: 14, marginTop: 14, marginBottom: -6,
   },
+  dragHint: {
+    flex: 1, fontSize: 11, fontFamily: 'Inter_500Medium', color: colors.textTertiary,
+  },
+  activarAhorros: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999,
+    backgroundColor: Dayxo.blue + '14', borderWidth: 1, borderColor: Dayxo.blue + '33',
+  },
+  activarAhorrosText: { fontSize: 12, fontFamily: 'Inter_700Bold', color: Dayxo.blue },
   bubble: {
     marginHorizontal: 14, marginTop: 18,
     borderRadius: 18, padding: 14,
@@ -457,6 +578,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   bubbleGastos: { backgroundColor: colors.pinkLight, borderColor: Dayxo.coral + '40', shadowColor: Dayxo.coral },
   bubbleDeudas: { backgroundColor: colors.violetLight, borderColor: Dayxo.purple + '40', shadowColor: Dayxo.purple },
   bubbleIngresos: { backgroundColor: colors.greenLight, borderColor: Dayxo.green + '40', shadowColor: Dayxo.green },
+  bubbleAhorros: { backgroundColor: colors.blueLight, borderColor: Dayxo.blue + '40', shadowColor: Dayxo.blue },
   bubbleHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
   headRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   bubbleTitle: { fontSize: 17, fontFamily: 'Inter_700Bold' },
@@ -493,6 +615,25 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     borderRadius: 14, paddingVertical: 13, marginTop: 8, marginBottom: 12,
   },
   addBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
+
+  // --- Ahorros ---
+  ahorrosHeadRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  ahorroTotal: {
+    backgroundColor: colors.card, borderRadius: 14, paddingVertical: 16,
+    alignItems: 'center', marginTop: 4, marginBottom: 12,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  ahorroTotalLabel: { fontSize: 12, fontFamily: 'Inter_500Medium', color: colors.textSecondary },
+  ahorroTotalValue: { fontSize: 26, fontFamily: 'Inter_800ExtraBold', marginTop: 4 },
+  ahorroEditHint: { fontSize: 10.5, fontFamily: 'Inter_400Regular', color: colors.textTertiary, marginTop: 6 },
+  ahorroBtns: { flexDirection: 'row', gap: 10 },
+  ahorroBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    borderRadius: 14, paddingVertical: 13,
+  },
+  ahorroBtnOutline: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: Dayxo.blue },
+  ahorroBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
+
   deudaSummary: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: colors.card, borderRadius: 12, paddingVertical: 12, marginBottom: 10,

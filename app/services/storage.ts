@@ -290,6 +290,42 @@ export async function saveStatsHidden(hidden: string[]): Promise<void> {
   }
 }
 
+// Ahorros (Modelo A: caja aparte). Guarda solo el saldo y si la burbuja se ve.
+// Local (AsyncStorage), sin tocar backend: plata apartada, no es del flujo diario.
+const AHORROS_KEY = '@dayxo/ahorros';
+export async function getAhorros(): Promise<number> {
+  try {
+    const raw = await AsyncStorage.getItem(AHORROS_KEY);
+    const n = raw ? Number(raw) : 0;
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+export async function saveAhorros(monto: number): Promise<void> {
+  try {
+    await AsyncStorage.setItem(AHORROS_KEY, String(Math.max(0, Math.round(monto))));
+  } catch {
+    // preferencia no crítica
+  }
+}
+
+const AHORROS_VISIBLE_KEY = '@dayxo/ahorrosVisible';
+export async function getAhorrosVisible(): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(AHORROS_VISIBLE_KEY)) === '1';
+  } catch {
+    return false;
+  }
+}
+export async function saveAhorrosVisible(v: boolean): Promise<void> {
+  try {
+    await AsyncStorage.setItem(AHORROS_VISIBLE_KEY, v ? '1' : '0');
+  } catch {
+    // preferencia no crítica
+  }
+}
+
 // --- Gamificación ---
 import { PersonalRecords, PlayerProfile } from '../types/game';
 
