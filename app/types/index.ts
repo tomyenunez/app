@@ -97,3 +97,34 @@ export interface AppState {
   streak: number;
   lastActive: string;
 }
+
+// --- Gastos compartidos (estilo Tricount) ---
+// Hoy funciona con datos locales (AsyncStorage) para poder visualizarlo.
+// El backend (multiusuario, unirse por link, sync) lo arma Mateo: estas
+// interfaces son el contrato.
+export interface SharedMember {
+  id: string;
+  nombre: string;
+  color: string;    // color del avatar
+  isYou?: boolean;  // el integrante que sos vos
+}
+
+export interface SharedExpense {
+  id: string;
+  desc: string;
+  monto: number;
+  paidBy: string;          // id del miembro que pagó
+  splitBetween: string[];  // ids de miembros entre los que se divide
+  fecha: string;           // "YYYY-M-D"
+}
+
+export interface SharedGroup {
+  id: string;
+  nombre: string;
+  emoji: string;
+  gradient: [string, string]; // portada
+  inviteCode: string;          // código del link de invitación
+  members: SharedMember[];
+  expenses: SharedExpense[];
+  createdAt: string;           // ISO
+}

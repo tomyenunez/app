@@ -23,6 +23,8 @@ import { AddGastoModal } from '../components/finance/AddGastoModal';
 import { AddIngresoModal } from '../components/finance/AddIngresoModal';
 import { AddDeudaModal } from '../components/finance/AddDeudaModal';
 import { AddAhorroModal, AhorroMode } from '../components/finance/AddAhorroModal';
+import { SharedExpensesScreen } from './SharedExpensesScreen';
+import { useGastosCompartidos } from '../hooks/useGastosCompartidos';
 import { DisponibleModal } from '../components/finance/DisponibleModal';
 import { SwipeableRow } from '../components/shared/SwipeableRow';
 import { FinanzasGraphsModal } from '../components/finance/FinanzasGraphsModal';
@@ -43,6 +45,7 @@ export function PresupuestoScreen() {
   const { ingresos, gastos, saldo, ingresosList, gastosList, add, update, remove, togglePin, resetMes } = usePresupuesto();
   const deudas = useDeudas();
   const ahorros = useAhorros();
+  const compartidos = useGastosCompartidos();
   const categorias = useCategoriasGasto();
   const metodos = useMetodosPago();
 
@@ -57,6 +60,7 @@ export function PresupuestoScreen() {
   const [editDeuda, setEditDeuda] = useState<Deuda | null>(null);
   const [verTodo, setVerTodo] = useState<'gastos' | 'ingresos' | 'deudas' | null>(null);
   const [ahorroMode, setAhorroMode] = useState<AhorroMode | null>(null);
+  const [compartidosOpen, setCompartidosOpen] = useState(false);
 
   // Burbuja de Ahorros: oculta por defecto (no todos la usan). Local.
   const [ahorrosVisible, setAhorrosVisible] = useState(false);
@@ -421,6 +425,20 @@ export function PresupuestoScreen() {
         </LinearGradient>
       </View>
 
+      {/* Entrada a Gastos compartidos (estilo Tricount) */}
+      <TouchableOpacity style={styles.compartidosCard} activeOpacity={0.85} onPress={() => setCompartidosOpen(true)}>
+        <View style={styles.compartidosIcon}><Ionicons name="people" size={20} color="#fff" /></View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.compartidosTitle}>Gastos compartidos</Text>
+          <Text style={styles.compartidosSub}>
+            {compartidos.groups.length > 0
+              ? `${compartidos.groups.length} ${compartidos.groups.length === 1 ? 'grupo' : 'grupos'} · dividí con tu gente`
+              : 'Dividí gastos con amigos, viajes, asados...'}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+      </TouchableOpacity>
+
       <View style={styles.hintRow}>
         <Text style={styles.dragHint}>Mantené apretada una sección para reordenarla</Text>
         {!ahorrosVisible && (
@@ -464,6 +482,13 @@ export function PresupuestoScreen() {
         balance={ahorros.balance}
         onClose={() => setAhorroMode(null)}
         onConfirm={handleAhorroConfirm}
+      />
+
+      {/* Gastos compartidos (ventana tipo sheet, estilo Tricount) */}
+      <SharedExpensesScreen
+        visible={compartidosOpen}
+        compartidos={compartidos}
+        onClose={() => setCompartidosOpen(false)}
       />
 
       {/* Popups de finanzas */}
@@ -569,6 +594,17 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     backgroundColor: Dayxo.blue + '14', borderWidth: 1, borderColor: Dayxo.blue + '33',
   },
   activarAhorrosText: { fontSize: 12, fontFamily: 'Inter_700Bold', color: Dayxo.blue },
+
+  compartidosCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: 14, marginTop: 14,
+    backgroundColor: colors.card, borderRadius: 16, padding: 14,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  compartidosIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: Dayxo.blue, alignItems: 'center', justifyContent: 'center' },
+  compartidosTitle: { fontSize: 15, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
+  compartidosSub: { fontSize: 12, fontFamily: 'Inter_400Regular', color: colors.textSecondary, marginTop: 2 },
+
   bubble: {
     marginHorizontal: 14, marginTop: 18,
     borderRadius: 18, padding: 14,
