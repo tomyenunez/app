@@ -13,11 +13,18 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.dayxo.app"
+      "bundleIdentifier": "com.dayxo.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.dayxo.app",
-      "softwareKeyboardLayoutMode": "pan"
+      "softwareKeyboardLayoutMode": "pan",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "plugins": [
       "expo-asset",
@@ -29,6 +36,12 @@
           "photosPermission": "Dayxo usa tus fotos para que elijas tu foto de perfil."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "052101f4-1d24-4d4d-99c2-2d3e27e9a7d2"
+      }
+    },
+    "owner": "itachiappz"
   }
 }
