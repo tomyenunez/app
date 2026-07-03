@@ -6,6 +6,7 @@ import {
   GroupSummary, MyGroupInvite, GroupActivityEvent,
 } from '../services/groups';
 import { GroupListItem, GROUP_COVER_GRADIENTS } from '../components/groups/types';
+import { unlockBadge } from '../services/xpService';
 
 // Adapta el shape de datos al contrato visual de las cards existentes.
 // groupStreak/hasLiveGame/unreadCount quedan neutros hasta que existan
@@ -38,6 +39,8 @@ export function useGroups(visible: boolean) {
     gs.forEach((g) => { names[g.id] = g.name; });
     setFeed(await listActivity(gs.map((g) => g.id), names));
     setLoading(false);
+    // "La banda": ser parte de 3 grupos
+    if (gs.length >= 3) unlockBadge('la_banda');
   }, [uid]);
 
   useEffect(() => {
@@ -46,7 +49,10 @@ export function useGroups(visible: boolean) {
 
   const create = useCallback(async (name: string, emoji: string, gradientIndex: number) => {
     const res = await createGroup(name, emoji, gradientIndex);
-    if (res.group) await refresh();
+    if (res.group) {
+      unlockBadge('fundador'); // "Fundador": tu primer grupo
+      await refresh();
+    }
     return res;
   }, [refresh]);
 

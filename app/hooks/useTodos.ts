@@ -1,8 +1,9 @@
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { Todo } from '../types';
-import { todayKey } from '../utils/dateUtils';
-import { awardXPOnce, incrementTodoRecord, decrementTodoRecord, reverseXPOnce } from '../services/xpService';
+import { todayKey, dateKey } from '../utils/dateUtils';
+import { awardXPOnce, incrementTodoRecord, decrementTodoRecord, reverseXPOnce, unlockBadge } from '../services/xpService';
+import { startOfWeek, endOfWeek } from 'date-fns';
 import { XP_VALUES } from '../constants/xpValues';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -80,7 +81,11 @@ export function useTodos() {
     const { error } = await supabase.from('todos').insert(toRow(next, userId));
     if (error) console.warn('[Dayxo todos] crear:', error.message);
     scheduleTodoReminders(next).catch(() => {});
-  }, [userId]);
+
+    // "Orden interno": usar 3+ categorías distintas en los pendientes
+    const tags = new Set([...todos.map((t) => t.tag), tag]);
+    if (tags.size >= 3) unlockBadge('orden_interno');
+  }, [userId, todos]);
 
   const toggle = useCallback(async (id: string) => {
     const target = todos.find((t) => t.id === id);
@@ -96,6 +101,34 @@ export function useTodos() {
       cancelTodoReminders(id).catch(() => {}); // completada → ya no hace falta avisar
       incrementTodoRecord();
       awardXPOnce(`todo-${id}`, XP_VALUES.COMPLETE_TODO, 'Tarea completada');
+      unlockBadge('primer_pendiente');
+
+      // --- Logros situacionales de pendientes ---
+      const after = todos.map((t) => t.id === id ? { ...t, done: true } : t);
+      const tk = todayKey();
+      const hoy0 = new Date(); hoy0.setHours(0, 0, 0, 0);
+
+      if (target.fecha) {
+        const fechaDia = dateKey(new Date(target.fecha));
+        if (fechaDia === tk) unlockBadge('ultimo_minuto');        // vencía hoy
+        else if (new Date(target.fecha) > hoy0) unlockBadge('antes_de_tiempo'); // fecha futura
+      }
+
+      // "Día resuelto": todos los pendientes de hoy completados
+      const delDia = after.filter((t) => t.created === tk || (t.fecha && dateKey(new Date(t.fecha)) === tk));
+      if (delDia.length > 0 && delDia.every((t) => t.done)) unlockBadge('dia_resuelto');
+
+      // "El plan salió bien": 100% de los pendientes con fecha de esta semana (3+)
+      const ws = startOfWeek(new Date(), { weekStartsOn: 1 });
+      const we = endOfWeek(new Date(), { weekStartsOn: 1 });
+      const semana = after.filter((t) => t.fecha && new Date(t.fecha) >= ws && new Date(t.fecha) <= we);
+      if (semana.length >= 3 && semana.every((t) => t.done)) unlockBadge('plan_salio_bien');
+
+      // "Semana limpia": domingo sin pendientes vencidos
+      if (new Date().getDay() === 0) {
+        const vencidos = after.some((t) => !t.done && t.fecha && new Date(t.fecha) < hoy0);
+        if (!vencidos) unlockBadge('semana_limpia');
+      }
     } else {
       // descompletar (incluye el "deshacer" del historial): revierte XP/récord
       const reverted = await reverseXPOnce(`todo-${id}`, XP_VALUES.COMPLETE_TODO);

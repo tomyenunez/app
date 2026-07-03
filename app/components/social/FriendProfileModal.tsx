@@ -9,6 +9,8 @@ import { Dayxo } from '../../constants/dayxo';
 import { getRank } from '../../constants/ranks';
 import { initials } from '../../utils/formatters';
 import { PublicUser, FriendProfile, getFriendProfile } from '../../services/friends';
+import { getRecords, saveRecords } from '../../services/storage';
+import { unlockBadge } from '../../services/xpService';
 
 interface Props {
   friend: PublicUser | null; // null = cerrado
@@ -32,7 +34,19 @@ export function FriendProfileModal({ friend, onClose }: Props) {
       setProfile(p);
       setLoading(false);
     });
+
+    // 🥚 "Stalker cariñoso": 10 visitas al perfil del mismo amigo (contador en la nube)
+    (async () => {
+      const r = await getRecords();
+      const views = { ...(r.profileViews ?? {}) };
+      views[friend.id] = (views[friend.id] ?? 0) + 1;
+      r.profileViews = views;
+      await saveRecords(r);
+      if (views[friend.id] >= 10) unlockBadge('stalker_carinoso');
+    })();
+
     return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [friend?.id]);
 
   if (!friend) return null;

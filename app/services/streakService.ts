@@ -1,6 +1,6 @@
 import {
   getStreak, saveStreak, getLongestStreak, saveLongestStreak,
-  getLastActive, saveLastActive,
+  getLastActive, saveLastActive, getRecords, saveRecords,
 } from './storage';
 import { getDailyStreakPoints, getStreakBonus, isStreakMilestone } from '../constants/xpValues';
 import { awardXP } from './xpService';
@@ -45,6 +45,13 @@ export async function processStreakOnOpen(): Promise<StreakResult> {
   const continues = lastActive === yesterdayKey();
   const broke = !continues && current > 0 && lastActive !== '';
   const newStreak = continues ? current + 1 : 1;
+
+  // Para el logro "Remontada": recordamos que alguna vez se perdió una racha
+  // de 7+ (cuando vuelva a llegar a 7, el logro se desbloquea solo).
+  if (broke && current >= 7) {
+    const r = await getRecords();
+    if (!r.lostStreak7) { r.lostStreak7 = true; await saveRecords(r); }
+  }
 
   const pointsEarned = getDailyStreakPoints(newStreak);
   const hitMilestone = isStreakMilestone(newStreak);

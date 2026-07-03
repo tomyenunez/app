@@ -12,6 +12,7 @@ import { AppColors } from '../../constants/colors';
 import { Dayxo } from '../../constants/dayxo';
 import { Nota } from '../../types';
 import { useKeyboardHeight } from '../../hooks/useKeyboardHeight';
+import { unlockBadge } from '../../services/xpService';
 
 interface Props {
   nota: Nota | null;
@@ -30,7 +31,14 @@ export function NotaViewModal({ nota, onClose, onSave, onRemove }: Props) {
   const [cuerpo, setCuerpo] = useState('');
 
   useEffect(() => {
-    if (nota) { setTitulo(nota.titulo); setCuerpo(nota.cuerpo); }
+    if (nota) {
+      setTitulo(nota.titulo);
+      setCuerpo(nota.cuerpo);
+      // "Volver a mirar": abrir una nota de hace más de una semana
+      if (Date.now() - new Date(nota.fechaCreacion).getTime() > 7 * 24 * 60 * 60 * 1000) {
+        unlockBadge('volver_a_mirar');
+      }
+    }
   }, [nota]);
 
   const hasText = (titulo + cuerpo).trim().length > 0;

@@ -14,6 +14,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
 import { Evento, Familia, Todo } from '../../types';
 import { useTapGuard } from '../../hooks/useTapGuard';
+import { unlockBadge } from '../../services/xpService';
 
 interface Props {
   visible: boolean;
@@ -91,6 +92,16 @@ export function CalendarModal({
 
   const today = new Date();
 
+  // 🥚 "¡Se va a romper!": 20 taps seguidos en la misma flecha de mes
+  const tapSpam = useRef({ dir: '', n: 0 });
+  const bumpMonth = (dir: 'prev' | 'next') => {
+    setCurrentMonth(dir === 'prev' ? subMonths(currentMonth, 1) : addMonths(currentMonth, 1));
+    const t = tapSpam.current;
+    t.n = t.dir === dir ? t.n + 1 : 1;
+    t.dir = dir;
+    if (t.n >= 20) { t.n = 0; unlockBadge('se_va_a_romper'); }
+  };
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.modalSafe} edges={['top']}>
@@ -103,13 +114,13 @@ export function CalendarModal({
         />
         <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={styles.monthNav}>
-            <TouchableOpacity onPress={() => setCurrentMonth(subMonths(currentMonth, 1))} style={styles.monthBtn}>
+            <TouchableOpacity onPress={() => bumpMonth('prev')} style={styles.monthBtn}>
               <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
             </TouchableOpacity>
             <Text style={styles.monthLabel}>
               {format(currentMonth, 'MMMM yyyy', { locale: es })}
             </Text>
-            <TouchableOpacity onPress={() => setCurrentMonth(addMonths(currentMonth, 1))} style={styles.monthBtn}>
+            <TouchableOpacity onPress={() => bumpMonth('next')} style={styles.monthBtn}>
               <Ionicons name="chevron-forward" size={20} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>

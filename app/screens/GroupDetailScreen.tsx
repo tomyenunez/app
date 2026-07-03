@@ -19,6 +19,7 @@ import { GroupBadgeDisplay } from '../constants/groupBadges';
 import {
   GroupSummary, GroupMemberXP, listGroupMembers, leaveGroup, relativeTime,
 } from '../services/groups';
+import { unlockBadge } from '../services/xpService';
 
 export function GroupDetailScreen({ group, onBack }: { group: GroupSummary; onBack: () => void }) {
   const { colors } = useTheme();
@@ -39,7 +40,16 @@ export function GroupDetailScreen({ group, onBack }: { group: GroupSummary; onBa
     const list = await listGroupMembers(group.id);
     setMembers(list);
     setLoadingMembers(false);
-  }, [group.id]);
+
+    // Logros sociales de grupos propios (solo si el grupo es mío)
+    if (uid && group.createdBy === uid) {
+      if (list.length >= 3) unlockBadge('anfitrion'); // 3 miembros en tu grupo
+      const semanaMs = 7 * 24 * 60 * 60 * 1000;
+      if (list.length >= 2 && Date.now() - new Date(group.createdAt).getTime() >= semanaMs) {
+        unlockBadge('lider_natural'); // tu grupo sigue vivo tras una semana
+      }
+    }
+  }, [group.id, group.createdBy, group.createdAt, uid]);
 
   useEffect(() => { loadMembers(); }, [loadMembers]);
 

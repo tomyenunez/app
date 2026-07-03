@@ -45,20 +45,80 @@ async function bumpDailyXP(amount: number): Promise<{ today: number; week: numbe
   return { today: daily[tk], week };
 }
 
-async function checkBadges(stats: BadgeStats): Promise<Badge[]> {
+// Momento de arranque de la app (para triggers tipo "nota a los 30s de abrir")
+export const APP_START = Date.now();
+
+function toBadge(def: (typeof BADGES)[number]): Badge {
+  return {
+    id: def.id, name: def.name, description: def.description,
+    icon: def.icon, rarity: def.rarity, color: def.color,
+    category: def.category, ...(def.secret ? { secret: true } : {}),
+  };
+}
+
+// Evalúa los logros automáticos. Itera hasta estabilizar porque los logros
+// meta (Coleccionista, Primer brillo, Insignia dorada...) dependen de cuántos
+// logros ya tenés — desbloquear uno puede desbloquear otro en cascada.
+async function checkBadges(stats: Omit<BadgeStats, 'unlockedIds'>): Promise<Badge[]> {
   const unlocked = await getBadges();
   const nuevos: Badge[] = [];
-  for (const def of BADGES) {
-    if (!unlocked[def.id] && def.check(stats)) {
-      unlocked[def.id] = new Date().toISOString();
-      nuevos.push({
-        id: def.id, name: def.name, description: def.description,
-        icon: def.icon, rarity: def.rarity, color: def.color,
-      });
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const ids = Object.keys(unlocked);
+    for (const def of BADGES) {
+      if (unlocked[def.id] || !def.check) continue;
+      if (def.check({ ...stats, unlockedIds: ids })) {
+        unlocked[def.id] = new Date().toISOString();
+        nuevos.push(toBadge(def));
+        changed = true;
+      }
     }
   }
   if (nuevos.length > 0) await saveBadges(unlocked);
   return nuevos;
+}
+
+// Stats base para evaluar logros fuera de un award (unlockBadge directo)
+async function buildStats(): Promise<Omit<BadgeStats, 'unlockedIds'>> {
+  const [records, streak, total, daily] = await Promise.all([
+    getRecords(), getStreak(), getXpTotal(), getXpDaily(),
+  ]);
+  return {
+    streak,
+    xpTotal: total,
+    totalTodos: records.totalTodosCompleted,
+    totalHabits: records.totalHabitsCompleted,
+    activeDays: Object.keys(daily).length,
+    lostStreak7: records.lostStreak7 ?? false,
+  };
+}
+
+/**
+ * Desbloquea un logro puntual (easter eggs, eventos de UI). No otorga XP:
+ * solo marca el logro, re-evalúa los logros meta que dependan de la colección
+ * y emite el evento para que la UI muestre el toast de celebración.
+ */
+export async function unlockBadge(id: string): Promise<void> {
+  const def = BADGES.find((b) => b.id === id);
+  if (!def) { console.warn(`[Dayxo logros] id desconocido: ${id}`); return; }
+  const unlocked = await getBadges();
+  if (unlocked[id]) return; // ya lo tenía
+  unlocked[id] = new Date().toISOString();
+  await saveBadges(unlocked);
+
+  // Cascada de logros meta (coleccionista, primer brillo, cofre, insignia...)
+  const extra = await checkBadges(await buildStats());
+
+  gameEvents.emit({
+    awarded: 0,
+    reason: def.name,
+    isBonus: false,
+    isStar: false,
+    newTotal: await getXpTotal(),
+    leveledUp: false,
+    newBadges: [toBadge(def), ...extra],
+  });
 }
 
 /**
@@ -89,19 +149,22 @@ export async function awardXP(amount: number, reason: string, opts: AwardOpts = 
   if (streak > records.bestStreak) records.bestStreak = streak;
   await saveRecords(records);
 
-  // Badges
-  const stats: BadgeStats = {
+  // Badges (los automáticos; los de trigger directo van por unlockBadge)
+  const daily = await getXpDaily();
+  const newBadges = await checkBadges({
     streak,
     xpTotal: newTotal,
     totalTodos: records.totalTodosCompleted,
+    totalHabits: records.totalHabitsCompleted,
+    activeDays: Object.keys(daily).length,
+    lostStreak7: records.lostStreak7 ?? false,
     weeklyStars: opts.stats?.weeklyStars ?? 0,
     perfectDays7: opts.stats?.perfectDays7 ?? false,
     completedAfter23: opts.stats?.completedAfter23 ?? false,
     completedBefore7: opts.stats?.completedBefore7 ?? false,
     perfectDay: opts.stats?.perfectDay ?? false,
     newWeekRecord: opts.stats?.newWeekRecord ?? newWeekRecord,
-  };
-  const newBadges = await checkBadges(stats);
+  });
 
   const result: AwardResult = {
     awarded: amount,

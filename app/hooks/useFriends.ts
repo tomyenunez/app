@@ -4,6 +4,7 @@ import {
   listFriends, getMyFriendCode, findByCode, sendRequest, acceptRequest, removeFriendship,
   FriendsData, PublicUser,
 } from '../services/friends';
+import { unlockBadge } from '../services/xpService';
 
 // Maneja el estado de Social: amigos, solicitudes y mi código. Refresca al abrir.
 export function useFriends(visible: boolean) {
@@ -19,6 +20,9 @@ export function useFriends(visible: boolean) {
     setData(d);
     setMyCode(code);
     setLoading(false);
+    // Logros sociales de amistades
+    if (d.friends.length >= 1) unlockBadge('primer_aliado');
+    if (d.friends.length >= 5) unlockBadge('conexion_real');
   }, [uid]);
 
   useEffect(() => {

@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { Habito, HabitReminder } from '../types';
 import { todayKey, todayIdx, weekDays, dateKey } from '../utils/dateUtils';
-import { awardXPOnce, incrementHabitRecord, decrementHabitRecord, reverseXPOnce, weeklyStarsCount } from '../services/xpService';
+import { awardXPOnce, incrementHabitRecord, decrementHabitRecord, reverseXPOnce, weeklyStarsCount, unlockBadge } from '../services/xpService';
 import { scheduleHabitReminders, cancelHabitReminders } from '../services/notificationService';
 import { XP_VALUES } from '../constants/xpValues';
 import { supabase } from '../services/supabase';
@@ -65,7 +65,9 @@ export function useHabitos() {
     const { error } = await supabase.from('habitos').insert(toRow(next, userId));
     if (error) console.warn('[Dayxo habitos] crear:', error.message);
     scheduleHabitReminders(next);
-  }, [userId]);
+    // "Tres pilares": mantener 3 hábitos activos
+    if (habitos.length + 1 >= 3) unlockBadge('tres_pilares');
+  }, [userId, habitos.length]);
 
   const remove = useCallback(async (id: string) => {
     cancelHabitReminders(id);
@@ -132,6 +134,37 @@ export function useHabitos() {
           },
         }
       );
+
+      // --- Logros de hábitos ---
+      unlockBadge('primer_fuego');
+
+      // "Ritual diario": el mismo hábito cumplido 10 veces
+      const vecesEste = Object.keys(updated).filter((k) => updated[k] && k.endsWith(`-${habitId}`)).length;
+      if (vecesEste >= 10) unlockBadge('ritual_diario');
+
+      // "Sin romper cadena": este hábito marcado 7 días seguidos (hoy inclusive)
+      let cadena = true;
+      for (let i = 0; i < 7; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        if (!updated[`${dateKey(d)}-${habitId}`]) { cadena = false; break; }
+      }
+      if (cadena) unlockBadge('sin_romper_cadena');
+
+      // "Full semana": es domingo y toda la semana planificada quedó cumplida
+      if (todayIdx() === 6 && habitos.some((h) => h.days.length > 0)) {
+        const monday = new Date();
+        monday.setDate(monday.getDate() - todayIdx());
+        let full = true;
+        for (let i = 0; i < 7 && full; i++) {
+          const d = new Date(monday);
+          d.setDate(monday.getDate() + i);
+          for (const h of habitos) {
+            if (h.days.includes(i) && !updated[`${dateKey(d)}-${h.id}`]) { full = false; break; }
+          }
+        }
+        if (full) unlockBadge('full_semana');
+      }
     } else {
       // desmarcar: borra la fila y revierte el XP/récord que sumó esa marca
       const { error } = await supabase.from('habit_done')

@@ -9,7 +9,7 @@ import { MissionsSection } from '../game/MissionsSection';
 import { AuthPanel } from '../auth/AuthPanel';
 import { useAuth } from '../../context/AuthContext';
 import { useAccessibility, FONT_SIZE_OPTIONS } from '../../context/AccessibilityContext';
-import { awardXP } from '../../services/xpService';
+import { awardXP, unlockBadge } from '../../services/xpService';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const PANEL_W = Math.min(300, SCREEN_W * 0.82);
@@ -144,6 +144,13 @@ export function SideMenu({ visible, onClose, onOpenSocial }: Props) {
                   />
                 </View>
               </View>
+
+              {/* 🥚 "No deberías estar acá": franja invisible al pie del menú */}
+              <TouchableOpacity
+                style={{ height: 26 }}
+                activeOpacity={1}
+                onPress={() => unlockBadge('boton_secreto')}
+              />
             </View>
           </View>
         </Animated.View>

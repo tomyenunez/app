@@ -31,6 +31,9 @@ export interface UserLevel {
 
 export type BadgeRarity = 'common' | 'rare' | 'epic' | 'legendary';
 
+// Familias de logros (se muestran agrupados en la UI)
+export type BadgeCategory = 'ocultos' | 'social' | 'meta' | 'pendientes' | 'habitos' | 'notas';
+
 export interface Badge {
   id: string;
   name: string;
@@ -38,6 +41,8 @@ export interface Badge {
   icon: string;
   rarity: BadgeRarity;
   color: string;
+  category: BadgeCategory;
+  secret?: boolean; // se muestra como "???" hasta desbloquearlo
 }
 
 export interface Mission {
@@ -58,6 +63,9 @@ export interface PersonalRecords {
   totalBadges: number;
   totalHabitsCompleted: number;
   totalTodosCompleted: number;
+  // Contadores para logros (opcionales: los registros viejos no los tienen)
+  lostStreak7?: boolean; // perdió alguna vez una racha de 7+ (para "Remontada")
+  profileViews?: Record<string, number>; // visitas al perfil de cada amigo
 }
 
 export interface Temperature {

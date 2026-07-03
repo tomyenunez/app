@@ -23,6 +23,7 @@ import { AuthProvider, useAuth } from './app/context/AuthContext';
 import { AccessibilityProvider } from './app/context/AccessibilityContext';
 import { TabBarProvider } from './app/context/TabBarContext';
 import { runMigrationIfNeeded } from './app/services/migration';
+import { unlockBadge } from './app/services/xpService';
 import { syncAllHabitReminders } from './app/services/notificationService';
 import { supabase } from './app/services/supabase';
 import { Habito } from './app/types';
@@ -39,6 +40,13 @@ function AppContent() {
     fade.setValue(0.7);
     Animated.timing(fade, { toValue: 1, duration: 180, useNativeDriver: true }).start();
   }, [isDark]);
+
+  // 🥚 "Ritual nocturno": abrir la app entre las 3 y las 4 de la mañana.
+  useEffect(() => {
+    if (!session) return;
+    if (new Date().getHours() === 3) unlockBadge('ritual_nocturno');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id]);
 
   // Resincronizar recordatorios de hábitos al loguear (desde la nube).
   useEffect(() => {

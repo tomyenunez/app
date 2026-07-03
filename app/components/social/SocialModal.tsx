@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView,
   Image, ActivityIndicator, Share, KeyboardAvoidingView, Platform,
@@ -18,6 +18,7 @@ import { useGroups } from '../../hooks/useGroups';
 import { GroupCarouselCard } from '../groups/GroupCarouselCard';
 import { ModalHeader } from '../shared/ModalHeader';
 import { FriendProfileModal } from './FriendProfileModal';
+import { unlockBadge } from '../../services/xpService';
 
 function MiniAvatar({ user, size = 44 }: { user: PublicUser; size?: number }) {
   return (
@@ -82,6 +83,15 @@ export function SocialModal({ visible, onClose }: { visible: boolean; onClose: (
     Share.share({ message: `Agregame en Dayxo 👀 Mi código es ${myCode}` }).catch(() => {});
   };
 
+  // 🥚 "Paciencia rara": mantener apretada la tarjeta del código 10 segundos
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startHold = () => {
+    holdTimer.current = setTimeout(() => unlockBadge('paciencia_rara'), 10000);
+  };
+  const endHold = () => {
+    if (holdTimer.current) { clearTimeout(holdTimer.current); holdTimer.current = null; }
+  };
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.safe} edges={['top']}>
@@ -126,15 +136,17 @@ export function SocialModal({ visible, onClose }: { visible: boolean; onClose: (
               <Text style={[styles.feedback, { color: feedback.ok ? Dayxo.green : colors.error }]}>{feedback.text}</Text>
             )}
 
-            {/* Mi código */}
-            <LinearGradient colors={[Dayxo.orange, Dayxo.purple]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.codeCard}>
-              <Text style={styles.codeLabel}>TU CÓDIGO DE AMIGO</Text>
-              <Text style={styles.codeValue}>{myCode ?? '········'}</Text>
-              <TouchableOpacity style={styles.shareBtn} onPress={shareCode} disabled={!myCode}>
-                <Ionicons name="share-outline" size={16} color={Dayxo.purple} />
-                <Text style={styles.shareBtnText}>Compartir mi código</Text>
-              </TouchableOpacity>
-            </LinearGradient>
+            {/* Mi código (mantenerla apretada un buen rato esconde algo 🤫) */}
+            <TouchableOpacity activeOpacity={0.95} onPressIn={startHold} onPressOut={endHold}>
+              <LinearGradient colors={[Dayxo.orange, Dayxo.purple]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.codeCard}>
+                <Text style={styles.codeLabel}>TU CÓDIGO DE AMIGO</Text>
+                <Text style={styles.codeValue}>{myCode ?? '········'}</Text>
+                <TouchableOpacity style={styles.shareBtn} onPress={shareCode} disabled={!myCode}>
+                  <Ionicons name="share-outline" size={16} color={Dayxo.purple} />
+                  <Text style={styles.shareBtnText}>Compartir mi código</Text>
+                </TouchableOpacity>
+              </LinearGradient>
+            </TouchableOpacity>
 
             {/* Grupos — carrusel seleccionable */}
             <View style={styles.groupsHeader}>
