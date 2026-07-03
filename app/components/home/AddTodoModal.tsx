@@ -24,9 +24,10 @@ interface Props {
   onAdd: (text: string, tag: Todo['tag'], fecha?: Date, hora?: string, descripcion?: string) => Promise<void> | void;
   editing?: Todo | null;
   onSave?: (id: string, text: string, tag: Todo['tag'], fecha?: Date, hora?: string, descripcion?: string) => Promise<void> | void;
+  initialFecha?: Date | null; // fecha precargada (llegando desde el calendario)
 }
 
-export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSave }: Props) {
+export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSave, initialFecha }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   // KeyboardAvoidingView no empuja bien dentro de pageSheet: subimos el footer a mano.
@@ -39,16 +40,18 @@ export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSav
   const [showCal, setShowCal] = useState(false);
   const [calMonth, setCalMonth] = useState(new Date());
 
-  // Al abrir: precarga si es edición, o arranca limpio si es nuevo
+  // Al abrir: precarga si es edición, la fecha inicial si viene del calendario,
+  // o arranca limpio si es nuevo.
   useEffect(() => {
     if (visible) {
       setText(editing?.text ?? '');
       setDescripcion(editing?.descripcion ?? '');
       setSelectedTag(editing?.tag ?? familias[0]?.id ?? 'personal');
-      setFecha(editing?.fecha ? new Date(editing.fecha) : null);
+      const preset = editing?.fecha ? new Date(editing.fecha) : (initialFecha ?? null);
+      setFecha(preset);
       setHora(editing?.hora ?? null);
       setShowCal(false);
-      setCalMonth(editing?.fecha ? new Date(editing.fecha) : new Date());
+      setCalMonth(preset ?? new Date());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);

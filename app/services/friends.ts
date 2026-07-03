@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { weekXP } from './groups';
 
 // Datos públicos de otro usuario (lo que se muestra en Social)
 export interface PublicUser {
@@ -76,6 +77,37 @@ export async function acceptRequest(friendshipId: string): Promise<{ error: stri
 export async function removeFriendship(friendshipId: string): Promise<{ error: string | null }> {
   const { error } = await supabase.from('friendships').delete().eq('id', friendshipId);
   return { error: error?.message ?? null };
+}
+
+// Perfil completo de un amigo (stats de juego incluidos, vía RPC con
+// security definer — game_state tiene RLS por usuario)
+export interface FriendProfile {
+  user: PublicUser;
+  xpTotal: number;
+  xpThisWeek: number;
+  streak: number;
+  longestStreak: number;
+  badgesCount: number;
+  totalHabitsCompleted: number;
+  totalTodosCompleted: number;
+}
+
+export async function getFriendProfile(friendId: string): Promise<FriendProfile | null> {
+  const { data, error } = await supabase.rpc('friend_profile', { fid: friendId });
+  if (error) { console.warn('[Dayxo amigos] perfil:', error.message); return null; }
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) return null;
+  const records = row.records ?? {};
+  return {
+    user: toUser(row),
+    xpTotal: Number(row.xp_total) || 0,
+    xpThisWeek: weekXP(row.xp_daily),
+    streak: row.streak ?? 0,
+    longestStreak: row.longest_streak ?? 0,
+    badgesCount: Object.keys(row.badges ?? {}).length,
+    totalHabitsCompleted: records.totalHabitsCompleted ?? 0,
+    totalTodosCompleted: records.totalTodosCompleted ?? 0,
+  };
 }
 
 // Trae todos mis vínculos y los clasifica, con el perfil del otro

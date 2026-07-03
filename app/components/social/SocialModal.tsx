@@ -17,6 +17,7 @@ import { GroupsListScreen } from '../../screens/GroupsListScreen';
 import { useGroups } from '../../hooks/useGroups';
 import { GroupCarouselCard } from '../groups/GroupCarouselCard';
 import { ModalHeader } from '../shared/ModalHeader';
+import { FriendProfileModal } from './FriendProfileModal';
 
 function MiniAvatar({ user, size = 44 }: { user: PublicUser; size?: number }) {
   return (
@@ -42,6 +43,7 @@ export function SocialModal({ visible, onClose }: { visible: boolean; onClose: (
   const [feedback, setFeedback] = useState<{ text: string; ok: boolean } | null>(null);
   const [groupsOpen, setGroupsOpen] = useState(false);
   const [initialGroupId, setInitialGroupId] = useState<string | undefined>(undefined);
+  const [profileFriend, setProfileFriend] = useState<PublicUser | null>(null);
 
   // Grupos reales (para el carrusel). Se refrescan al volver del cover de Grupos.
   const { listItems: groups, invites: groupInvites, refresh: refreshGroups } = useGroups(visible);
@@ -199,8 +201,15 @@ export function SocialModal({ visible, onClose }: { visible: boolean; onClose: (
             ) : (
               friends.map((e) => (
                 <View key={e.friendshipId} style={styles.row}>
-                  <MiniAvatar user={e.user} />
-                  <Text style={styles.rowName} numberOfLines={1}>{e.user.username}</Text>
+                  {/* Tocar el avatar o el nombre abre el perfil del amigo */}
+                  <TouchableOpacity
+                    style={styles.rowProfileTap}
+                    onPress={() => setProfileFriend(e.user)}
+                    activeOpacity={0.7}
+                  >
+                    <MiniAvatar user={e.user} />
+                    <Text style={styles.rowName} numberOfLines={1}>{e.user.username}</Text>
+                  </TouchableOpacity>
                   <TouchableOpacity style={[styles.iconCircle, { backgroundColor: colors.grayLight }]} onPress={() => remove(e.friendshipId)}>
                     <Ionicons name="person-remove-outline" size={16} color={colors.textSecondary} />
                   </TouchableOpacity>
@@ -228,6 +237,9 @@ export function SocialModal({ visible, onClose }: { visible: boolean; onClose: (
             <View style={{ height: 30 }} />
           </ScrollView>
         </KeyboardAvoidingView>
+
+        {/* Perfil del amigo (pop-up centrado) */}
+        <FriendProfileModal friend={profileFriend} onClose={() => setProfileFriend(null)} />
 
         {/* Cover de Grupos (sin modal anidado): ← vuelve a Amigos, X cierra todo */}
         {groupsOpen && (
@@ -307,6 +319,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     borderWidth: 1, borderColor: colors.border,
   },
   rowName: { flex: 1, fontSize: 15, fontFamily: 'Inter_600SemiBold', color: colors.textPrimary },
+  rowProfileTap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   iconCircle: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   pendingTag: { fontSize: 12, fontFamily: 'Inter_600SemiBold', color: colors.textTertiary },
   empty: { fontSize: 13, fontFamily: 'Inter_400Regular', color: colors.textSecondary, textAlign: 'center', paddingVertical: 16, lineHeight: 19 },

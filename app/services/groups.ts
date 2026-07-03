@@ -57,7 +57,7 @@ function fromGroupRow(r: any, memberCount: number, isAdmin: boolean): GroupSumma
 }
 
 // XP de la semana actual a partir del JSON xp_daily ({ "YYYY-M-D": number })
-function weekXP(xpDaily: Record<string, number> | null): number {
+export function weekXP(xpDaily: Record<string, number> | null): number {
   if (!xpDaily) return 0;
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
   let sum = 0;

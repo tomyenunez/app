@@ -26,15 +26,16 @@ interface Props {
   hasEvents: (date: Date) => boolean;
   eventosForDay: (date: Date) => Evento[];
   todosForDay?: (date: Date) => Todo[];
-  // "eventos" (Agenda, default) o "pendientes" (Home): en modo pendientes el
-  // form de abajo crea un pendiente con fecha (aparece en el Home) en vez de un evento.
+  // "eventos" (Agenda, default) o "pendientes" (Home): en modo pendientes no hay
+  // formulario acá — el botón cierra el calendario y abre el panel Nuevo Pendiente
+  // con el día seleccionado precargado (y al guardar se vuelve al calendario).
   mode?: 'eventos' | 'pendientes';
-  onAddTodo?: (text: string, tag: string, fecha: Date, hora?: string) => void | Promise<void>;
+  onRequestAddTodo?: (day: Date) => void;
 }
 
 export function CalendarModal({
   visible, onClose, initialDay, familias, getFamilia, onAdd, onRemove, hasEvents, eventosForDay, todosForDay,
-  mode = 'eventos', onAddTodo,
+  mode = 'eventos', onRequestAddTodo,
 }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -80,11 +81,7 @@ export function CalendarModal({
 
   const handleAdd = useTapGuard(async () => {
     if (!titulo.trim()) return;
-    if (esPendientes && onAddTodo) {
-      await onAddTodo(titulo.trim(), effectiveTipo, selectedDay, hora.trim() || undefined);
-    } else {
-      onAdd(titulo.trim(), selectedDay, effectiveTipo, hora.trim());
-    }
+    onAdd(titulo.trim(), selectedDay, effectiveTipo, hora.trim());
     setTitulo(''); setHora('');
     setJustAdded(true);
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -201,10 +198,24 @@ export function CalendarModal({
             )}
           </View>
 
+          {/* Modo pendientes: un solo flujo de creación — el botón te lleva al
+              panel Nuevo Pendiente con este día ya cargado. */}
+          {esPendientes ? (
+            <TouchableOpacity
+              style={styles.addTodoBtn}
+              onPress={() => onRequestAddTodo?.(selectedDay)}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="add-circle" size={20} color="#fff" />
+              <Text style={styles.addTodoBtnText}>
+                Agregar pendiente el {format(selectedDay, 'd/M')}
+              </Text>
+            </TouchableOpacity>
+          ) : (
           <View style={styles.addForm}>
             <TextInput
               style={styles.modalInput}
-              placeholder={esPendientes ? '¿Qué tenés que hacer ese día?' : 'Título del evento'}
+              placeholder="Título del evento"
               placeholderTextColor={colors.textSecondary}
               value={titulo}
               onChangeText={setTitulo}
@@ -237,20 +248,15 @@ export function CalendarModal({
             />
             <TouchableOpacity
               onPress={handleAdd}
-              style={[
-                styles.addEventBtn,
-                esPendientes && { backgroundColor: colors.violet },
-                justAdded && styles.addEventBtnSuccess,
-              ]}
+              style={[styles.addEventBtn, justAdded && styles.addEventBtnSuccess]}
               disabled={justAdded}
             >
               <Text style={styles.addEventBtnText}>
-                {justAdded
-                  ? (esPendientes ? '✓ ¡Pendiente agregado!' : '✓ ¡Evento agregado!')
-                  : (esPendientes ? 'Agregar pendiente' : 'Agregar evento')}
+                {justAdded ? '✓ ¡Evento agregado!' : 'Agregar evento'}
               </Text>
             </TouchableOpacity>
           </View>
+          )}
           <View style={{ height: 24 }} />
         </ScrollView>
         </KeyboardAvoidingView>
@@ -284,7 +290,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   // Mismo fontSize que el resto: si HOY es más grande, el número se descentra
   // respecto de su fila cuando el seleccionado es otro día.
   calDayToday: { color: colors.violet, fontFamily: 'Inter_800ExtraBold' },
-  calDayTodayLift: { transform: [{ translateY: -5 }] },
+  calDayTodayLift: { transform: [{ translateY: -9 }] },
   calDaySelected: { color: '#fff', fontFamily: 'Inter_700Bold' },
   todayLabel: {
     position: 'absolute', bottom: 3,
@@ -324,6 +330,12 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     backgroundColor: colors.pink, borderRadius: 10,
     paddingVertical: 13, alignItems: 'center',
   },
+  addTodoBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: colors.violet, borderRadius: 12,
+    paddingVertical: 14, marginHorizontal: 14, marginTop: 2,
+  },
+  addTodoBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Inter_700Bold' },
   addEventBtnSuccess: { backgroundColor: colors.green },
   addEventBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
 });

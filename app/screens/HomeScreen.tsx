@@ -19,6 +19,7 @@ import { SideMenu } from '../components/home/SideMenu';
 import { SocialModal } from '../components/social/SocialModal';
 import { DayDetailSheet } from '../components/home/DayDetailSheet';
 import { CalendarModal } from '../components/agenda/CalendarModal';
+import { AddTodoModal } from '../components/home/AddTodoModal';
 import { getHabitsStatusToday, getTodosStatusToday, getTotalXPToday } from '../utils/dayDetailUtils';
 import { useGame } from '../context/GameContext';
 import { useTodos } from '../hooks/useTodos';
@@ -52,6 +53,24 @@ export function HomeScreen() {
   const [calVisible, setCalVisible] = useState(false);
   const [calDay, setCalDay] = useState<Date | null>(null);
   const [dayDetailVisible, setDayDetailVisible] = useState(false);
+  // "Agregar pendiente" desde el calendario: guarda el día elegido mientras el
+  // panel Nuevo Pendiente está abierto, y al cerrarse se vuelve al calendario.
+  const [todoFromCal, setTodoFromCal] = useState<Date | null>(null);
+
+  // Cierra el calendario y abre Nuevo Pendiente con ese día (los pageSheet no
+  // pueden solaparse: esperamos a que termine la animación de cierre).
+  const openTodoFromCal = (day: Date) => {
+    setCalVisible(false);
+    setTimeout(() => setTodoFromCal(day), 400);
+  };
+
+  // Al cerrar Nuevo Pendiente (guardado o cancelado), volvemos al calendario.
+  const closeTodoFromCal = () => {
+    const day = todoFromCal;
+    setTodoFromCal(null);
+    setCalDay(day);
+    setTimeout(() => setCalVisible(true), 400);
+  };
 
   const openCalendar = (day: Date | null) => {
     setCalDay(day);
@@ -219,7 +238,16 @@ export function HomeScreen() {
         eventosForDay={eventosForDay}
         todosForDay={todosForDay}
         mode="pendientes"
-        onAddTodo={addTodo}
+        onRequestAddTodo={openTodoFromCal}
+      />
+
+      {/* Nuevo Pendiente lanzado desde el calendario (fecha precargada) */}
+      <AddTodoModal
+        visible={todoFromCal !== null}
+        onClose={closeTodoFromCal}
+        familias={familias}
+        onAdd={addTodo}
+        initialFecha={todoFromCal}
       />
     </SafeAreaView>
   );
