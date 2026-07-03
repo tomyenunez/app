@@ -15,6 +15,7 @@ import { AppColors } from '../../constants/colors';
 import { Familia, Todo } from '../../types';
 import { TimeField } from '../shared/TimeField';
 import { useTapGuard } from '../../hooks/useTapGuard';
+import { useKeyboardHeight } from '../../hooks/useKeyboardHeight';
 
 interface Props {
   visible: boolean;
@@ -28,6 +29,8 @@ interface Props {
 export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSave }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  // KeyboardAvoidingView no empuja bien dentro de pageSheet: subimos el footer a mano.
+  const kbHeight = useKeyboardHeight();
   const [text, setText] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [selectedTag, setSelectedTag] = useState<string>('personal');
@@ -76,7 +79,7 @@ export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSav
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={{ flex: 1 }}>
           <View style={styles.handleWrap}><View style={styles.handle} /></View>
           <ModalHeader title={editing ? 'Editar pendiente' : 'Nuevo pendiente'} onClose={onClose} />
 
@@ -205,8 +208,8 @@ export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSav
           </ScrollView>
 
           {/* Footer fijo: el botón queda siempre visible aunque se desplieguen
-              el calendario o la hora (antes vivía al final del scroll y quedaba tapado). */}
-          <View style={styles.footer}>
+              el calendario o la hora, y sube junto con el teclado. */}
+          <View style={[styles.footer, kbHeight > 0 && { paddingBottom: 10, marginBottom: kbHeight }]}>
             <TouchableOpacity
               onPress={handleSubmit}
               style={[styles.submitInline, !text.trim() && { opacity: 0.5 }]}
@@ -215,7 +218,7 @@ export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSav
               <Text style={styles.addBtnText}>{editing ? 'Guardar cambios' : 'Agregar pendiente'}</Text>
             </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </SafeAreaView>
     </Modal>
   );

@@ -146,6 +146,9 @@ export function CalendarModal({
                     styles.calDayNum,
                     !inMonth && styles.calDayOtherMonth,
                     isToday && styles.calDayToday,
+                    // Con la etiqueta HOY visible, el número sube un poco para no pisarse.
+                    // Si hoy está seleccionado, HOY se oculta y el número vuelve al centro.
+                    isToday && !isSelected && styles.calDayTodayLift,
                     isSelected && styles.calDaySelected,
                   ]}>
                     {day.getDate()}
@@ -281,6 +284,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   // Mismo fontSize que el resto: si HOY es más grande, el número se descentra
   // respecto de su fila cuando el seleccionado es otro día.
   calDayToday: { color: colors.violet, fontFamily: 'Inter_800ExtraBold' },
+  calDayTodayLift: { transform: [{ translateY: -5 }] },
   calDaySelected: { color: '#fff', fontFamily: 'Inter_700Bold' },
   todayLabel: {
     position: 'absolute', bottom: 3,

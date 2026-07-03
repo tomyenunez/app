@@ -128,7 +128,6 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12,
-    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   headerTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
   body: { padding: 16 },

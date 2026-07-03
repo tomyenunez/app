@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { AppText as Text } from '../components/shared/AppText';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
 import { AppColors } from '../constants/colors';
 import { Dayxo } from '../constants/dayxo';
@@ -134,6 +135,16 @@ export function GroupSettingsScreen({ group, members, currentUserId, onBack, onS
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+          {/* Preview vivo: cómo va a quedar la portada con lo que elijas */}
+          <LinearGradient
+            colors={GROUP_COVER_GRADIENTS[gradIdx] ?? GROUP_COVER_GRADIENTS[0]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.preview}
+          >
+            <Text style={styles.previewEmoji}>{emoji}</Text>
+            <Text style={styles.previewName} numberOfLines={1}>{name.trim() || 'Nombre del grupo'}</Text>
+          </LinearGradient>
+
           {/* 1. Identidad */}
           <Text style={styles.sectionLabel}>EDITAR IDENTIDAD</Text>
           <Text style={styles.fieldLabel}>Nombre del grupo</Text>
@@ -223,10 +234,13 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12,
-    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   headerTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
-  body: { padding: 16 },
+  body: { padding: 16, paddingTop: 4 },
+
+  preview: { borderRadius: 18, paddingVertical: 22, alignItems: 'center', marginBottom: 8 },
+  previewEmoji: { fontSize: 40 },
+  previewName: { fontSize: 18, fontFamily: 'Inter_800ExtraBold', color: '#fff', marginTop: 8 },
 
   sectionLabel: { fontSize: 11, fontFamily: 'Inter_700Bold', color: colors.textSecondary, letterSpacing: 0.5, marginTop: 24, marginBottom: 12 },
   fieldLabel: { fontSize: 12, fontFamily: 'Inter_600SemiBold', color: colors.textSecondary, marginBottom: 8 },

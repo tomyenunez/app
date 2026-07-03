@@ -6,7 +6,6 @@ import { Dayxo } from '../constants/dayxo';
 import { useAuth } from '../context/AuthContext';
 import { getRank } from '../constants/ranks';
 import { GroupCover } from '../components/groups/GroupCover';
-import { GroupMembersRow } from '../components/groups/GroupMembersRow';
 import { ActiveGameCard } from '../components/groups/ActiveGameCard';
 import { GroupRankingList } from '../components/groups/GroupRankingList';
 import { GroupActionsRow } from '../components/groups/GroupActionsRow';
@@ -100,6 +99,8 @@ export function GroupDetailScreen({ group, onBack }: { group: GroupSummary; onBa
           createdBy={creatorName}
           createdAt={relativeTime(info.createdAt).toLowerCase()}
           isAdmin={isAdmin}
+          members={uiMembers}
+          onInvite={() => setInviteOpen(true)}
           onBack={onBack}
           onSettings={() => setSettingsOpen(true)}
           onLeave={confirmLeave}
@@ -110,13 +111,6 @@ export function GroupDetailScreen({ group, onBack }: { group: GroupSummary; onBa
             <ActivityIndicator color={Dayxo.purple} style={{ marginVertical: 24 }} />
           ) : (
             <>
-              <GroupMembersRow
-                members={uiMembers}
-                totalCount={uiMembers.length}
-                onInvite={() => setInviteOpen(true)}
-                onPressMember={() => {}}
-              />
-
               <ActiveGameCard
                 game={null}
                 isAdmin={isAdmin}
