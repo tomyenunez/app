@@ -124,6 +124,7 @@ export function GroupSettingsScreen({ group, members, currentUserId, onBack, onS
   return (
     <View style={[StyleSheet.absoluteFillObject, styles.cover]}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={styles.handleWrap}><View style={styles.handle} /></View>
         <View style={styles.header}>
           <TouchableOpacity onPress={onBack} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
@@ -217,6 +218,8 @@ export function GroupSettingsScreen({ group, members, currentUserId, onBack, onS
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
   cover: { backgroundColor: colors.bg },
+  handleWrap: { alignItems: 'center', paddingTop: 10, paddingBottom: 2 },
+  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12,
