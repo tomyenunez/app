@@ -16,8 +16,14 @@ import { GroupActivityFeedItem } from '../components/groups/types';
 import { useGroups, toListItem } from '../hooks/useGroups';
 import { GroupSummary } from '../services/groups';
 
+interface Props {
+  onBack: () => void;   // flecha ←: volver a la vista de Amigos (Social)
+  onClose: () => void;  // X: cerrar el panel Social entero
+  initialGroupId?: string;
+}
+
 // Cover de "Lista de Grupos" — vive dentro del SocialModal (sección Amigos).
-export function GroupsListScreen({ onBack, initialGroupId }: { onBack: () => void; initialGroupId?: string }) {
+export function GroupsListScreen({ onBack, onClose, initialGroupId }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -64,7 +70,8 @@ export function GroupsListScreen({ onBack, initialGroupId }: { onBack: () => voi
       <ModalHeader
         title="Grupos"
         subtitle={`${groups.length} ${groups.length === 1 ? 'grupo' : 'grupos'}`}
-        onClose={onBack}
+        onBack={onBack}
+        onClose={onClose}
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">

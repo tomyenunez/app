@@ -17,9 +17,10 @@ const PANEL_W = Math.min(300, SCREEN_W * 0.82);
 interface Props {
   visible: boolean;
   onClose: () => void;
+  onOpenSocial?: () => void; // abre el panel Social (amigos y grupos) desde el Home
 }
 
-export function SideMenu({ visible, onClose }: Props) {
+export function SideMenu({ visible, onClose, onOpenSocial }: Props) {
   const { colors, isDark, setThemeMode } = useTheme();
   const { user } = useAuth();
   const { fontSizeKey, isBold, setFontSizeKey, setIsBold } = useAccessibility();
@@ -89,6 +90,22 @@ export function SideMenu({ visible, onClose }: Props) {
               </View>
               <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
+
+            {/* Social (amigos y grupos). Cerramos este modal primero y abrimos el
+                panel después, para no anidar modales (mismo patrón que testAward). */}
+            {onOpenSocial && (
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => { onClose(); setTimeout(onOpenSocial, 350); }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.menuItemLeft}>
+                  <Text style={styles.menuEmoji}>👥</Text>
+                  <Text style={styles.menuLabel}>Social</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
+            )}
 
             <View style={{ flex: 1 }} />
 

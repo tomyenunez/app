@@ -244,6 +244,11 @@ returns table (
     and is_group_member(p_group);
 $$;
 
+-- Permisos de acceso a las tablas para usuarios logueados (RLS sigue filtrando filas)
+grant select, insert, update, delete
+  on public.groups, public.group_members, public.group_invites, public.group_activity
+  to authenticated;
+
 -- Permisos de ejecución para usuarios logueados
 grant execute on function
   public.create_group(text, text, int),

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView,
   Image, ActivityIndicator, Share, KeyboardAvoidingView, Platform,
@@ -48,6 +48,12 @@ export function SocialModal({ visible, onClose }: { visible: boolean; onClose: (
 
   const openGroups = (groupId?: string) => { setInitialGroupId(groupId); setGroupsOpen(true); };
   const closeGroups = () => { setGroupsOpen(false); setInitialGroupId(undefined); refreshGroups(); };
+
+  // Al cerrar el panel, volver al estado inicial: si lo reabrís, arranca en
+  // Amigos (no queda "clavado" en Grupos).
+  useEffect(() => {
+    if (!visible) { setGroupsOpen(false); setInitialGroupId(undefined); }
+  }, [visible]);
 
   const resetSearch = () => { setCodeInput(''); setFound(null); setFeedback(null); };
 
@@ -223,8 +229,14 @@ export function SocialModal({ visible, onClose }: { visible: boolean; onClose: (
           </ScrollView>
         </KeyboardAvoidingView>
 
-        {/* Cover de Grupos (sin modal anidado) */}
-        {groupsOpen && <GroupsListScreen onBack={closeGroups} initialGroupId={initialGroupId} />}
+        {/* Cover de Grupos (sin modal anidado): ← vuelve a Amigos, X cierra todo */}
+        {groupsOpen && (
+          <GroupsListScreen
+            onBack={closeGroups}
+            onClose={() => { closeGroups(); onClose(); }}
+            initialGroupId={initialGroupId}
+          />
+        )}
       </SafeAreaView>
     </Modal>
   );

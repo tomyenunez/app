@@ -16,6 +16,7 @@ import { PendientesSection } from '../components/home/PendientesSection';
 import { HabitosSection } from '../components/home/HabitosSection';
 import { QuickNotesCard } from '../components/home/QuickNotesCard';
 import { SideMenu } from '../components/home/SideMenu';
+import { SocialModal } from '../components/social/SocialModal';
 import { DayDetailSheet } from '../components/home/DayDetailSheet';
 import { CalendarModal } from '../components/agenda/CalendarModal';
 import { getHabitsStatusToday, getTodosStatusToday, getTotalXPToday } from '../utils/dayDetailUtils';
@@ -47,6 +48,7 @@ export function HomeScreen() {
   const { notas, draft: notaDraft, setDraft: setNotaDraft, saveDraft: saveNotaDraft, clearDraft: clearNotaDraft, update: updateNota, remove: removeNota, togglePin: togglePinNota } = useNotas();
   const streak = useStreak();
   const [menuVisible, setMenuVisible] = useState(false);
+  const [socialVisible, setSocialVisible] = useState(false);
   const [calVisible, setCalVisible] = useState(false);
   const [calDay, setCalDay] = useState<Date | null>(null);
   const [dayDetailVisible, setDayDetailVisible] = useState(false);
@@ -195,7 +197,14 @@ export function HomeScreen() {
       />
 
       {/* Menú lateral (incluye Misiones adentro) */}
-      <SideMenu visible={menuVisible} onClose={() => setMenuVisible(false)} />
+      <SideMenu
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+        onOpenSocial={() => setSocialVisible(true)}
+      />
+
+      {/* Social (amigos y grupos) — accesible desde el menú lateral */}
+      <SocialModal visible={socialVisible} onClose={() => setSocialVisible(false)} />
 
       {/* Calendario (popup) */}
       <CalendarModal
