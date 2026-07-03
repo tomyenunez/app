@@ -172,7 +172,8 @@ export function SharedGroupDetailScreen({ group, onBack, onAddExpense, onRemoveE
 const createStyles = (colors: AppColors) => StyleSheet.create({
   cover: { backgroundColor: colors.bg },
   coverHead: { paddingHorizontal: 16, paddingBottom: 18, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
-  coverTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
+  // Dentro de una pageSheet el SafeArea no suma margen: el aire lo ponemos a mano.
+  coverTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 18 },
   coverIconBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' },
   coverEmoji: { fontSize: 40, textAlign: 'center', marginTop: 6 },
   coverName: { fontSize: 22, fontFamily: 'Inter_800ExtraBold', color: '#fff', textAlign: 'center', marginTop: 4 },

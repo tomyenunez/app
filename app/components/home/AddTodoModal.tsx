@@ -14,6 +14,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
 import { Familia, Todo } from '../../types';
 import { TimeField } from '../shared/TimeField';
+import { useTapGuard } from '../../hooks/useTapGuard';
 
 interface Props {
   visible: boolean;
@@ -59,7 +60,7 @@ export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSav
     return eachDayOfInterval({ start, end });
   }, [calMonth]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useTapGuard(async () => {
     if (!text.trim()) return;
     const horaArg = fecha && hora ? hora : undefined; // la hora solo viaja si hay fecha
     const descArg = descripcion.trim() || undefined;
@@ -70,7 +71,7 @@ export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSav
     }
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onClose();
-  };
+  });
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -201,6 +202,11 @@ export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSav
               </>
             )}
 
+          </ScrollView>
+
+          {/* Footer fijo: el botón queda siempre visible aunque se desplieguen
+              el calendario o la hora (antes vivía al final del scroll y quedaba tapado). */}
+          <View style={styles.footer}>
             <TouchableOpacity
               onPress={handleSubmit}
               style={[styles.submitInline, !text.trim() && { opacity: 0.5 }]}
@@ -208,7 +214,7 @@ export function AddTodoModal({ visible, onClose, familias, onAdd, editing, onSav
             >
               <Text style={styles.addBtnText}>{editing ? 'Guardar cambios' : 'Agregar pendiente'}</Text>
             </TouchableOpacity>
-          </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
@@ -285,9 +291,13 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   calDayNum: { fontSize: 13, fontFamily: 'Inter_500Medium', color: colors.textPrimary },
   calDayOther: { color: colors.textTertiary },
   calDaySelected: { color: '#fff', fontFamily: 'Inter_700Bold' },
+  footer: {
+    paddingHorizontal: 16, paddingTop: 10, paddingBottom: 20,
+    borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.card,
+  },
   submitInline: {
     backgroundColor: colors.violet, borderRadius: 12,
-    paddingVertical: 15, alignItems: 'center', marginTop: 24,
+    paddingVertical: 15, alignItems: 'center',
   },
   addBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
 });

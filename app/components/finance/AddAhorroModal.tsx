@@ -8,6 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
 import { Dayxo } from '../../constants/dayxo';
 import { formatARS, formatMontoInput, parseMontoInput } from '../../utils/formatters';
+import { useTapGuard } from '../../hooks/useTapGuard';
 
 export type AhorroMode = 'depositar' | 'retirar' | 'set';
 
@@ -40,12 +41,12 @@ export function AddAhorroModal({ visible, mode, balance, onClose, onConfirm }: P
   // En "usar" no podés retirar más de lo que tenés.
   const canConfirm = value > 0 && (mode !== 'retirar' || value <= balance);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useTapGuard(async () => {
     if (!canConfirm) return;
     await onConfirm(value);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onClose();
-  };
+  });
 
   const copy = COPY[mode];
 

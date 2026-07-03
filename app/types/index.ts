@@ -107,6 +107,7 @@ export interface SharedMember {
   nombre: string;
   color: string;    // color del avatar
   isYou?: boolean;  // el integrante que sos vos
+  userId?: string;  // si es un amigo de Dayxo: su id de usuario (para el sync futuro)
 }
 
 export interface SharedExpense {

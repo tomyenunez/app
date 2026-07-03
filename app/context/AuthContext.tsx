@@ -38,12 +38,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, username: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: { data: { username: username.trim() } },
     });
-    return { error: error ? translateError(error.message) : null };
+    if (error) return { error: translateError(error.message) };
+    // Mail ya registrado: por seguridad (anti-enumeración) Supabase "simula" éxito,
+    // pero devuelve un user sin identities y NO manda ningún mail. Lo detectamos
+    // acá para avisarle al usuario en vez de dejarlo esperando un código fantasma.
+    if (data.user && (data.user.identities?.length ?? 0) === 0) {
+      return { error: 'Ya existe una cuenta con ese email. Iniciá sesión, o usá otro correo.' };
+    }
+    return { error: null };
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {

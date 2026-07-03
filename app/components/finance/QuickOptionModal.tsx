@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors, FAMILIA_COLOR_KEYS } from '../../constants/colors';
 import { FamiliaColor } from '../../types';
+import { useTapGuard } from '../../hooks/useTapGuard';
 
 interface Props {
   visible: boolean;
@@ -25,11 +26,11 @@ export function QuickOptionModal({ visible, onClose, title, placeholder, onAdd }
     if (visible) { setNombre(''); setColor('violeta'); }
   }, [visible]);
 
-  const handleAdd = () => {
+  const handleAdd = useTapGuard(() => {
     if (!nombre.trim()) return;
     onAdd(nombre.trim(), color);
     onClose();
-  };
+  });
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>

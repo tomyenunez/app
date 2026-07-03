@@ -10,6 +10,7 @@ import { Dayxo } from '../../constants/dayxo';
 import { Habito, HabitReminder } from '../../types';
 import { TimeField } from '../shared/TimeField';
 import { requestNotificationPermission } from '../../services/notificationService';
+import { useTapGuard } from '../../hooks/useTapGuard';
 
 const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
@@ -76,7 +77,7 @@ export function AddHabitModal({ visible, onClose, onAdd, editing, onSave }: Prop
     return undefined;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = useTapGuard(async () => {
     if (!canAdd) return;
     const recordatorio = buildRecordatorio();
     if (editing && onSave) {
@@ -86,7 +87,7 @@ export function AddHabitModal({ visible, onClose, onAdd, editing, onSave }: Prop
     }
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onClose();
-  };
+  });
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>

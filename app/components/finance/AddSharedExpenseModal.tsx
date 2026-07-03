@@ -11,6 +11,7 @@ import { SharedGroup, SharedExpense } from '../../types';
 import { DateField } from '../shared/DateField';
 import { formatARS, formatMontoInput, parseMontoInput } from '../../utils/formatters';
 import { dateKey } from '../../utils/dateUtils';
+import { useTapGuard } from '../../hooks/useTapGuard';
 
 interface Props {
   visible: boolean;
@@ -47,12 +48,12 @@ export function AddSharedExpenseModal({ visible, group, onClose, onAdd }: Props)
     setSplit((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
   };
 
-  const handleAdd = async () => {
+  const handleAdd = useTapGuard(async () => {
     if (!canAdd) return;
     onAdd({ desc: desc.trim() || 'Gasto', monto: value, paidBy, splitBetween: split, fecha: dateKey(fecha) });
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onClose();
-  };
+  });
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>

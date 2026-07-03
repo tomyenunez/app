@@ -9,6 +9,7 @@ import { AppColors } from '../../constants/colors';
 import { Transaction } from '../../types';
 import { DateField } from '../shared/DateField';
 import { formatMontoInput, parseMontoInput } from '../../utils/formatters';
+import { useTapGuard } from '../../hooks/useTapGuard';
 
 interface Props {
   visible: boolean;
@@ -43,7 +44,7 @@ export function AddIngresoModal({ visible, onClose, onAdd, editing, onUpdate }: 
 
   const canAdd = parseMontoInput(monto) > 0;
 
-  const handleSubmit = async () => {
+  const handleSubmit = useTapGuard(async () => {
     if (!canAdd) return;
     if (editing && onUpdate) {
       await onUpdate(editing.id, desc.trim() || 'Ingreso', parseMontoInput(monto), fecha);
@@ -52,7 +53,7 @@ export function AddIngresoModal({ visible, onClose, onAdd, editing, onUpdate }: 
     }
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onClose();
-  };
+  });
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>

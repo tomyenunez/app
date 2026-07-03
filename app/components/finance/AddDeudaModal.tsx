@@ -9,6 +9,7 @@ import { AppColors } from '../../constants/colors';
 import { Deuda } from '../../types';
 import { DateField } from '../shared/DateField';
 import { formatMontoInput, parseMontoInput } from '../../utils/formatters';
+import { useTapGuard } from '../../hooks/useTapGuard';
 
 interface Props {
   visible: boolean;
@@ -43,7 +44,7 @@ export function AddDeudaModal({ visible, onClose, onAdd, editing, onUpdate }: Pr
 
   const canAdd = nombre.trim().length > 0 && parseMontoInput(monto) > 0;
 
-  const handleAdd = async () => {
+  const handleAdd = useTapGuard(async () => {
     if (!canAdd) return;
     if (isEditing && onUpdate) {
       await onUpdate(editing!.id, nombre.trim(), parseMontoInput(monto), tipo, fecha);
@@ -52,7 +53,7 @@ export function AddDeudaModal({ visible, onClose, onAdd, editing, onUpdate }: Pr
     }
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onClose();
-  };
+  });
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>

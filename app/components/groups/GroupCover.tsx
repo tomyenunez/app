@@ -51,9 +51,10 @@ export function GroupCover({ name, emoji, gradient, createdBy, createdAt, isAdmi
 }
 
 const styles = StyleSheet.create({
-  wrap: { height: 130, justifyContent: 'flex-end', overflow: 'hidden' },
+  // La portada arranca en el techo de la sheet: los botones necesitan aire extra.
+  wrap: { height: 140, justifyContent: 'flex-end', overflow: 'hidden' },
   floatBtn: {
-    position: 'absolute', top: 12,
+    position: 'absolute', top: 22,
     width: 38, height: 38, borderRadius: 19,
     backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center',
   },

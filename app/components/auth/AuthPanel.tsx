@@ -42,7 +42,17 @@ export function AuthPanel({ onDone, onModeChange }: AuthPanelProps) {
   // Avisar al padre del modo (para el glow/hero del AuthScreen)
   useEffect(() => { onModeChange?.(mode); }, [mode, onModeChange]);
 
-  const switchMode = (m: 'login' | 'signup') => { setMode(m); reset(); };
+  // Al cambiar entre iniciar sesión y crear cuenta, el formulario arranca limpio
+  // (que no queden el mail/contraseña escritos en el otro modo).
+  const switchMode = (m: 'login' | 'signup') => {
+    if (m === mode) return;
+    setMode(m);
+    reset();
+    setUsername('');
+    setEmail('');
+    setPassword('');
+    setShowPassword(false);
+  };
 
   // --- Sesión activa ---
   if (user) {

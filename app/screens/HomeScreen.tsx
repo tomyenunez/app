@@ -218,6 +218,8 @@ export function HomeScreen() {
         hasEvents={hasMark}
         eventosForDay={eventosForDay}
         todosForDay={todosForDay}
+        mode="pendientes"
+        onAddTodo={addTodo}
       />
     </SafeAreaView>
   );

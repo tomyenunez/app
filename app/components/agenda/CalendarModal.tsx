@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, TextInput, Modal, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, TextInput, Modal, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { AppText as Text } from '../shared/AppText';
+import { ModalHeader } from '../shared/ModalHeader';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -12,6 +13,7 @@ import { es } from 'date-fns/locale';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
 import { Evento, Familia, Todo } from '../../types';
+import { useTapGuard } from '../../hooks/useTapGuard';
 
 interface Props {
   visible: boolean;
@@ -24,10 +26,15 @@ interface Props {
   hasEvents: (date: Date) => boolean;
   eventosForDay: (date: Date) => Evento[];
   todosForDay?: (date: Date) => Todo[];
+  // "eventos" (Agenda, default) o "pendientes" (Home): en modo pendientes el
+  // form de abajo crea un pendiente con fecha (aparece en el Home) en vez de un evento.
+  mode?: 'eventos' | 'pendientes';
+  onAddTodo?: (text: string, tag: string, fecha: Date, hora?: string) => void | Promise<void>;
 }
 
 export function CalendarModal({
   visible, onClose, initialDay, familias, getFamilia, onAdd, onRemove, hasEvents, eventosForDay, todosForDay,
+  mode = 'eventos', onAddTodo,
 }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -69,31 +76,35 @@ export function CalendarModal({
     ? tipo
     : familias[0]?.id ?? 'personal';
 
-  const handleAdd = async () => {
+  const esPendientes = mode === 'pendientes';
+
+  const handleAdd = useTapGuard(async () => {
     if (!titulo.trim()) return;
-    onAdd(titulo.trim(), selectedDay, effectiveTipo, hora.trim());
+    if (esPendientes && onAddTodo) {
+      await onAddTodo(titulo.trim(), effectiveTipo, selectedDay, hora.trim() || undefined);
+    } else {
+      onAdd(titulo.trim(), selectedDay, effectiveTipo, hora.trim());
+    }
     setTitulo(''); setHora('');
     setJustAdded(true);
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     if (addedTimer.current) clearTimeout(addedTimer.current);
     addedTimer.current = setTimeout(() => setJustAdded(false), 1800);
-  };
+  });
 
   const today = new Date();
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.modalSafe} edges={['top']}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={styles.handleWrap}><View style={styles.handle} /></View>
+        <ModalHeader
+          title="Calendario"
+          subtitle={format(selectedDay, "EEEE d 'de' MMMM", { locale: es })}
+          onClose={onClose}
+        />
         <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          <View style={styles.handleWrap}><View style={styles.handle} /></View>
-
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Calendario</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color={colors.textPrimary} />
-            </TouchableOpacity>
-          </View>
-
           <View style={styles.monthNav}>
             <TouchableOpacity onPress={() => setCurrentMonth(subMonths(currentMonth, 1))} style={styles.monthBtn}>
               <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
@@ -150,9 +161,26 @@ export function CalendarModal({
               {format(selectedDay, "EEEE d 'de' MMMM", { locale: es })}
             </Text>
             {dayEventos.length === 0 && dayTodos.length === 0 ? (
-              <Text style={styles.noEvents}>Sin eventos este día</Text>
+              <Text style={styles.noEvents}>
+                {esPendientes ? 'Sin pendientes este día' : 'Sin eventos este día'}
+              </Text>
             ) : (
               <>
+                {/* En modo pendientes, los pendientes van primero (son el foco) */}
+                {dayTodos.map((t) => (
+                  <View key={t.id} style={styles.dayEventRow}>
+                    <Ionicons
+                      name={t.done ? 'checkmark-circle' : 'checkmark-circle-outline'}
+                      size={15}
+                      color={colors.violet}
+                    />
+                    <Text style={[styles.dayEventTitle, t.done && styles.dayTodoDone]}>{t.text}</Text>
+                    {t.hora ? <Text style={styles.dayEventHora}>{t.hora}</Text> : null}
+                    <View style={styles.dayTodoBadge}>
+                      <Text style={styles.dayTodoBadgeText}>pendiente</Text>
+                    </View>
+                  </View>
+                ))}
                 {dayEventos.map((e) => {
                   const fam = getFamilia(e.tipo);
                   return (
@@ -166,15 +194,6 @@ export function CalendarModal({
                     </View>
                   );
                 })}
-                {dayTodos.map((t) => (
-                  <View key={t.id} style={styles.dayEventRow}>
-                    <Ionicons name="checkmark-circle-outline" size={14} color={colors.violet} />
-                    <Text style={[styles.dayEventTitle, t.done && styles.dayTodoDone]}>{t.text}</Text>
-                    <View style={styles.dayTodoBadge}>
-                      <Text style={styles.dayTodoBadgeText}>pendiente</Text>
-                    </View>
-                  </View>
-                ))}
               </>
             )}
           </View>
@@ -182,7 +201,7 @@ export function CalendarModal({
           <View style={styles.addForm}>
             <TextInput
               style={styles.modalInput}
-              placeholder="Título del evento"
+              placeholder={esPendientes ? '¿Qué tenés que hacer ese día?' : 'Título del evento'}
               placeholderTextColor={colors.textSecondary}
               value={titulo}
               onChangeText={setTitulo}
@@ -215,16 +234,23 @@ export function CalendarModal({
             />
             <TouchableOpacity
               onPress={handleAdd}
-              style={[styles.addEventBtn, justAdded && styles.addEventBtnSuccess]}
+              style={[
+                styles.addEventBtn,
+                esPendientes && { backgroundColor: colors.violet },
+                justAdded && styles.addEventBtnSuccess,
+              ]}
               disabled={justAdded}
             >
               <Text style={styles.addEventBtnText}>
-                {justAdded ? '✓ ¡Evento agregado!' : 'Agregar evento'}
+                {justAdded
+                  ? (esPendientes ? '✓ ¡Pendiente agregado!' : '✓ ¡Evento agregado!')
+                  : (esPendientes ? 'Agregar pendiente' : 'Agregar evento')}
               </Text>
             </TouchableOpacity>
           </View>
           <View style={{ height: 24 }} />
         </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );
@@ -234,12 +260,6 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   modalSafe: { flex: 1, backgroundColor: colors.card },
   handleWrap: { alignItems: 'center', paddingTop: 10, paddingBottom: 6 },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border },
-  modalHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: colors.border,
-  },
-  modalTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
   monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
   monthBtn: { padding: 6 },
   monthLabel: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: colors.textPrimary, textTransform: 'capitalize' },
@@ -258,7 +278,9 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   calCellSelected: { backgroundColor: colors.violet },
   calDayNum: { fontSize: 14, fontFamily: 'Inter_500Medium', color: colors.textPrimary },
   calDayOtherMonth: { color: colors.textTertiary },
-  calDayToday: { color: colors.violet, fontFamily: 'Inter_800ExtraBold', fontSize: 18 },
+  // Mismo fontSize que el resto: si HOY es más grande, el número se descentra
+  // respecto de su fila cuando el seleccionado es otro día.
+  calDayToday: { color: colors.violet, fontFamily: 'Inter_800ExtraBold' },
   calDaySelected: { color: '#fff', fontFamily: 'Inter_700Bold' },
   todayLabel: {
     position: 'absolute', bottom: 3,

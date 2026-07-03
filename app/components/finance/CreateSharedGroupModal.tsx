@@ -12,6 +12,8 @@ import { Dayxo } from '../../constants/dayxo';
 import { SharedMember } from '../../types';
 import { GROUP_COVER_GRADIENTS } from '../groups/types';
 import { initials } from '../../utils/formatters';
+import { useTapGuard } from '../../hooks/useTapGuard';
+import { useFriends } from '../../hooks/useFriends';
 
 export const AVATAR_COLORS = [Dayxo.orange, Dayxo.purple, Dayxo.green, Dayxo.blue, Dayxo.pink, Dayxo.coral, Dayxo.habitos, Dayxo.yellow];
 const GROUP_EMOJIS = ['🍖', '🍕', '🍻', '🏖️', '✈️', '🏠', '🎉', '⚽', '🎬', '🛒', '🚗', '🎂'];
@@ -32,10 +34,13 @@ export function CreateSharedGroupModal({ visible, onClose, onCreate }: Props) {
   const [gradIdx, setGradIdx] = useState(0);
   const [nuevoMiembro, setNuevoMiembro] = useState('');
   const [otros, setOtros] = useState<string[]>([]); // nombres de los demás integrantes
+  const { friends } = useFriends(visible); // amigos de Dayxo, seleccionables como integrantes
+  const [friendSel, setFriendSel] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!visible) return;
     setNombre(''); setEmoji(GROUP_EMOJIS[0]); setGradIdx(0); setNuevoMiembro(''); setOtros([]);
+    setFriendSel({});
   }, [visible]);
 
   const yo = profile.username || 'Vos';
@@ -49,15 +54,23 @@ export function CreateSharedGroupModal({ visible, onClose, onCreate }: Props) {
 
   const canCreate = nombre.trim().length > 0;
 
-  const handleCreate = () => {
+  const handleCreate = useTapGuard(() => {
     if (!canCreate) return;
+    const elegidos = friends.filter((f) => friendSel[f.user.id]);
     const members: SharedMember[] = [
       { id: 'you', nombre: yo, color: AVATAR_COLORS[0], isYou: true },
-      ...otros.map((n, i) => ({ id: `m${i}`, nombre: n, color: AVATAR_COLORS[(i + 1) % AVATAR_COLORS.length] })),
+      // Amigos de Dayxo elegidos (guardamos su userId para cuando el backend
+      // de gastos compartidos sincronice entre cuentas)
+      ...elegidos.map((f, i) => ({
+        id: `f${i}`, nombre: f.user.username, color: f.user.avatarColor, userId: f.user.id,
+      })),
+      ...otros.map((n, i) => ({
+        id: `m${i}`, nombre: n, color: AVATAR_COLORS[(i + 1 + elegidos.length) % AVATAR_COLORS.length],
+      })),
     ];
     onCreate({ nombre: nombre.trim(), emoji, gradient: GROUP_COVER_GRADIENTS[gradIdx], members });
     onClose();
-  };
+  });
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -137,12 +150,42 @@ export function CreateSharedGroupModal({ visible, onClose, onCreate }: Props) {
                 <Ionicons name="add" size={22} color="#fff" />
               </TouchableOpacity>
             </View>
-            <Text style={styles.hint}>Después vas a poder invitar gente por link 🔗</Text>
 
+            {/* Amigos de Dayxo — se suman como integrantes con un toque */}
+            {friends.length > 0 && (
+              <>
+                <Text style={[styles.label, { marginTop: 18 }]}>O SUMÁ AMIGOS DE DAYXO</Text>
+                {friends.map((f) => {
+                  const on = !!friendSel[f.user.id];
+                  return (
+                    <TouchableOpacity
+                      key={f.user.id}
+                      style={styles.memberRow}
+                      onPress={() => setFriendSel((prev) => ({ ...prev, [f.user.id]: !prev[f.user.id] }))}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[styles.avatar, { backgroundColor: f.user.avatarColor }]}>
+                        <Text style={styles.avatarTxt}>{initials(f.user.username)}</Text>
+                      </View>
+                      <Text style={styles.memberName}>{f.user.username}</Text>
+                      <Ionicons
+                        name={on ? 'checkmark-circle' : 'ellipse-outline'}
+                        size={22}
+                        color={on ? Dayxo.blue : colors.border}
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
+              </>
+            )}
+          </ScrollView>
+
+          {/* Footer fijo: el botón no queda tapado por el teclado ni escondido al final del scroll */}
+          <View style={styles.footer}>
             <TouchableOpacity onPress={handleCreate} style={[styles.submit, !canCreate && { opacity: 0.5 }]} disabled={!canCreate}>
               <Text style={styles.submitTxt}>Crear grupo</Text>
             </TouchableOpacity>
-          </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
@@ -186,6 +229,10 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   addMemberBtn: { width: 46, height: 46, borderRadius: 12, backgroundColor: Dayxo.blue, alignItems: 'center', justifyContent: 'center' },
   hint: { fontSize: 12, fontFamily: 'Inter_400Regular', color: colors.textTertiary, marginTop: 10 },
 
-  submit: { backgroundColor: Dayxo.blue, borderRadius: 12, paddingVertical: 15, alignItems: 'center', marginTop: 24 },
+  footer: {
+    paddingHorizontal: 16, paddingTop: 10, paddingBottom: 20,
+    borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.card,
+  },
+  submit: { backgroundColor: Dayxo.blue, borderRadius: 12, paddingVertical: 15, alignItems: 'center' },
   submitTxt: { color: '#fff', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
 });

@@ -11,6 +11,7 @@ import { OpcionGasto, FamiliaColor, Transaction } from '../../types';
 import { DateField } from '../shared/DateField';
 import { QuickOptionModal } from './QuickOptionModal';
 import { formatMontoInput, parseMontoInput } from '../../utils/formatters';
+import { useTapGuard } from '../../hooks/useTapGuard';
 
 interface Catalogo {
   items: OpcionGasto[];
@@ -61,7 +62,7 @@ export function AddGastoModal({ visible, onClose, categorias, metodos, onAdd, ed
 
   const canAdd = desc.trim().length > 0 && parseMontoInput(monto) > 0;
 
-  const handleSubmit = async () => {
+  const handleSubmit = useTapGuard(async () => {
     if (!canAdd) return;
     if (editing && onUpdate) {
       await onUpdate(editing.id, desc.trim(), parseMontoInput(monto), selCat ?? undefined, selMet ?? undefined, fecha);
@@ -70,7 +71,7 @@ export function AddGastoModal({ visible, onClose, categorias, metodos, onAdd, ed
     }
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onClose();
-  };
+  });
 
   const renderChips = (items: OpcionGasto[], sel: string | null, onSel: (id: string | null) => void, onEdit: () => void) => (
     <View style={styles.chipWrap}>

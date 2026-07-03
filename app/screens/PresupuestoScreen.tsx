@@ -19,6 +19,7 @@ import { useAhorros } from '../hooks/useAhorros';
 import { useCategoriasGasto, useMetodosPago } from '../hooks/useOpcionesGasto';
 import { getFinanceOrder, saveFinanceOrder, getAhorrosVisible, saveAhorrosVisible } from '../services/storage';
 import { SideMenu } from '../components/home/SideMenu';
+import { SocialModal } from '../components/social/SocialModal';
 import { AddGastoModal } from '../components/finance/AddGastoModal';
 import { AddIngresoModal } from '../components/finance/AddIngresoModal';
 import { AddDeudaModal } from '../components/finance/AddDeudaModal';
@@ -50,6 +51,7 @@ export function PresupuestoScreen() {
   const metodos = useMetodosPago();
 
   const [menuVisible, setMenuVisible] = useState(false);
+  const [socialVisible, setSocialVisible] = useState(false);
   const [graphsVisible, setGraphsVisible] = useState(false);
   const [dispVisible, setDispVisible] = useState(false);
   const [addGasto, setAddGasto] = useState(false);
@@ -473,7 +475,14 @@ export function PresupuestoScreen() {
       />
 
       {/* Menú lateral (incluye Misiones adentro) */}
-      <SideMenu visible={menuVisible} onClose={() => setMenuVisible(false)} />
+      <SideMenu
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+        onOpenSocial={() => setSocialVisible(true)}
+      />
+
+      {/* Social (amigos y grupos) — accesible desde el menú lateral */}
+      <SocialModal visible={socialVisible} onClose={() => setSocialVisible(false)} />
 
       {/* Guardar / usar / editar ahorros */}
       <AddAhorroModal
