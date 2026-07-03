@@ -1,47 +1,123 @@
-import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { AppText as Text } from '../components/shared/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { AppColors } from '../constants/colors';
 import { Dayxo } from '../constants/dayxo';
+import { useAuth } from '../context/AuthContext';
 import { GradientPicker } from '../components/groups/GradientPicker';
 import { MemberManagementRow } from '../components/groups/MemberManagementRow';
-import { InviteRequestRow } from '../components/groups/InviteRequestRow';
-import { GROUP_COVER_GRADIENTS, GroupMember, GroupInviteRequest } from '../components/groups/types';
+import { GROUP_COVER_GRADIENTS, GroupMember } from '../components/groups/types';
+import {
+  GroupSummary, updateGroup, deleteGroup, removeMember, makeAdmin,
+  listGroupPendingInvites, cancelGroupInvite,
+} from '../services/groups';
 
 const EMOJI_PRESETS = ['🔥', '💪', '🏠', '🎯', '🚀', '⭐', '🏆', '🎮', '📚', '🧠'];
 
-// Solicitudes pendientes de ejemplo (las reales las trae el backend de Mateo).
-const MOCK_REQUESTS: GroupInviteRequest[] = [
-  { id: 'r1', invitedUsername: 'Lucía', invitedByUsername: 'Mateo', avatarColor: '#E84393' },
-  { id: 'r2', invitedUsername: 'Joaco', invitedByUsername: 'Sofi', avatarColor: '#0984E3' },
-];
+interface PendingInvite {
+  id: string;
+  invitedUsername: string;
+  invitedByUsername: string;
+  avatarColor: string;
+}
 
 interface Props {
-  groupName: string;
-  groupEmoji: string;
-  gradientIndex: number;
+  group: GroupSummary;
   members: GroupMember[];
   currentUserId: string;
   onBack: () => void;
+  onSaved: (fields: { name: string; emoji: string; gradientIndex: number }) => void;
+  onMembersChanged: () => void;
+  onDeleted: () => void;
 }
 
-export function GroupSettingsScreen({ groupName, groupEmoji, gradientIndex, members, currentUserId, onBack }: Props) {
+export function GroupSettingsScreen({ group, members, currentUserId, onBack, onSaved, onMembersChanged, onDeleted }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { user } = useAuth();
 
-  const [name, setName] = useState(groupName);
-  const [emoji, setEmoji] = useState(groupEmoji);
-  const [gradIdx, setGradIdx] = useState(gradientIndex);
+  const [name, setName] = useState(group.name);
+  const [emoji, setEmoji] = useState(group.emoji);
+  const [gradIdx, setGradIdx] = useState(group.gradientIndex);
+  const [saving, setSaving] = useState(false);
+  const [pending, setPending] = useState<PendingInvite[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(true);
 
-  const soon = () => Alert.alert('Grupos', 'Esto se conecta cuando esté el backend de grupos 🚧');
+  useEffect(() => {
+    listGroupPendingInvites(group.id).then((list) => {
+      setPending(list);
+      setPendingLoading(false);
+    });
+  }, [group.id]);
+
+  const handleSave = async () => {
+    const trimmed = name.trim();
+    if (!trimmed) { Alert.alert('Grupos', 'El nombre no puede quedar vacío.'); return; }
+    setSaving(true);
+    const renamed = trimmed !== group.name;
+    const res = await updateGroup(
+      group.id, user?.id ?? '',
+      { name: trimmed, emoji, gradientIndex: gradIdx }, renamed,
+    );
+    setSaving(false);
+    if (res.error) { Alert.alert('Grupos', res.error); return; }
+    onSaved({ name: trimmed, emoji, gradientIndex: gradIdx });
+    Alert.alert('Grupos', 'Cambios guardados ✅');
+  };
+
+  const confirmKick = (m: GroupMember) => {
+    Alert.alert(
+      'Expulsar miembro',
+      `¿Sacar a ${m.username} de "${group.name}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Expulsar', style: 'destructive',
+          onPress: async () => {
+            await removeMember(group.id, m.userId, m.username, user?.id ?? '');
+            onMembersChanged();
+          },
+        },
+      ],
+    );
+  };
+
+  const handleMakeAdmin = (m: GroupMember) => {
+    Alert.alert(
+      'Hacer admin',
+      `${m.username} va a poder editar el grupo, expulsar miembros y elegir juegos. ¿Confirmás?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Hacer admin',
+          onPress: async () => { await makeAdmin(group.id, m.userId); onMembersChanged(); },
+        },
+      ],
+    );
+  };
+
+  const cancelInvite = async (id: string) => {
+    await cancelGroupInvite(id);
+    setPending((prev) => prev.filter((p) => p.id !== id));
+  };
 
   const confirmDelete = () => {
     Alert.alert(
       'Eliminar grupo',
       `Vas a eliminar "${name}" para todos sus miembros. Esta acción no se puede deshacer.`,
-      [{ text: 'Cancelar', style: 'cancel' }, { text: 'Eliminar', style: 'destructive', onPress: soon }],
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar', style: 'destructive',
+          onPress: async () => {
+            const res = await deleteGroup(group.id);
+            if (res.error) { Alert.alert('Grupos', res.error); return; }
+            onDeleted();
+          },
+        },
+      ],
     );
   };
 
@@ -86,13 +162,8 @@ export function GroupSettingsScreen({ groupName, groupEmoji, gradientIndex, memb
           <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Color de portada</Text>
           <GradientPicker gradients={GROUP_COVER_GRADIENTS} selectedIndex={gradIdx} onSelect={setGradIdx} />
 
-          <TouchableOpacity style={styles.photoBtn} onPress={soon} activeOpacity={0.8}>
-            <Ionicons name="image-outline" size={18} color={colors.textSecondary} />
-            <Text style={styles.photoBtnText}>Subir foto de portada</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.saveBtn} onPress={soon} activeOpacity={0.85}>
-            <Text style={styles.saveBtnText}>Guardar cambios</Text>
+          <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving} activeOpacity={0.85}>
+            {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Guardar cambios</Text>}
           </TouchableOpacity>
 
           {/* 2. Miembros */}
@@ -102,18 +173,31 @@ export function GroupSettingsScreen({ groupName, groupEmoji, gradientIndex, memb
               key={m.userId}
               member={m}
               isSelf={m.userId === currentUserId}
-              onMakeAdmin={soon}
-              onKick={soon}
+              onMakeAdmin={() => handleMakeAdmin(m)}
+              onKick={() => confirmKick(m)}
             />
           ))}
 
-          {/* 3. Solicitudes pendientes */}
-          <Text style={styles.sectionLabel}>SOLICITUDES PENDIENTES ({MOCK_REQUESTS.length})</Text>
-          {MOCK_REQUESTS.length === 0 ? (
-            <Text style={styles.empty}>No hay solicitudes pendientes.</Text>
+          {/* 3. Invitaciones pendientes (enviadas, esperando respuesta) */}
+          <Text style={styles.sectionLabel}>INVITACIONES PENDIENTES ({pending.length})</Text>
+          {pendingLoading ? (
+            <ActivityIndicator color={Dayxo.purple} style={{ marginVertical: 8 }} />
+          ) : pending.length === 0 ? (
+            <Text style={styles.empty}>No hay invitaciones pendientes.</Text>
           ) : (
-            MOCK_REQUESTS.map((r) => (
-              <InviteRequestRow key={r.id} request={r} onAccept={soon} onReject={soon} />
+            pending.map((p) => (
+              <View key={p.id} style={styles.pendingRow}>
+                <View style={[styles.pendingAvatar, { backgroundColor: p.avatarColor }]}>
+                  <Text style={styles.pendingAvatarText}>{p.invitedUsername.slice(0, 2).toUpperCase()}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.pendingName} numberOfLines={1}>{p.invitedUsername}</Text>
+                  <Text style={styles.pendingBy} numberOfLines={1}>Invitado por {p.invitedByUsername}</Text>
+                </View>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => cancelInvite(p.id)} activeOpacity={0.8}>
+                  <Text style={styles.cancelText}>Cancelar</Text>
+                </TouchableOpacity>
+              </View>
             ))
           )}
 
@@ -154,15 +238,25 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   },
   emojiCellActive: { borderColor: Dayxo.purple, backgroundColor: colors.violetLight },
   emojiText: { fontSize: 22 },
-  photoBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 14,
-    borderRadius: 10, paddingVertical: 12, borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed',
-  },
-  photoBtnText: { fontSize: 14, fontFamily: 'Inter_500Medium', color: colors.textSecondary },
-  saveBtn: { backgroundColor: Dayxo.purple, borderRadius: 12, paddingVertical: 13, alignItems: 'center', marginTop: 12 },
+  saveBtn: { backgroundColor: Dayxo.purple, borderRadius: 12, paddingVertical: 13, alignItems: 'center', marginTop: 14 },
   saveBtnText: { fontSize: 15, fontFamily: 'Inter_700Bold', color: '#fff' },
 
   empty: { fontSize: 13, fontFamily: 'Inter_400Regular', color: colors.textSecondary, paddingVertical: 8 },
+
+  pendingRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: colors.card, borderRadius: 14, padding: 12, marginBottom: 8,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  pendingAvatar: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  pendingAvatarText: { color: '#fff', fontFamily: 'Inter_800ExtraBold', fontSize: 13 },
+  pendingName: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: colors.textPrimary },
+  pendingBy: { fontSize: 11, fontFamily: 'Inter_400Regular', color: colors.textSecondary, marginTop: 1 },
+  cancelBtn: {
+    borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12,
+    backgroundColor: colors.grayLight,
+  },
+  cancelText: { fontSize: 12, fontFamily: 'Inter_600SemiBold', color: colors.textSecondary },
 
   deleteBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,

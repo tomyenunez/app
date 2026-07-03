@@ -11,7 +11,6 @@ export interface MissionTemplate {
 export const DAILY_MISSIONS: MissionTemplate[] = [
   { id: 'dm_all_habits', text: 'Completá todos tus hábitos de hoy', xp: XP_VALUES.MISSION_DAILY, type: 'daily' },
   { id: 'dm_3_todos', text: 'Completá 3 tareas', xp: 30, type: 'daily' },
-  { id: 'dm_log_tx', text: 'Registrá un gasto o ingreso', xp: 20, type: 'daily' },
 ];
 
 // Misiones semanales

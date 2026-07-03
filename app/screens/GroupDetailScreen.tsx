@@ -1,11 +1,12 @@
-import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { AppColors } from '../constants/colors';
-import { useGame } from '../context/GameContext';
+import { Dayxo } from '../constants/dayxo';
+import { useAuth } from '../context/AuthContext';
+import { getRank } from '../constants/ranks';
 import { GroupCover } from '../components/groups/GroupCover';
 import { GroupMembersRow } from '../components/groups/GroupMembersRow';
-import { GroupStreakBanner } from '../components/groups/GroupStreakBanner';
 import { ActiveGameCard } from '../components/groups/ActiveGameCard';
 import { GroupRankingList } from '../components/groups/GroupRankingList';
 import { GroupActionsRow } from '../components/groups/GroupActionsRow';
@@ -13,61 +14,79 @@ import { GroupBadgesSection } from '../components/groups/GroupBadgesSection';
 import { GroupBadgeDetailModal } from '../components/groups/GroupBadgeDetailModal';
 import { GroupSettingsScreen } from './GroupSettingsScreen';
 import { ChooseGroupGameScreen } from './ChooseGroupGameScreen';
-import {
-  GROUP_COVER_GRADIENTS, GroupListItem, GroupMember, RankingEntry, ActiveGroupGame,
-} from '../components/groups/types';
+import { InviteFriendsScreen } from './InviteFriendsScreen';
+import { GROUP_COVER_GRADIENTS, GroupMember, RankingEntry } from '../components/groups/types';
 import { GroupBadgeDisplay } from '../constants/groupBadges';
+import {
+  GroupSummary, GroupMemberXP, listGroupMembers, leaveGroup, relativeTime,
+} from '../services/groups';
 
-// ⚠️ El rol y todos los datos los define el backend de Mateo. Por ahora marcamos
-// al usuario como admin para poder ver toda la UI (⚙️, ruleta, etc.).
-const CURRENT_USER_ID = 'me';
-const IS_ADMIN = true;
-
-export function GroupDetailScreen({ group, onBack }: { group: GroupListItem; onBack: () => void }) {
+export function GroupDetailScreen({ group, onBack }: { group: GroupSummary; onBack: () => void }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { profile } = useGame();
+  const { user } = useAuth();
+  const uid = user?.id;
+
+  // Copia editable: la Configuración actualiza nombre/emoji/gradiente en vivo.
+  const [info, setInfo] = useState(group);
+  const [members, setMembers] = useState<GroupMemberXP[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [chooseGameOpen, setChooseGameOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [selectedBadge, setSelectedBadge] = useState<GroupBadgeDisplay | null>(null);
-  const [gradientIndex] = useState(0);
 
-  // --- Datos de ejemplo (placeholder) ---
-  const members: GroupMember[] = useMemo(() => [
-    { userId: CURRENT_USER_ID, username: profile.username, avatarColor: profile.avatarColor, isAdmin: true },
-    { userId: 'u2', username: 'Mateo', avatarColor: '#0984E3', isAdmin: false },
-    { userId: 'u3', username: 'Sofi', avatarColor: '#E84393', isAdmin: false },
-    { userId: 'u4', username: 'Joaco', avatarColor: '#00B894', isAdmin: false },
-    { userId: 'u5', username: 'Lucía', avatarColor: '#FFD93D', isAdmin: false },
-    { userId: 'u6', username: 'Nico', avatarColor: '#7C3AED', isAdmin: false },
-  ], [profile.username, profile.avatarColor]);
+  const loadMembers = useCallback(async () => {
+    const list = await listGroupMembers(group.id);
+    setMembers(list);
+    setLoadingMembers(false);
+  }, [group.id]);
 
-  const ranking: RankingEntry[] = useMemo(() => [
-    { position: 0, userId: 'u2', username: 'Mateo', avatarColor: '#0984E3', rankName: 'Oro', rankIcon: '🥇', xpThisWeek: 420, isCurrentUser: false },
-    { position: 0, userId: CURRENT_USER_ID, username: profile.username, avatarColor: profile.avatarColor, rankName: 'Amatista', rankIcon: '💜', xpThisWeek: 380, isCurrentUser: true },
-    { position: 0, userId: 'u3', username: 'Sofi', avatarColor: '#E84393', rankName: 'Plata', rankIcon: '🥈', xpThisWeek: 310, isCurrentUser: false },
-    { position: 0, userId: 'u4', username: 'Joaco', avatarColor: '#00B894', rankName: 'Bronce', rankIcon: '🥉', xpThisWeek: 210, isCurrentUser: false },
-    { position: 0, userId: 'u5', username: 'Lucía', avatarColor: '#FFD93D', rankName: 'Hierro', rankIcon: '⚙️', xpThisWeek: 140, isCurrentUser: false },
-    { position: 0, userId: 'u6', username: 'Nico', avatarColor: '#7C3AED', rankName: 'Hierro', rankIcon: '⚙️', xpThisWeek: 90, isCurrentUser: false },
-  ], [profile.username, profile.avatarColor]);
+  useEffect(() => { loadMembers(); }, [loadMembers]);
 
-  const game: ActiveGroupGame | null = group.hasLiveGame ? {
-    type: 'group_mission',
-    emoji: '🎯',
-    title: 'Misión grupal: 50 hábitos',
-    description: 'Entre todos, completen 50 hábitos esta semana para ganar el bonus.',
-    timeRemaining: '3 días restantes',
-    progress: 68,
-    progressLabel: '34 / 50 hábitos · +500 XP al completar',
-  } : null;
+  const isAdmin = members.find((m) => m.userId === uid)?.isAdmin ?? info.isAdmin;
 
-  const soon = () => Alert.alert('Grupos', 'Esto se conecta cuando esté el backend de grupos 🚧');
+  const uiMembers: GroupMember[] = useMemo(
+    () => members.map((m) => ({
+      userId: m.userId, username: m.username, avatarColor: m.avatarColor, isAdmin: m.isAdmin,
+    })),
+    [members],
+  );
+
+  // Ranking semanal real: XP de la semana desde game_state de cada miembro.
+  const ranking: RankingEntry[] = useMemo(
+    () => members.map((m) => {
+      const rank = getRank(m.xpTotal);
+      return {
+        position: 0, // lo asigna GroupRankingList al ordenar
+        userId: m.userId,
+        username: m.username,
+        avatarColor: m.avatarColor,
+        rankName: rank.name,
+        rankIcon: rank.icon,
+        xpThisWeek: m.xpThisWeek,
+        isCurrentUser: m.userId === uid,
+      };
+    }),
+    [members, uid],
+  );
+
+  const creatorName = members.find((m) => m.userId === info.createdBy)?.username ?? 'un miembro';
+  const gradient = GROUP_COVER_GRADIENTS[info.gradientIndex] ?? GROUP_COVER_GRADIENTS[0];
+
+  const soon = () => Alert.alert('Grupos', 'Los juegos grupales llegan muy pronto 🚧');
 
   const confirmLeave = () => {
     Alert.alert(
       'Salir del grupo',
-      `¿Seguro que querés salir de "${group.name}"?`,
-      [{ text: 'Cancelar', style: 'cancel' }, { text: 'Salir', style: 'destructive', onPress: onBack }],
+      `¿Seguro que querés salir de "${info.name}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Salir', style: 'destructive',
+          onPress: async () => { await leaveGroup(info.id); onBack(); },
+        },
+      ],
     );
   };
 
@@ -75,58 +94,67 @@ export function GroupDetailScreen({ group, onBack }: { group: GroupListItem; onB
     <View style={[StyleSheet.absoluteFillObject, styles.cover]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
         <GroupCover
-          name={group.name}
-          emoji={group.emoji}
-          gradient={GROUP_COVER_GRADIENTS[gradientIndex]}
-          createdBy="Mateo"
-          createdAt="hace 3 semanas"
-          isAdmin={IS_ADMIN}
+          name={info.name}
+          emoji={info.emoji}
+          gradient={gradient}
+          createdBy={creatorName}
+          createdAt={relativeTime(info.createdAt).toLowerCase()}
+          isAdmin={isAdmin}
           onBack={onBack}
           onSettings={() => setSettingsOpen(true)}
           onLeave={confirmLeave}
         />
 
         <View style={styles.content}>
-          <GroupMembersRow
-            members={members}
-            totalCount={members.length}
-            onInvite={soon}
-            onPressMember={soon}
-          />
+          {loadingMembers ? (
+            <ActivityIndicator color={Dayxo.purple} style={{ marginVertical: 24 }} />
+          ) : (
+            <>
+              <GroupMembersRow
+                members={uiMembers}
+                totalCount={uiMembers.length}
+                onInvite={() => setInviteOpen(true)}
+                onPressMember={() => {}}
+              />
 
-          <GroupStreakBanner
-            currentStreak={group.groupStreak}
-            membersOpenedToday={4}
-            totalMembers={members.length}
-          />
+              <ActiveGameCard
+                game={null}
+                isAdmin={isAdmin}
+                onChooseGame={() => setChooseGameOpen(true)}
+                onChangeGame={() => setChooseGameOpen(true)}
+              />
 
-          <ActiveGameCard
-            game={game}
-            isAdmin={IS_ADMIN}
-            onChooseGame={() => setChooseGameOpen(true)}
-            onChangeGame={() => setChooseGameOpen(true)}
-          />
+              <GroupRankingList entries={ranking} />
 
-          <GroupRankingList entries={ranking} />
+              <GroupBadgesSection onBadgePress={setSelectedBadge} />
 
-          <GroupBadgesSection onBadgePress={setSelectedBadge} />
-
-          <GroupActionsRow isAdmin={IS_ADMIN} rouletteUsed={false} onRoulette={soon} onLeave={confirmLeave} />
+              <GroupActionsRow isAdmin={isAdmin} rouletteUsed={false} onRoulette={soon} onLeave={confirmLeave} />
+            </>
+          )}
         </View>
       </ScrollView>
 
       {settingsOpen && (
         <GroupSettingsScreen
-          groupName={group.name}
-          groupEmoji={group.emoji}
-          gradientIndex={gradientIndex}
-          members={members}
-          currentUserId={CURRENT_USER_ID}
+          group={info}
+          members={uiMembers}
+          currentUserId={uid ?? ''}
           onBack={() => setSettingsOpen(false)}
+          onSaved={(fields) => setInfo((prev) => ({ ...prev, ...fields }))}
+          onMembersChanged={loadMembers}
+          onDeleted={onBack}
         />
       )}
 
       {chooseGameOpen && <ChooseGroupGameScreen onBack={() => setChooseGameOpen(false)} />}
+
+      {inviteOpen && (
+        <InviteFriendsScreen
+          group={info}
+          memberIds={members.map((m) => m.userId)}
+          onBack={() => setInviteOpen(false)}
+        />
+      )}
 
       {/* Detalle de badge (overlay centrado) */}
       <GroupBadgeDetailModal badge={selectedBadge} onClose={() => setSelectedBadge(null)} />

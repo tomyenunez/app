@@ -13,7 +13,8 @@ import { Dayxo } from '../../constants/dayxo';
 import { initials } from '../../utils/formatters';
 import { useFriends } from '../../hooks/useFriends';
 import { PublicUser } from '../../services/friends';
-import { GroupsListScreen, MOCK_GROUPS, sortGroupsByRelevance } from '../../screens/GroupsListScreen';
+import { GroupsListScreen } from '../../screens/GroupsListScreen';
+import { useGroups } from '../../hooks/useGroups';
 import { GroupCarouselCard } from '../groups/GroupCarouselCard';
 import { ModalHeader } from '../shared/ModalHeader';
 
@@ -42,10 +43,11 @@ export function SocialModal({ visible, onClose }: { visible: boolean; onClose: (
   const [groupsOpen, setGroupsOpen] = useState(false);
   const [initialGroupId, setInitialGroupId] = useState<string | undefined>(undefined);
 
-  const groups = useMemo(() => sortGroupsByRelevance(MOCK_GROUPS), []);
+  // Grupos reales (para el carrusel). Se refrescan al volver del cover de Grupos.
+  const { listItems: groups, invites: groupInvites, refresh: refreshGroups } = useGroups(visible);
 
   const openGroups = (groupId?: string) => { setInitialGroupId(groupId); setGroupsOpen(true); };
-  const closeGroups = () => { setGroupsOpen(false); setInitialGroupId(undefined); };
+  const closeGroups = () => { setGroupsOpen(false); setInitialGroupId(undefined); refreshGroups(); };
 
   const resetSearch = () => { setCodeInput(''); setFound(null); setFeedback(null); };
 
@@ -128,7 +130,14 @@ export function SocialModal({ visible, onClose }: { visible: boolean; onClose: (
 
             {/* Grupos — carrusel seleccionable */}
             <View style={styles.groupsHeader}>
-              <Text style={[styles.sectionLabel, { marginTop: 0, marginBottom: 0 }]}>GRUPOS</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={[styles.sectionLabel, { marginTop: 0, marginBottom: 0 }]}>GRUPOS</Text>
+                {groupInvites.length > 0 && (
+                  <View style={styles.invitesBadge}>
+                    <Text style={styles.invitesBadgeText}>{groupInvites.length}</Text>
+                  </View>
+                )}
+              </View>
               <TouchableOpacity onPress={() => openGroups()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <Text style={styles.seeAll}>Ver todos</Text>
               </TouchableOpacity>
@@ -253,6 +262,11 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
 
   groupsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 12 },
   seeAll: { fontSize: 13, fontFamily: 'Inter_700Bold', color: Dayxo.purple },
+  invitesBadge: {
+    minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 5,
+    backgroundColor: Dayxo.orange, alignItems: 'center', justifyContent: 'center',
+  },
+  invitesBadgeText: { fontSize: 11, fontFamily: 'Inter_800ExtraBold', color: '#fff' },
   carousel: { gap: 10, paddingVertical: 2, paddingRight: 4 },
 
   addRow: { flexDirection: 'row', gap: 8 },

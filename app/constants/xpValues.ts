@@ -15,8 +15,8 @@ export const XP_VALUES = {
   STREAK_50_DAYS: 800,
   STREAK_100_DAYS: 1500, // de 100 en adelante se multiplica x2 cada 100 días
 
-  // Finanzas
-  LOG_TRANSACTION: 5,
+  // Finanzas: NO dan XP a propósito — no queremos incentivar registrar
+  // movimientos de más solo por puntos. La XP es de las cosas del Home.
 
   // Agenda
   ADD_EVENT: 5,

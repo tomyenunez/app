@@ -4,8 +4,6 @@ import { Transaction } from '../types';
 import { todayKey, dateKey } from '../utils/dateUtils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { awardXPOnce, reverseXPOnce } from '../services/xpService';
-import { XP_VALUES } from '../constants/xpValues';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 
@@ -86,7 +84,6 @@ export function usePresupuesto() {
     setTxs((prev) => [next, ...prev]);
     const { error } = await supabase.from('transactions').insert(toRow(next, userId));
     if (error) console.warn('[Dayxo tx] crear:', error.message);
-    awardXPOnce(`tx-${next.id}`, XP_VALUES.LOG_TRANSACTION, 'Movimiento registrado');
   }, [userId]);
 
   const update = useCallback(async (
@@ -130,7 +127,6 @@ export function usePresupuesto() {
     setTxs((prev) => prev.filter((t) => t.id !== id));
     const { error } = await supabase.from('transactions').delete().eq('id', id);
     if (error) console.warn('[Dayxo tx] borrar:', error.message);
-    await reverseXPOnce(`tx-${id}`, XP_VALUES.LOG_TRANSACTION); // revierte el XP de registrarlo
   }, []);
 
   const togglePin = useCallback(async (id: string) => {

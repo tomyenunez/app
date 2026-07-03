@@ -7,14 +7,9 @@ import { GROUP_BADGES, GroupBadgeDisplay } from '../../constants/groupBadges';
 import { RecentBadgeBanner } from './RecentBadgeBanner';
 import { GroupBadgeItem } from './GroupBadgeItem';
 
-// ⚠️ Estado de desbloqueo de ejemplo (id → hace cuántos días). Lo real lo trae
-// el backend de Mateo.
-const MOCK_UNLOCKED: Record<string, number> = {
-  group_perfect: 1,
-  group_machine: 3,
-  tournament_gold: 5,
-  roulette_7: 10,
-};
+// Desbloqueo real: llega cuando existan los juegos grupales (misiones, torneos,
+// ruleta). Hasta entonces todos los logros se muestran bloqueados — sin inventar.
+const UNLOCKED: Record<string, number> = {};
 
 // Sección "Logros del grupo": banner del logro reciente + grid de 10 badges.
 // Se inserta en el Detalle de Grupo, después del ranking.
@@ -23,7 +18,7 @@ export function GroupBadgesSection({ onBadgePress }: { onBadgePress: (b: GroupBa
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const display: GroupBadgeDisplay[] = useMemo(
-    () => GROUP_BADGES.map((b) => ({ ...b, unlocked: b.id in MOCK_UNLOCKED, unlockedDaysAgo: MOCK_UNLOCKED[b.id] })),
+    () => GROUP_BADGES.map((b) => ({ ...b, unlocked: b.id in UNLOCKED, unlockedDaysAgo: UNLOCKED[b.id] })),
     []
   );
 

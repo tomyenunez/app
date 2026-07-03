@@ -20,17 +20,15 @@ export function useMissions() {
       if (!userId) { setMissions([]); return; }
       let cancelled = false;
       (async () => {
-        const [todosRes, habitosRes, txsRes, hdRes] = await Promise.all([
+        const [todosRes, habitosRes, hdRes] = await Promise.all([
           supabase.from('todos').select('done, created'),
           supabase.from('habitos').select('id, days'),
-          supabase.from('transactions').select('fecha'),
           supabase.from('habit_done').select('habit_id, fecha'),
         ]);
         if (cancelled) return;
 
         const todos = (todosRes.data ?? []) as { done: boolean; created: string }[];
         const habitos = (habitosRes.data ?? []).map((h: any) => ({ id: h.id as string, days: (h.days ?? []) as number[] }));
-        const txs = (txsRes.data ?? []) as { fecha: string }[];
         const habitDone: Record<string, boolean> = {};
         (hdRes.data ?? []).forEach((r: any) => { habitDone[`${r.fecha}-${r.habit_id}`] = true; });
 
@@ -42,7 +40,6 @@ export function useMissions() {
         const todayHabits = habitos.filter((h) => h.days.includes(idx));
         const habitsDoneToday = todayHabits.filter((h) => habitDone[`${tk}-${h.id}`]).length;
         const todosDoneToday = todos.filter((t) => t.done && t.created === tk).length;
-        const txToday = txs.filter((t) => t.fecha === tk).length;
 
         // --- Métricas semanales ---
         let todosWeek = 0;
@@ -66,7 +63,6 @@ export function useMissions() {
         const progressById: Record<string, number> = {
           dm_all_habits: todayHabits.length === 0 ? 0 : pct(habitsDoneToday, todayHabits.length),
           dm_3_todos: pct(todosDoneToday, 3),
-          dm_log_tx: txToday > 0 ? 100 : 0,
           wm_10_todos: pct(todosWeek, 10),
           wm_extra_5stars: pct(extraStarsWeek, 5),
         };
