@@ -11,6 +11,7 @@ import { SharedGroup, SharedExpense } from '../types';
 import { formatARS, initials } from '../utils/formatters';
 import { computeBalances, computeSettlements, groupTotal } from '../utils/splitUtils';
 import { AddSharedExpenseModal } from '../components/finance/AddSharedExpenseModal';
+import { useAuth } from '../context/AuthContext';
 
 interface Props {
   group: SharedGroup;
@@ -18,13 +19,19 @@ interface Props {
   onAddExpense: (groupId: string, e: Omit<SharedExpense, 'id'>) => void;
   onRemoveExpense: (groupId: string, expenseId: string) => void;
   onDeleteGroup: (groupId: string) => void;
+  onLeaveGroup: (groupId: string, memberId: string) => void;
 }
 
-export function SharedGroupDetailScreen({ group, onBack, onAddExpense, onRemoveExpense, onDeleteGroup }: Props) {
+export function SharedGroupDetailScreen({ group, onBack, onAddExpense, onRemoveExpense, onDeleteGroup, onLeaveGroup }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { user } = useAuth();
   const [tab, setTab] = useState<'gastos' | 'balances'>('gastos');
   const [addOpen, setAddOpen] = useState(false);
+
+  // Solo el creador puede eliminar el grupo; los demás pueden salirse.
+  const isCreator = !group.createdBy || group.createdBy === user?.id;
+  const myMember = group.members.find((m) => m.isYou);
 
   const total = groupTotal(group);
   const balances = useMemo(() => computeBalances(group), [group]);
@@ -35,15 +42,23 @@ export function SharedGroupDetailScreen({ group, onBack, onAddExpense, onRemoveE
   const invitar = async () => {
     try {
       await Share.share({
-        message: `Sumate a "${group.nombre}" para dividir los gastos en Dayxo 👉 https://dayxo.app/g/${group.inviteCode}`,
+        message: `Sumate a "${group.nombre}" para dividir los gastos en Dayxo 💸 Entrá a Finanzas → Gastos compartidos → "Unirme con código" y poné: ${group.inviteCode}`,
       });
     } catch { /* cancelado */ }
   };
 
   const confirmDeleteGroup = () => {
-    Alert.alert('Eliminar grupo', `¿Seguro que querés eliminar "${group.nombre}"? Se borran todos sus gastos.`, [
+    Alert.alert('Eliminar grupo', `¿Seguro que querés eliminar "${group.nombre}"? Se borra para todos, con todos sus gastos.`, [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Eliminar', style: 'destructive', onPress: () => { onDeleteGroup(group.id); onBack(); } },
+    ]);
+  };
+
+  const confirmLeaveGroup = () => {
+    if (!myMember) return;
+    Alert.alert('Salir del grupo', `¿Salir de "${group.nombre}"? Se borran los gastos que pagaste vos.`, [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Salir', style: 'destructive', onPress: () => onLeaveGroup(group.id, myMember.id) },
     ]);
   };
 
@@ -63,8 +78,12 @@ export function SharedGroupDetailScreen({ group, onBack, onAddExpense, onRemoveE
             <TouchableOpacity onPress={onBack} style={styles.coverIconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="chevron-back" size={24} color="#fff" />
             </TouchableOpacity>
-            <TouchableOpacity onPress={confirmDeleteGroup} style={styles.coverIconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="trash-outline" size={20} color="#fff" />
+            <TouchableOpacity
+              onPress={isCreator ? confirmDeleteGroup : confirmLeaveGroup}
+              style={styles.coverIconBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name={isCreator ? 'trash-outline' : 'exit-outline'} size={20} color="#fff" />
             </TouchableOpacity>
           </View>
           <Text style={styles.coverEmoji}>{group.emoji}</Text>

@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Modal, View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { Modal, View, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { AppText as Text } from '../components/shared/AppText';
 import { ModalHeader } from '../components/shared/ModalHeader';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,12 +25,24 @@ export function SharedExpensesScreen({ compartidos, visible, onClose }: Props) {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [createOpen, setCreateOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [joinCode, setJoinCode] = useState('');
 
   // Al cerrar, reseteo el estado interno (no quedar en un detalle al reabrir).
-  useEffect(() => { if (!visible) { setCreateOpen(false); setDetailId(null); } }, [visible]);
+  useEffect(() => { if (!visible) { setCreateOpen(false); setDetailId(null); setJoinCode(''); } }, [visible]);
 
-  const { groups, createGroup, deleteGroup, addExpense, removeExpense } = compartidos;
+  const { groups, loading, refresh, createGroup, joinByCode, deleteGroup, removeMember, addExpense, removeExpense } = compartidos;
   const detailGroup = detailId ? groups.find((g) => g.id === detailId) ?? null : null;
+
+  // Refrescar desde la nube cada vez que se abre (otros pueden haber cargado gastos)
+  useEffect(() => { if (visible) refresh(); }, [visible, refresh]);
+
+  const handleJoin = async () => {
+    const code = joinCode.trim();
+    if (code.length < 4) { Alert.alert('Gastos compartidos', 'Ingresá un código válido.'); return; }
+    const res = await joinByCode(code);
+    if (res.error) Alert.alert('Gastos compartidos', res.error);
+    else { setJoinCode(''); Alert.alert('Gastos compartidos', '¡Te uniste al grupo! 🎉'); }
+  };
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -74,17 +86,37 @@ export function SharedExpensesScreen({ compartidos, visible, onClose }: Props) {
           })
         )}
 
+        {loading && groups.length === 0 && <ActivityIndicator color={Dayxo.blue} style={{ marginVertical: 12 }} />}
+
         <TouchableOpacity style={styles.createBtn} onPress={() => setCreateOpen(true)} activeOpacity={0.9}>
           <Ionicons name="add" size={20} color="#fff" />
           <Text style={styles.createTxt}>Crear grupo</Text>
         </TouchableOpacity>
+
+        {/* Unirse con el código que te pasaron */}
+        <Text style={styles.joinLabel}>UNIRME CON CÓDIGO</Text>
+        <View style={styles.joinRow}>
+          <TextInput
+            style={styles.joinInput}
+            placeholder="Código del grupo"
+            placeholderTextColor={colors.textTertiary}
+            value={joinCode}
+            onChangeText={(t) => setJoinCode(t.toUpperCase())}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            maxLength={12}
+          />
+          <TouchableOpacity style={styles.joinBtn} onPress={handleJoin}>
+            <Ionicons name="enter-outline" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
         </ScrollView>
       </SafeAreaView>
 
       <CreateSharedGroupModal
         visible={createOpen}
         onClose={() => setCreateOpen(false)}
-        onCreate={(data) => { const id = createGroup(data); setDetailId(id); }}
+        onCreate={async (data) => { const id = await createGroup(data); if (id) setDetailId(id); }}
       />
 
       {detailGroup && (
@@ -94,6 +126,7 @@ export function SharedExpensesScreen({ compartidos, visible, onClose }: Props) {
           onAddExpense={addExpense}
           onRemoveExpense={removeExpense}
           onDeleteGroup={deleteGroup}
+          onLeaveGroup={(groupId, memberId) => { removeMember(groupId, memberId); setDetailId(null); }}
         />
       )}
     </Modal>
@@ -119,4 +152,13 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
 
   createBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: Dayxo.blue, borderRadius: 14, paddingVertical: 15, marginTop: 8 },
   createTxt: { color: '#fff', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
+
+  joinLabel: { fontSize: 11, fontFamily: 'Inter_700Bold', color: colors.textSecondary, letterSpacing: 0.5, marginTop: 24, marginBottom: 10 },
+  joinRow: { flexDirection: 'row', gap: 8 },
+  joinInput: {
+    flex: 1, backgroundColor: colors.inputBg, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 16, fontFamily: 'Inter_600SemiBold', color: colors.textPrimary,
+    borderWidth: 1, borderColor: colors.border, letterSpacing: 2,
+  },
+  joinBtn: { width: 50, borderRadius: 10, backgroundColor: Dayxo.blue, alignItems: 'center', justifyContent: 'center' },
 });

@@ -9,11 +9,11 @@ import { useTheme } from '../../context/ThemeContext';
 import { useGame } from '../../context/GameContext';
 import { AppColors } from '../../constants/colors';
 import { Dayxo } from '../../constants/dayxo';
-import { SharedMember } from '../../types';
 import { GROUP_COVER_GRADIENTS } from '../groups/types';
 import { initials } from '../../utils/formatters';
 import { useTapGuard } from '../../hooks/useTapGuard';
 import { useFriends } from '../../hooks/useFriends';
+import { CreateSharedGroupInput } from '../../services/sharedGroups';
 
 export const AVATAR_COLORS = [Dayxo.orange, Dayxo.purple, Dayxo.green, Dayxo.blue, Dayxo.pink, Dayxo.coral, Dayxo.habitos, Dayxo.yellow];
 const GROUP_EMOJIS = ['🍖', '🍕', '🍻', '🏖️', '✈️', '🏠', '🎉', '⚽', '🎬', '🛒', '🚗', '🎂'];
@@ -21,7 +21,7 @@ const GROUP_EMOJIS = ['🍖', '🍕', '🍻', '🏖️', '✈️', '🏠', '🎉
 interface Props {
   visible: boolean;
   onClose: () => void;
-  onCreate: (data: { nombre: string; emoji: string; gradient: [string, string]; members: SharedMember[] }) => void;
+  onCreate: (data: CreateSharedGroupInput) => void;
 }
 
 export function CreateSharedGroupModal({ visible, onClose, onCreate }: Props) {
@@ -56,19 +56,17 @@ export function CreateSharedGroupModal({ visible, onClose, onCreate }: Props) {
 
   const handleCreate = useTapGuard(() => {
     if (!canCreate) return;
-    const elegidos = friends.filter((f) => friendSel[f.user.id]);
-    const members: SharedMember[] = [
-      { id: 'you', nombre: yo, color: AVATAR_COLORS[0], isYou: true },
-      // Amigos de Dayxo elegidos (guardamos su userId para cuando el backend
-      // de gastos compartidos sincronice entre cuentas)
-      ...elegidos.map((f, i) => ({
-        id: `f${i}`, nombre: f.user.username, color: f.user.avatarColor, userId: f.user.id,
+    onCreate({
+      nombre: nombre.trim(),
+      emoji,
+      gradientIndex: gradIdx,
+      // Amigos de Dayxo elegidos: entran directo como integrantes (el grupo
+      // les aparece en su app). Los nombres sueltos son integrantes sin cuenta.
+      friendIds: friends.filter((f) => friendSel[f.user.id]).map((f) => f.user.id),
+      placeholders: otros.map((n, i) => ({
+        nombre: n, color: AVATAR_COLORS[(i + 1) % AVATAR_COLORS.length],
       })),
-      ...otros.map((n, i) => ({
-        id: `m${i}`, nombre: n, color: AVATAR_COLORS[(i + 1 + elegidos.length) % AVATAR_COLORS.length],
-      })),
-    ];
-    onCreate({ nombre: nombre.trim(), emoji, gradient: GROUP_COVER_GRADIENTS[gradIdx], members });
+    });
     onClose();
   });
 

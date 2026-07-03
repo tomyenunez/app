@@ -1,82 +1,80 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SharedGroup, SharedMember, SharedExpense } from '../types';
-import { getSharedGroups, saveSharedGroups } from '../services/storage';
+import { useAuth } from '../context/AuthContext';
+import {
+  listSharedGroups, createSharedGroup, joinSharedGroupByCode, deleteSharedGroup,
+  addSharedExpense, removeSharedExpense, addPlaceholderMember, addFriendMember,
+  removeSharedMember, CreateSharedGroupInput,
+} from '../services/sharedGroups';
 
-const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-const inviteCode = () => Math.random().toString(36).slice(2, 8).toUpperCase();
-
-// Gastos compartidos con persistencia local (sin backend todavía). Permite
-// crear grupos, sumar integrantes y cargar gastos — todo andando para visualizar.
+// Gastos compartidos con backend Supabase: los grupos se sincronizan entre
+// cuentas (los amigos de Dayxo los ven en su app). Mutaciones optimistas +
+// refresh desde la nube.
 export function useGastosCompartidos() {
+  const { user } = useAuth();
+  const uid = user?.id;
   const [groups, setGroups] = useState<SharedGroup[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    getSharedGroups().then((g) => { setGroups(g); setLoading(false); });
-  }, []);
+  const refresh = useCallback(async () => {
+    if (!uid) return;
+    setGroups(await listSharedGroups(uid));
+    setLoading(false);
+  }, [uid]);
 
-  // Persiste y actualiza estado de una sola vez.
-  const commit = useCallback((next: SharedGroup[]) => {
-    setGroups(next);
-    saveSharedGroups(next);
-  }, []);
+  useEffect(() => { refresh(); }, [refresh]);
 
-  const createGroup = useCallback((data: {
-    nombre: string; emoji: string; gradient: [string, string]; members: SharedMember[];
-  }): string => {
-    const id = uid();
-    const group: SharedGroup = {
-      id,
-      nombre: data.nombre,
-      emoji: data.emoji,
-      gradient: data.gradient,
-      inviteCode: inviteCode(),
-      members: data.members,
-      expenses: [],
-      createdAt: new Date().toISOString(),
-    };
-    setGroups((prev) => { const next = [group, ...prev]; saveSharedGroups(next); return next; });
-    return id;
-  }, []);
+  const createGroup = useCallback(async (input: CreateSharedGroupInput): Promise<string | null> => {
+    const res = await createSharedGroup(input);
+    if (res.id) await refresh();
+    return res.id;
+  }, [refresh]);
 
-  const deleteGroup = useCallback((id: string) => {
-    setGroups((prev) => { const next = prev.filter((g) => g.id !== id); saveSharedGroups(next); return next; });
-  }, []);
+  const joinByCode = useCallback(async (code: string) => {
+    const res = await joinSharedGroupByCode(code);
+    if (res.id) await refresh();
+    return res;
+  }, [refresh]);
 
-  const patchGroup = useCallback((id: string, fn: (g: SharedGroup) => SharedGroup) => {
-    setGroups((prev) => {
-      const next = prev.map((g) => (g.id === id ? fn(g) : g));
-      saveSharedGroups(next);
-      return next;
-    });
-  }, []);
+  const deleteGroup = useCallback(async (id: string) => {
+    setGroups((prev) => prev.filter((g) => g.id !== id)); // optimista
+    await deleteSharedGroup(id);
+    await refresh();
+  }, [refresh]);
 
-  const addMember = useCallback((groupId: string, member: Omit<SharedMember, 'id'>) => {
-    patchGroup(groupId, (g) => ({ ...g, members: [...g.members, { ...member, id: uid() }] }));
-  }, [patchGroup]);
+  const addMember = useCallback(async (groupId: string, member: Omit<SharedMember, 'id'>) => {
+    if (member.userId) await addFriendMember(groupId, member.userId);
+    else await addPlaceholderMember(groupId, member.nombre, member.color);
+    await refresh();
+  }, [refresh]);
 
-  const removeMember = useCallback((groupId: string, memberId: string) => {
-    patchGroup(groupId, (g) => ({
-      ...g,
-      members: g.members.filter((m) => m.id !== memberId),
-      // Limpia los gastos: saca al miembro de los repartos y descarta los que pagó él.
-      expenses: g.expenses
-        .filter((e) => e.paidBy !== memberId)
-        .map((e) => ({ ...e, splitBetween: e.splitBetween.filter((x) => x !== memberId) })),
-    }));
-  }, [patchGroup]);
+  const removeMember = useCallback(async (_groupId: string, memberId: string) => {
+    await removeSharedMember(memberId);
+    await refresh();
+  }, [refresh]);
 
-  const addExpense = useCallback((groupId: string, expense: Omit<SharedExpense, 'id'>) => {
-    patchGroup(groupId, (g) => ({ ...g, expenses: [{ ...expense, id: uid() }, ...g.expenses] }));
-  }, [patchGroup]);
+  const addExpense = useCallback(async (groupId: string, expense: Omit<SharedExpense, 'id'>) => {
+    if (!uid) return;
+    // Optimista: aparece al instante con id provisorio, y el refresh trae el real
+    const tempId = `tmp-${Date.now()}`;
+    setGroups((prev) => prev.map((g) =>
+      g.id === groupId ? { ...g, expenses: [{ ...expense, id: tempId }, ...g.expenses] } : g,
+    ));
+    await addSharedExpense(groupId, uid, expense);
+    await refresh();
+  }, [uid, refresh]);
 
-  const removeExpense = useCallback((groupId: string, expenseId: string) => {
-    patchGroup(groupId, (g) => ({ ...g, expenses: g.expenses.filter((e) => e.id !== expenseId) }));
-  }, [patchGroup]);
+  const removeExpense = useCallback(async (groupId: string, expenseId: string) => {
+    setGroups((prev) => prev.map((g) =>
+      g.id === groupId ? { ...g, expenses: g.expenses.filter((e) => e.id !== expenseId) } : g,
+    ));
+    await removeSharedExpense(expenseId);
+    await refresh();
+  }, [refresh]);
 
   return {
-    groups, loading,
-    createGroup, deleteGroup,
+    groups, loading, refresh,
+    createGroup, joinByCode, deleteGroup,
     addMember, removeMember,
     addExpense, removeExpense,
   };

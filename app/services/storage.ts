@@ -326,26 +326,8 @@ export async function saveAhorrosVisible(v: boolean): Promise<void> {
   }
 }
 
-// Gastos compartidos (estilo Tricount). Local por ahora — el backend lo arma
-// Mateo. Persistimos la lista entera de grupos para poder visualizarlo andando.
-import { SharedGroup } from '../types';
-const SHARED_GROUPS_KEY = '@dayxo/sharedGroups';
-export async function getSharedGroups(): Promise<SharedGroup[]> {
-  try {
-    const raw = await AsyncStorage.getItem(SHARED_GROUPS_KEY);
-    const arr = raw ? JSON.parse(raw) : null;
-    return Array.isArray(arr) ? arr : [];
-  } catch {
-    return [];
-  }
-}
-export async function saveSharedGroups(groups: SharedGroup[]): Promise<void> {
-  try {
-    await AsyncStorage.setItem(SHARED_GROUPS_KEY, JSON.stringify(groups));
-  } catch {
-    // no crítico
-  }
-}
+// Gastos compartidos: migrados a Supabase (services/sharedGroups.ts). Los
+// datos locales viejos en '@dayxo/sharedGroups' quedan huérfanos y se ignoran.
 
 // --- Gamificación ---
 import { PersonalRecords, PlayerProfile } from '../types/game';

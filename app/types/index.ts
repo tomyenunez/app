@@ -124,8 +124,9 @@ export interface SharedGroup {
   nombre: string;
   emoji: string;
   gradient: [string, string]; // portada
-  inviteCode: string;          // código del link de invitación
+  inviteCode: string;          // código para unirse (funcional con backend)
   members: SharedMember[];
   expenses: SharedExpense[];
   createdAt: string;           // ISO
+  createdBy?: string;          // userId del creador (solo él puede eliminar el grupo)
 }
