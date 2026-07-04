@@ -22,8 +22,10 @@ import { GameProvider } from './app/context/GameContext';
 import { AuthProvider, useAuth } from './app/context/AuthContext';
 import { AccessibilityProvider } from './app/context/AccessibilityContext';
 import { TabBarProvider } from './app/context/TabBarContext';
+import { Asset } from 'expo-asset';
 import { runMigrationIfNeeded } from './app/services/migration';
 import { unlockBadge } from './app/services/xpService';
+import { RANKS } from './app/constants/ranks';
 import { syncAllHabitReminders } from './app/services/notificationService';
 import { supabase } from './app/services/supabase';
 import { Habito } from './app/types';
@@ -124,6 +126,13 @@ export default function App() {
   const [migrated, setMigrated] = useState(false);
   useEffect(() => {
     runMigrationIfNeeded().then(() => setMigrated(true));
+  }, []);
+
+  // Precarga de los íconos de rango en segundo plano (sin demorar el arranque):
+  // así ya están en caché cuando se abre el perfil/rangos. En el build de
+  // producción van dentro del binario; esto ayuda sobre todo en desarrollo.
+  useEffect(() => {
+    Asset.loadAsync(RANKS.map((r) => r.image)).catch(() => {});
   }, []);
 
   if (!fontsLoaded || !migrated) {
