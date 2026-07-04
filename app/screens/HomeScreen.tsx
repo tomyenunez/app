@@ -137,8 +137,10 @@ export function HomeScreen() {
           style={styles.profileBubble}
         >
           <View style={styles.profileTop}>
-            <View style={styles.profileAvatar}>
-              <Ionicons name="person" size={28} color="#fff" />
+            <View style={[styles.profileAvatar, { backgroundColor: profile.avatarColor }]}>
+              {profile.avatarUrl
+                ? <Image source={{ uri: profile.avatarUrl }} style={styles.profileAvatarImg} />
+                : <Text style={styles.profileAvatarText}>{profile.username.slice(0, 2).toUpperCase()}</Text>}
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.profileName}>{profile.username}</Text>
@@ -323,7 +325,12 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.22)',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.85)',
   },
+  profileAvatarImg: { width: 56, height: 56 },
+  profileAvatarText: { fontSize: 20, fontFamily: 'Inter_800ExtraBold', color: '#fff' },
   profileName: {
     fontSize: 20,
     fontFamily: 'Inter_800ExtraBold',
