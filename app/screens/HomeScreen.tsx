@@ -37,7 +37,7 @@ export function HomeScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { handleScroll } = useTabBar();
-  const { profile } = useGame();
+  const { profile, level } = useGame();
   const { todos, add: addTodo, update: updateTodo, toggle: toggleTodo, remove: removeTodo, togglePin: togglePinTodo } = useTodos();
   const { familias, getFamilia } = useFamilias();
   const {
@@ -137,10 +137,11 @@ export function HomeScreen() {
           style={styles.profileBubble}
         >
           <View style={styles.profileTop}>
-            <View style={[styles.profileAvatar, { backgroundColor: profile.avatarColor }]}>
-              {profile.avatarUrl
-                ? <Image source={{ uri: profile.avatarUrl }} style={styles.profileAvatarImg} />
-                : <Text style={styles.profileAvatarText}>{profile.username.slice(0, 2).toUpperCase()}</Text>}
+            {/* La gema del rango actual (la foto ya vive en Stats) */}
+            <View style={styles.profileAvatar}>
+              {level.image
+                ? <Image source={level.image} style={styles.profileRankImg} resizeMode="contain" />
+                : <Text style={styles.profileAvatarText}>{level.icon}</Text>}
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.profileName}>{profile.username}</Text>
@@ -326,11 +327,9 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.85)',
   },
-  profileAvatarImg: { width: 56, height: 56 },
-  profileAvatarText: { fontSize: 20, fontFamily: 'Inter_800ExtraBold', color: '#fff' },
+  profileRankImg: { width: 42, height: 42 },
+  profileAvatarText: { fontSize: 22, color: '#fff' },
   profileName: {
     fontSize: 20,
     fontFamily: 'Inter_800ExtraBold',
