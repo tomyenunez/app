@@ -33,9 +33,7 @@ export function ProfileCard({ onPress }: Props) {
                 : <Text style={styles.avatarText}>{initials(profile.username)}</Text>}
             </View>
           </View>
-          <View style={styles.levelBadge}>
-            <Text style={styles.levelBadgeText}>{level.icon}</Text>
-          </View>
+          {/* (sin mini-badge de rango: la barra de nivel de abajo ya lo muestra) */}
         </TouchableOpacity>
 
         <View style={styles.identity}>
@@ -47,7 +45,9 @@ export function ProfileCard({ onPress }: Props) {
       {/* Card de nivel — barra de XP pronunciada */}
       <View style={styles.levelCard}>
         <View style={styles.levelHex}>
-          <Text style={styles.levelHexIcon}>{level.icon}</Text>
+          {level.image
+            ? <Image source={level.image} style={styles.levelHexImg} resizeMode="contain" />
+            : <Text style={styles.levelHexIcon}>{level.icon}</Text>}
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.levelTitle}>Nivel {level.level} · {level.name}</Text>
@@ -91,12 +91,6 @@ const styles = StyleSheet.create({
   avatar: { width: 62, height: 62, borderRadius: 31, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   avatarImg: { width: 62, height: 62, borderRadius: 31 },
   avatarText: { fontSize: 24, fontFamily: 'Inter_800ExtraBold', color: '#fff' },
-  levelBadge: {
-    position: 'absolute', bottom: -2, right: -2,
-    minWidth: 24, height: 24, borderRadius: 12, paddingHorizontal: 5,
-    alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff',
-  },
-  levelBadgeText: { fontSize: 13 },
   identity: { flex: 1 },
   name: { fontSize: 24, fontFamily: 'Inter_800ExtraBold', color: '#fff' },
   phrase: { fontSize: 13, fontFamily: 'Inter_400Regular', color: 'rgba(255,255,255,0.85)', marginTop: 3 },
@@ -106,6 +100,7 @@ const styles = StyleSheet.create({
   },
   levelHex: { width: 46, height: 46, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   levelHexIcon: { fontSize: 22 },
+  levelHexImg: { width: 34, height: 34 },
   levelTitle: { fontSize: 15, fontFamily: 'Inter_700Bold', color: '#fff', marginBottom: 8 },
   trackBig: { height: 12, backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 6, overflow: 'hidden' },
   fillBig: { height: 12, borderRadius: 6, backgroundColor: '#fff' },
