@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { AppText as Text } from '../shared/AppText';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { Dayxo } from '../../constants/dayxo';
@@ -33,7 +34,10 @@ export function ProfileCard({ onPress }: Props) {
                 : <Text style={styles.avatarText}>{initials(profile.username)}</Text>}
             </View>
           </View>
-          {/* (sin mini-badge de rango: la barra de nivel de abajo ya lo muestra) */}
+          {/* Lapicito: deja claro que el avatar es tappable para editar el perfil */}
+          <View style={styles.editBadge}>
+            <Ionicons name="pencil" size={12} color={Dayxo.purple} />
+          </View>
         </TouchableOpacity>
 
         <View style={styles.identity}>
@@ -91,6 +95,12 @@ const styles = StyleSheet.create({
   avatar: { width: 62, height: 62, borderRadius: 31, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   avatarImg: { width: 62, height: 62, borderRadius: 31 },
   avatarText: { fontSize: 24, fontFamily: 'Inter_800ExtraBold', color: '#fff' },
+  editBadge: {
+    position: 'absolute', bottom: -2, right: -2,
+    width: 24, height: 24, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.15, shadowRadius: 3, elevation: 3,
+  },
   identity: { flex: 1 },
   name: { fontSize: 24, fontFamily: 'Inter_800ExtraBold', color: '#fff' },
   phrase: { fontSize: 13, fontFamily: 'Inter_400Regular', color: 'rgba(255,255,255,0.85)', marginTop: 3 },
