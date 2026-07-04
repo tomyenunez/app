@@ -25,6 +25,7 @@ import { WeeklySummaryCard } from '../components/stats/WeeklySummaryCard';
 import { NextBadgeCard } from '../components/stats/NextBadgeCard';
 import { ProfileCard } from '../components/profile/ProfileCard';
 import { EditProfileModal } from '../components/profile/EditProfileModal';
+import { RanksModal } from '../components/game/RanksModal';
 import { ActivityGrid } from '../components/profile/ActivityGrid';
 import { LogrosSection } from '../components/game/LogrosSection';
 import { SocialModal } from '../components/social/SocialModal';
@@ -83,6 +84,7 @@ export function StatsScreen() {
   const [periodo, setPeriodo] = useState<Periodo>('mes');
   const [socialVisible, setSocialVisible] = useState(false);
   const [editVisible, setEditVisible] = useState(false);
+  const [ranksVisible, setRanksVisible] = useState(false);
   const [logrosVisible, setLogrosVisible] = useState(false);
   const [customizeVisible, setCustomizeVisible] = useState(false);
 
@@ -320,8 +322,8 @@ export function StatsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Card de perfil — tap en avatar/nombre abre el pop-up de editar */}
-      <ProfileCard onPress={() => setEditVisible(true)} />
+      {/* Card de perfil — el avatar abre editar (foto+nombre); la gema, los rangos */}
+      <ProfileCard onPress={() => setEditVisible(true)} onPressRank={() => setRanksVisible(true)} />
 
       <View style={styles.customizeRow}>
         <Text style={styles.dragHint}>Mantené apretado un módulo para moverlo</Text>
@@ -704,6 +706,9 @@ export function StatsScreen() {
 
       {/* Pop-up de perfil: editar nombre/color + rangos */}
       <EditProfileModal visible={editVisible} onClose={() => setEditVisible(false)} />
+
+      {/* Rangos: se abre tocando la gema de la barra de nivel */}
+      <RanksModal visible={ranksVisible} onClose={() => setRanksVisible(false)} />
 
       {/* Personalizar Stats — mostrar/ocultar módulos */}
       <Modal visible={customizeVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setCustomizeVisible(false)}>

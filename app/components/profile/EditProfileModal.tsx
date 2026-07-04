@@ -9,18 +9,15 @@ import { useGame } from '../../context/GameContext';
 import { useAuth } from '../../context/AuthContext';
 import { initials } from '../../utils/formatters';
 import { pickAndUploadAvatar } from '../../services/avatarUpload';
-import { RanksView } from '../game/RanksView';
 import { ModalHeader } from '../shared/ModalHeader';
-
-const AVATAR_COLORS = ['#6C5CE7', '#00B894', '#E17055', '#0984E3', '#E84393', '#FDCB6E'];
 
 interface Props {
   visible: boolean;
   onClose: () => void;
 }
 
-// Pop-up de perfil: editar nombre y color de avatar + ver rango actual y la
-// escalera de rangos. Reemplaza a la vieja pantalla "Mi perfil".
+// Pop-up de perfil: editar SOLO la foto y el nombre de la cuenta.
+// (Los rangos se ven tocando la gema en la barra de nivel de Stats.)
 export function EditProfileModal({ visible, onClose }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -104,22 +101,6 @@ export function EditProfileModal({ visible, onClose }: Props) {
             returnKeyType="done"
           />
 
-          {/* Color de avatar */}
-          <Text style={styles.label}>Color de avatar</Text>
-          <View style={styles.colorRow}>
-            {AVATAR_COLORS.map((c) => (
-              <TouchableOpacity
-                key={c}
-                onPress={() => setProfile({ ...profile, avatarColor: c })}
-                style={[styles.colorDot, { backgroundColor: c }, profile.avatarColor === c && styles.colorDotSelected]}
-              />
-            ))}
-          </View>
-
-          <View style={styles.divider} />
-
-          {/* Rango actual + escalera de rangos */}
-          <RanksView />
         </ScrollView>
       </SafeAreaView>
     </Modal>
@@ -156,8 +137,4 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, fontFamily: 'Inter_600SemiBold', color: colors.textPrimary,
   },
-  colorRow: { flexDirection: 'row', gap: 12, marginBottom: 6, flexWrap: 'wrap' },
-  colorDot: { width: 34, height: 34, borderRadius: 17 },
-  colorDotSelected: { borderWidth: 3, borderColor: colors.textPrimary },
-  divider: { height: 1, backgroundColor: colors.border, marginVertical: 20 },
 });

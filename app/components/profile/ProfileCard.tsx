@@ -9,12 +9,13 @@ import { useGame } from '../../context/GameContext';
 import { initials } from '../../utils/formatters';
 
 interface Props {
-  onPress?: () => void; // abre el pop-up de editar perfil / ver rangos
+  onPress?: () => void;     // abre el pop-up de editar perfil (foto + nombre)
+  onPressRank?: () => void; // abre la lista de rangos (tocando la gema)
 }
 
 // Hero de Stats: burbuja con gradiente de marca (igual que Home/Finanzas).
 // Contenido en blanco; los acentos no cambian entre claro y oscuro.
-export function ProfileCard({ onPress }: Props) {
+export function ProfileCard({ onPress, onPressRank }: Props) {
   const { profile, level, xpTotal, reload } = useGame();
   const maxed = level.xpToNext <= 0;
   const nextMinXP = Math.round(xpTotal) + Math.ceil(level.xpToNext);
@@ -48,11 +49,12 @@ export function ProfileCard({ onPress }: Props) {
 
       {/* Card de nivel — barra de XP pronunciada */}
       <View style={styles.levelCard}>
-        <View style={styles.levelHex}>
+        {/* La gema abre la lista de rangos */}
+        <TouchableOpacity style={styles.levelHex} onPress={onPressRank} activeOpacity={0.7}>
           {level.image
             ? <Image source={level.image} style={styles.levelHexImg} resizeMode="contain" />
             : <Text style={styles.levelHexIcon}>{level.icon}</Text>}
-        </View>
+        </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.levelTitle}>Nivel {level.level} · {level.name}</Text>
           <View style={styles.trackBig}>

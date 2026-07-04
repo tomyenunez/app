@@ -157,12 +157,13 @@ function RankGem({ rank, unlocked, isCurrent }: {
 }
 
 const gemStyles = StyleSheet.create({
+  // Gemas grandes: que el arte de cada rango se aprecie
   gem: {
-    width: 46, height: 46, borderRadius: 23, borderWidth: 2,
+    width: 72, height: 72, borderRadius: 36, borderWidth: 2,
     alignItems: 'center', justifyContent: 'center',
     shadowOffset: { width: 0, height: 2 }, shadowRadius: 4,
   },
-  gemImg: { width: 32, height: 32 },
+  gemImg: { width: 58, height: 58 },
 });
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
@@ -191,7 +192,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     letterSpacing: 1, marginTop: 22, marginBottom: 12, marginLeft: 4,
   },
   rankRow: { flexDirection: 'row', gap: 12 },
-  gemCol: { alignItems: 'center', width: 46 },
+  gemCol: { alignItems: 'center', width: 72 },
   connector: { width: 3, flex: 1, backgroundColor: colors.border, marginVertical: 2, borderRadius: 2 },
   rankCard: {
     flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10,
