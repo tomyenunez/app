@@ -86,7 +86,7 @@ export function FriendProfileModal({ friend, onClose }: Props) {
             {/* Chip de rango con los colores del rango */}
             {profile && (
               <View style={[styles.rankChip, { backgroundColor: rank.bgColor }]}>
-                <Text style={styles.rankIcon}>{rank.icon}</Text>
+                <Image source={rank.image} style={styles.rankImg} resizeMode="contain" />
                 <Text style={[styles.rankName, { color: rank.textColor }]}>{rank.name}</Text>
                 <Text style={[styles.rankXp, { color: rank.textColor }]}>· {profile.xpTotal} XP</Text>
               </View>
@@ -144,6 +144,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6, marginTop: 10,
   },
   rankIcon: { fontSize: 13 },
+  rankImg: { width: 18, height: 18 },
   rankName: { fontSize: 13, fontFamily: 'Inter_800ExtraBold' },
   rankXp: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
 

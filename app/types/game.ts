@@ -19,6 +19,7 @@ export interface UserLevel {
   level: number; // 1-10 (nivel del rango)
   name: string; // nombre de la gema (Bronce, Plata, ... Obsidiana)
   icon: string;
+  image?: number; // ícono ilustrado (require de assets/ranks)
   color: string;
   minXP: number;
   bgColor: string; // fondo suave del rango

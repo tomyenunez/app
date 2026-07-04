@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Animated, TouchableOpacity, Image } from 'react-native';
 import { AppText as Text } from '../shared/AppText';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
@@ -21,7 +21,9 @@ export function XPBar({ onPress }: { onPress?: () => void }) {
     <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={styles.wrap}>
       <View style={styles.topRow}>
         <View style={styles.levelInfo}>
-          <Text style={styles.levelIcon}>{level.icon}</Text>
+          {level.image
+            ? <Image source={level.image} style={styles.levelImg} resizeMode="contain" />
+            : <Text style={styles.levelIcon}>{level.icon}</Text>}
           <Text style={styles.levelName}>Rango {level.level} · {level.name}</Text>
         </View>
         <Text style={styles.xpTotal}>{Math.round(xpTotal).toLocaleString('es-AR')} XP</Text>
@@ -46,6 +48,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
   levelInfo: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   levelIcon: { fontSize: 16 },
+  levelImg: { width: 22, height: 22 },
   levelName: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: colors.textPrimary },
   xpTotal: { fontSize: 13, fontFamily: 'Inter_700Bold', color: colors.textSecondary },
   track: { height: 8, backgroundColor: colors.grayLight, borderRadius: 4, overflow: 'hidden' },

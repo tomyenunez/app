@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, StyleSheet, Animated, Modal, TouchableOpacity, Easing } from 'react-native';
+import { View, StyleSheet, Animated, Modal, TouchableOpacity, Easing, Image } from 'react-native';
 import { AppText as Text } from '../shared/AppText';
 import * as Haptics from 'expo-haptics';
 import { gameEvents } from '../../services/xpService';
@@ -113,7 +113,9 @@ function LevelUpModal({ level, onClose }: { level: UserLevel; onClose: () => voi
       <View style={[styles.levelOverlay, { backgroundColor: 'rgba(8,8,12,0.97)' }]}>
         <RankParticles color={level.color} />
         <Animated.View style={{ transform: [{ scale: anim }], alignItems: 'center' }}>
-          <Text style={styles.levelIcon}>{level.icon}</Text>
+          {level.image
+            ? <Image source={level.image} style={styles.levelImage} resizeMode="contain" />
+            : <Text style={styles.levelIcon}>{level.icon}</Text>}
           <Text style={styles.levelUpText}>SUBISTE DE RANGO</Text>
           <Text style={[styles.levelName, { color: level.color }]}>{level.name}</Text>
           <Text style={styles.levelMsg}>{rankUpMessage(level.name)}</Text>
@@ -248,6 +250,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   levelIcon: { fontSize: 72, marginBottom: 10 },
+  levelImage: { width: 120, height: 120, marginBottom: 12 },
   levelUpText: { color: '#9A9AA5', fontSize: 13, fontFamily: 'Inter_700Bold', letterSpacing: 2 },
   levelName: { fontSize: 40, fontFamily: 'Inter_800ExtraBold', marginTop: 6 },
   levelMsg: {

@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useEffect } from 'react';
-import { View, StyleSheet, Animated, Easing } from 'react-native';
+import { View, StyleSheet, Animated, Easing, Image } from 'react-native';
 import { AppText as Text } from '../shared/AppText';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,7 +27,9 @@ export function RanksView() {
         style={styles.hero}
       >
         <View style={[styles.heroGem, { backgroundColor: 'rgba(255,255,255,0.18)' }]}>
-          <Text style={styles.heroGemIcon}>{level.icon}</Text>
+          {level.image
+            ? <Image source={level.image} style={styles.heroGemImg} resizeMode="contain" />
+            : <Text style={styles.heroGemIcon}>{level.icon}</Text>}
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.heroSmall}>TU RANGO</Text>
@@ -145,7 +147,11 @@ function RankGem({ rank, unlocked, isCurrent }: {
         isCurrent && { shadowColor: rank.color, shadowOpacity: 0.5, shadowRadius: 8, elevation: 6 },
       ]}
     >
-      <Text style={[gemStyles.gemIcon, !unlocked && { opacity: 0.6 }]}>{rank.icon}</Text>
+      <Image
+        source={rank.image}
+        style={[gemStyles.gemImg, !unlocked && { opacity: 0.45 }]}
+        resizeMode="contain"
+      />
     </Animated.View>
   );
 }
@@ -156,7 +162,7 @@ const gemStyles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     shadowOffset: { width: 0, height: 2 }, shadowRadius: 4,
   },
-  gemIcon: { fontSize: 22 },
+  gemImg: { width: 32, height: 32 },
 });
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
@@ -166,6 +172,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   },
   heroGem: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
   heroGemIcon: { fontSize: 34 },
+  heroGemImg: { width: 46, height: 46 },
   heroSmall: { fontSize: 11, fontFamily: 'Inter_700Bold', color: 'rgba(255,255,255,0.85)', letterSpacing: 1.5 },
   heroName: { fontSize: 26, fontFamily: 'Inter_800ExtraBold', color: '#fff', marginTop: 2 },
   heroXp: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: 'rgba(255,255,255,0.9)', marginTop: 2 },

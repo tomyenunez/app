@@ -73,6 +73,7 @@ export function GroupDetailScreen({ group, onBack }: { group: GroupSummary; onBa
         avatarColor: m.avatarColor,
         rankName: rank.name,
         rankIcon: rank.icon,
+        rankImage: rank.image,
         xpThisWeek: m.xpThisWeek,
         isCurrentUser: m.userId === uid,
       };

@@ -5,6 +5,7 @@ export interface RankDef {
   name: string;
   minXP: number;
   icon: string;
+  image: number; // ícono ilustrado del rango (assets/ranks) — require() devuelve number
   color: string; // color principal del rango
   bgColor: string; // fondo suave (modal de celebración, chips)
   textColor: string; // texto sobre fondo suave
@@ -12,8 +13,22 @@ export interface RankDef {
   effect: RankEffect | null;
 }
 
+// Íconos ilustrados de cada rango (los emojis quedan de fallback textual)
+const RANK_IMAGES: Record<number, number> = {
+  1: require('../../assets/ranks/bronce.png'),
+  2: require('../../assets/ranks/plata.png'),
+  3: require('../../assets/ranks/oro.png'),
+  4: require('../../assets/ranks/esmeralda.png'),
+  5: require('../../assets/ranks/zafiro.png'),
+  6: require('../../assets/ranks/rubi.png'),
+  7: require('../../assets/ranks/amatista.png'),
+  8: require('../../assets/ranks/platino.png'),
+  9: require('../../assets/ranks/diamante.png'),
+  10: require('../../assets/ranks/obsidiana.png'),
+};
+
 // 10 rangos gema (Bronce → Obsidiana). Los umbrales están calibrados a ~50 XP/día.
-export const RANKS: RankDef[] = [
+const RANKS_BASE: Omit<RankDef, 'image'>[] = [
   { level: 1, name: 'Bronce', minXP: 0, icon: '🥉', color: '#CD7F32', bgColor: '#F5E6D3', textColor: '#7A4A1A', isExclusive: false, effect: null },
   { level: 2, name: 'Plata', minXP: 50, icon: '🥈', color: '#C0C0C0', bgColor: '#F0F0F0', textColor: '#707070', isExclusive: false, effect: null },
   { level: 3, name: 'Oro', minXP: 150, icon: '🥇', color: '#FFD700', bgColor: '#FFF3CC', textColor: '#7A6000', isExclusive: false, effect: null },
@@ -25,6 +40,8 @@ export const RANKS: RankDef[] = [
   { level: 9, name: 'Diamante', minXP: 7000, icon: '💎', color: '#9AD8FF', bgColor: '#F0FAFF', textColor: '#3A6A8A', isExclusive: true, effect: 'rotating_white_sparkles' },
   { level: 10, name: 'Obsidiana', minXP: 9000, icon: '🌑', color: '#1A1A1A', bgColor: '#1A1A1A', textColor: '#FFD93D', isExclusive: true, effect: 'black_gold_flames' },
 ];
+
+export const RANKS: RankDef[] = RANKS_BASE.map((r) => ({ ...r, image: RANK_IMAGES[r.level] }));
 
 export function getRank(xpTotal: number): RankDef {
   return [...RANKS].reverse().find((r) => xpTotal >= r.minXP) ?? RANKS[0];
@@ -73,6 +90,7 @@ export function getUserLevel(xpTotal: number): UserLevel {
     level: current.level,
     name: current.name,
     icon: current.icon,
+    image: current.image,
     color: current.color,
     minXP: current.minXP,
     bgColor: current.bgColor,

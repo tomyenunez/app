@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Image } from 'react-native';
 import { AppText as Text } from '../shared/AppText';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
@@ -29,7 +29,12 @@ export function GroupRankingRow({ entry }: { entry: RankingEntry }) {
             <View style={styles.meTag}><Text style={styles.meTagText}>VOS</Text></View>
           )}
         </View>
-        <Text style={styles.rank} numberOfLines={1}>{entry.rankIcon} {entry.rankName}</Text>
+        <View style={styles.rankRow}>
+          {entry.rankImage
+            ? <Image source={entry.rankImage} style={styles.rankImg} resizeMode="contain" />
+            : <Text style={styles.rank}>{entry.rankIcon}</Text>}
+          <Text style={styles.rank} numberOfLines={1}>{entry.rankName}</Text>
+        </View>
       </View>
       <Text style={styles.xp}>+{entry.xpThisWeek}</Text>
     </View>
@@ -52,6 +57,8 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   name: { flexShrink: 1, fontSize: 14, fontFamily: 'Inter_600SemiBold', color: colors.textPrimary },
   meTag: { backgroundColor: 'rgba(255,107,0,0.15)', borderRadius: 5, paddingHorizontal: 5, paddingVertical: 1 },
   meTagText: { fontSize: 9, fontFamily: 'Inter_800ExtraBold', color: Dayxo.orange, letterSpacing: 0.5 },
-  rank: { fontSize: 11, fontFamily: 'Inter_400Regular', color: colors.textSecondary, marginTop: 1 },
+  rank: { fontSize: 11, fontFamily: 'Inter_400Regular', color: colors.textSecondary },
+  rankRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 1 },
+  rankImg: { width: 14, height: 14 },
   xp: { fontSize: 14, fontFamily: 'Inter_800ExtraBold', color: Dayxo.orange },
 });

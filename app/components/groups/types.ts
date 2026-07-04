@@ -45,7 +45,8 @@ export interface RankingEntry {
   username: string;
   avatarColor: string;
   rankName: string;  // rango individual, ej "Amatista"
-  rankIcon: string;  // 💜 ⚡ 🥇
+  rankIcon: string;  // emoji de fallback
+  rankImage?: number; // ícono ilustrado del rango (assets/ranks)
   xpThisWeek: number;
   isCurrentUser: boolean;
 }
