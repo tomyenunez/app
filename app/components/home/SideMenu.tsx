@@ -145,6 +145,9 @@ export function SideMenu({ visible, onClose, onOpenSocial }: Props) {
                 </View>
               </View>
 
+              {/* Versión + nº de update por aire: para verificar qué corre el celu */}
+              <Text style={styles.versionText}>Dayxo v1.0.0 · OTA 1 🛰️</Text>
+
               {/* 🥚 "No deberías estar acá": franja invisible al pie del menú */}
               <TouchableOpacity
                 style={{ height: 26 }}
@@ -293,6 +296,10 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     borderColor: colors.textPrimary,
     borderRadius: 20,
     padding: 2,
+  },
+  versionText: {
+    textAlign: 'center', paddingTop: 10,
+    fontSize: 10, fontFamily: 'Inter_500Medium', color: colors.textTertiary,
   },
   missionsCover: {
     ...StyleSheet.absoluteFillObject,
