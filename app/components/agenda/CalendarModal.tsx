@@ -154,13 +154,12 @@ export function CalendarModal({
                     styles.calDayNum,
                     !inMonth && styles.calDayOtherMonth,
                     isToday && styles.calDayToday,
-                    // Con la etiqueta HOY visible, el número sube un poco para no pisarse.
-                    // Si hoy está seleccionado, HOY se oculta y el número vuelve al centro.
-                    isToday && !isSelected && styles.calDayTodayLift,
                     isSelected && styles.calDaySelected,
                   ]}>
                     {day.getDate()}
                   </Text>
+                  {/* HOY flota abajo de la celda (absoluto): no participa del layout,
+                      así el número queda centrado idéntico al resto de la fila. */}
                   {isToday && !isSelected && <Text style={styles.todayLabel}>HOY</Text>}
                 </TouchableOpacity>
               );
@@ -289,8 +288,10 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     fontSize: 11, fontFamily: 'Inter_700Bold', color: colors.textSecondary,
     paddingVertical: 6,
   },
+  // Altura FIJA (no aspectRatio): dentro del Modal, aspectRatio se mide mal en
+  // el primer render y la celda colapsa — causa de los desalineos del HOY.
   calCell: {
-    width: `${100 / 7}%`, aspectRatio: 1,
+    width: `${100 / 7}%`, height: 48,
     alignItems: 'center', justifyContent: 'center',
     borderRadius: 999, position: 'relative',
   },
@@ -301,11 +302,11 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   // Mismo fontSize que el resto: si HOY es más grande, el número se descentra
   // respecto de su fila cuando el seleccionado es otro día.
   calDayToday: { color: colors.violet, fontFamily: 'Inter_800ExtraBold' },
-  calDayTodayLift: { transform: [{ translateY: -9 }] },
   calDaySelected: { color: '#fff', fontFamily: 'Inter_700Bold' },
   todayLabel: {
-    position: 'absolute', bottom: 3,
-    fontSize: 7, fontFamily: 'Inter_800ExtraBold', color: colors.violet, letterSpacing: 0.5,
+    position: 'absolute', bottom: 4, alignSelf: 'center',
+    fontSize: 7, lineHeight: 9,
+    fontFamily: 'Inter_800ExtraBold', color: colors.violet, letterSpacing: 0.5,
   },
   eventDot: {
     position: 'absolute', top: 4, right: 4,
