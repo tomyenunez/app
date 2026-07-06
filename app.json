@@ -23,6 +23,8 @@
       "softwareKeyboardLayoutMode": "pan",
       "permissions": [
         "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
@@ -42,6 +44,12 @@
         "projectId": "052101f4-1d24-4d4d-99c2-2d3e27e9a7d2"
       }
     },
-    "owner": "itachiappz"
+    "owner": "itachiappz",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/052101f4-1d24-4d4d-99c2-2d3e27e9a7d2"
+    }
   }
 }
