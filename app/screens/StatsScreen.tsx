@@ -1,9 +1,9 @@
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
+import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Modal, FlatList } from 'react-native';
 import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
 import { AppText as Text } from '../components/shared/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect, useScrollToTop } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { startOfWeek, startOfMonth, subMonths, addMonths, subDays } from 'date-fns';
 import { useTheme } from '../context/ThemeContext';
@@ -74,6 +74,9 @@ export function StatsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { handleScrollOffset } = useTabBar();
+  // Tocar el grafiquito con Stats ya enfocado → scroll arriba de todo
+  const listRef = useRef<FlatList<string>>(null);
+  useScrollToTop(listRef);
   const { todos } = useTodos();
   const { habitos, habitDone } = useHabitos();
   const { txs } = usePresupuesto();
@@ -691,6 +694,9 @@ export function StatsScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <DraggableFlatList
+        // El tipo del ref difiere (FlatList de gesture-handler vs react-native)
+        // pero en runtime es el mismo FlatList: el cast es seguro.
+        ref={listRef as any}
         data={visibleOrder}
         keyExtractor={(k) => k}
         renderItem={renderItem}

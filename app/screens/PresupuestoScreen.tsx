@@ -1,5 +1,6 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, TouchableOpacity, Alert, Modal, ScrollView } from 'react-native';
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import { View, StyleSheet, TouchableOpacity, Alert, Modal, ScrollView, FlatList } from 'react-native';
+import { useScrollToTop } from '@react-navigation/native';
 import { AppText as Text } from '../components/shared/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
@@ -43,6 +44,9 @@ export function PresupuestoScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { handleScrollOffset } = useTabBar();
+  // Tocar la billetera con Finanzas ya enfocado → scroll arriba de todo
+  const listRef = useRef<FlatList<string>>(null);
+  useScrollToTop(listRef);
   const { ingresos, gastos, saldo, ingresosList, gastosList, add, update, remove, togglePin, resetMes } = usePresupuesto();
   const deudas = useDeudas();
   const ahorros = useAhorros();
@@ -463,6 +467,9 @@ export function PresupuestoScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <DraggableFlatList
+        // El tipo del ref difiere (FlatList de gesture-handler vs react-native)
+        // pero en runtime es el mismo FlatList: el cast es seguro.
+        ref={listRef as any}
         data={visibleOrder}
         keyExtractor={(k) => k}
         renderItem={renderItem}

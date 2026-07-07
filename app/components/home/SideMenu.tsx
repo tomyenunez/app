@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { Modal, View, StyleSheet, TouchableOpacity, Animated, Dimensions, Switch, ScrollView } from 'react-native';
+import { Modal, View, StyleSheet, TouchableOpacity, Animated, Dimensions, Switch, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { AppText as Text } from '../shared/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,8 +8,10 @@ import { AppColors } from '../../constants/colors';
 import { MissionsSection } from '../game/MissionsSection';
 import { AuthPanel } from '../auth/AuthPanel';
 import { useAuth } from '../../context/AuthContext';
+import { useGame } from '../../context/GameContext';
 import { useAccessibility, FONT_SIZE_OPTIONS } from '../../context/AccessibilityContext';
 import { awardXP, unlockBadge } from '../../services/xpService';
+import { supabase } from '../../services/supabase';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const PANEL_W = Math.min(300, SCREEN_W * 0.82);
@@ -23,6 +25,7 @@ interface Props {
 export function SideMenu({ visible, onClose, onOpenSocial }: Props) {
   const { colors, isDark, setThemeMode } = useTheme();
   const { user } = useAuth();
+  const { profile } = useGame();
   const { fontSizeKey, isBold, setFontSizeKey, setIsBold } = useAccessibility();
   const styles = useMemo(() => createStyles(colors), [colors]);
   // Leemos los insets acá (con contexto del provider); dentro del Modal el
@@ -32,6 +35,10 @@ export function SideMenu({ visible, onClose, onOpenSocial }: Props) {
   const [missionsOpen, setMissionsOpen] = useState(false);
   const [cuentaOpen, setCuentaOpen] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
+  // Sugerencias/feedback: texto + estado del envío
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [fbText, setFbText] = useState('');
+  const [fbStatus, setFbStatus] = useState<'idle' | 'busy' | 'sent' | 'error'>('idle');
   const translateX = useRef(new Animated.Value(-PANEL_W)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
@@ -46,6 +53,8 @@ export function SideMenu({ visible, onClose, onOpenSocial }: Props) {
       setMissionsOpen(false);
       setCuentaOpen(false);
       setConfigOpen(false);
+      setFeedbackOpen(false);
+      setFbStatus('idle');
       Animated.parallel([
         Animated.timing(translateX, { toValue: -PANEL_W, duration: 200, useNativeDriver: true }),
         Animated.timing(overlayOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
@@ -64,6 +73,25 @@ export function SideMenu({ visible, onClose, onOpenSocial }: Props) {
   const testAward = (amount: number) => {
     onClose();
     setTimeout(() => awardXP(amount, `Prueba +${amount} XP`, { isBonus: true }), 450);
+  };
+
+  // Envía la sugerencia a la tabla `feedback` (la leemos en Supabase).
+  const sendFeedback = async () => {
+    const mensaje = fbText.trim();
+    if (!mensaje || fbStatus === 'busy' || !user) return;
+    setFbStatus('busy');
+    const { error } = await supabase.from('feedback').insert({
+      user_id: user.id,
+      username: profile.username ?? '',
+      mensaje,
+    });
+    if (error) {
+      console.warn('[Dayxo feedback] enviar:', error.message);
+      setFbStatus('error');
+      return;
+    }
+    setFbText('');
+    setFbStatus('sent');
   };
 
   return (
@@ -106,6 +134,15 @@ export function SideMenu({ visible, onClose, onOpenSocial }: Props) {
                 <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
               </TouchableOpacity>
             )}
+
+            {/* Sugerencias: feedback de los usuarios → tabla `feedback` en Supabase */}
+            <TouchableOpacity style={styles.menuItem} onPress={() => setFeedbackOpen(true)} activeOpacity={0.7}>
+              <View style={styles.menuItemLeft}>
+                <Text style={styles.menuEmoji}>💡</Text>
+                <Text style={styles.menuLabel}>Sugerencias</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
 
             <View style={{ flex: 1 }} />
 
@@ -202,6 +239,65 @@ export function SideMenu({ visible, onClose, onOpenSocial }: Props) {
             >
               <AuthPanel onDone={() => setCuentaOpen(false)} />
             </ScrollView>
+          </View>
+        )}
+
+        {/* Sugerencias: los amigos proponen mejoras y nos llegan a Supabase */}
+        {feedbackOpen && (
+          <View style={[styles.missionsCover, safePad]}>
+            <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+              <View style={styles.missionsHeader}>
+                <TouchableOpacity onPress={() => { setFeedbackOpen(false); setFbStatus('idle'); }} style={styles.backBtn}>
+                  <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+                </TouchableOpacity>
+                <Text style={styles.missionsTitle}>Sugerencias</Text>
+                <View style={{ width: 36 }} />
+              </View>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 24, paddingTop: 10, paddingHorizontal: 18 }}
+                keyboardShouldPersistTaps="handled"
+              >
+                {fbStatus === 'sent' ? (
+                  <View style={styles.fbThanks}>
+                    <Text style={styles.fbThanksEmoji}>💜</Text>
+                    <Text style={styles.fbThanksTitle}>¡Gracias!</Text>
+                    <Text style={styles.fbThanksText}>Tu sugerencia nos llegó. La vamos a leer, posta.</Text>
+                    <TouchableOpacity style={styles.fbAgainBtn} onPress={() => setFbStatus('idle')} activeOpacity={0.8}>
+                      <Text style={styles.fbAgainText}>Mandar otra</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <>
+                    <Text style={styles.fbIntro}>
+                      ¿Qué le cambiarías o agregarías a Dayxo? Contanos y nos llega directo.
+                    </Text>
+                    <TextInput
+                      style={styles.fbInput}
+                      placeholder="Escribí tu idea acá..."
+                      placeholderTextColor={colors.textTertiary}
+                      value={fbText}
+                      onChangeText={(t) => { setFbText(t); if (fbStatus === 'error') setFbStatus('idle'); }}
+                      multiline
+                      textAlignVertical="top"
+                      maxLength={2000}
+                    />
+                    {fbStatus === 'error' && (
+                      <Text style={styles.fbError}>No se pudo enviar. Revisá tu conexión y probá de nuevo.</Text>
+                    )}
+                    <TouchableOpacity
+                      style={[styles.fbSendBtn, (!fbText.trim() || fbStatus === 'busy') && { opacity: 0.5 }]}
+                      onPress={sendFeedback}
+                      disabled={!fbText.trim() || fbStatus === 'busy'}
+                      activeOpacity={0.85}
+                    >
+                      <Ionicons name="paper-plane" size={17} color="#fff" />
+                      <Text style={styles.fbSendText}>{fbStatus === 'busy' ? 'Enviando...' : 'Enviar sugerencia'}</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </ScrollView>
+            </KeyboardAvoidingView>
           </View>
         )}
 
@@ -342,4 +438,26 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingVertical: 14, borderTopWidth: 1, borderTopColor: colors.border,
   },
+  // Sugerencias
+  fbIntro: { fontSize: 14, fontFamily: 'Inter_500Medium', color: colors.textSecondary, lineHeight: 20, marginBottom: 14 },
+  fbInput: {
+    backgroundColor: colors.inputBg, borderRadius: 12, borderWidth: 1, borderColor: colors.border,
+    paddingHorizontal: 14, paddingVertical: 12, minHeight: 130,
+    fontSize: 15, fontFamily: 'Inter_400Regular', color: colors.textPrimary, lineHeight: 21,
+  },
+  fbError: { fontSize: 13, fontFamily: 'Inter_500Medium', color: colors.error, marginTop: 10 },
+  fbSendBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: colors.violet, borderRadius: 12, paddingVertical: 14, marginTop: 14,
+  },
+  fbSendText: { color: '#fff', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
+  fbThanks: { alignItems: 'center', paddingTop: 40, paddingHorizontal: 10 },
+  fbThanksEmoji: { fontSize: 44 },
+  fbThanksTitle: { fontSize: 20, fontFamily: 'Inter_800ExtraBold', color: colors.textPrimary, marginTop: 12 },
+  fbThanksText: { fontSize: 14, fontFamily: 'Inter_400Regular', color: colors.textSecondary, textAlign: 'center', marginTop: 6, lineHeight: 20 },
+  fbAgainBtn: {
+    marginTop: 22, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 28,
+    borderWidth: 1.5, borderColor: colors.violet,
+  },
+  fbAgainText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: colors.violet },
 });

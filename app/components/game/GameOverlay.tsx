@@ -8,7 +8,9 @@ import { RARITY_LABEL } from '../../constants/badges';
 import { rankUpMessage } from '../../constants/rankMessages';
 import { playRankUp } from '../../services/sound';
 
-// Toast de XP que flota desde abajo (encima del tab bar)
+// Toast de XP que flota desde abajo (encima del tab bar).
+// Con amount negativo (acción deshecha) se muestra rojo con el signo −, así el
+// historial de carteles refleja la verdad: lo que se sumó y lo que se restó.
 function XPToast({ amount, isBonus, isStar, onDone }: {
   amount: number; isBonus: boolean; isStar: boolean; onDone: () => void;
 }) {
@@ -22,12 +24,15 @@ function XPToast({ amount, isBonus, isStar, onDone }: {
     ]).start(() => onDone());
   }, []);
 
-  const color = isStar ? '#FF9F43' : isBonus ? '#E17055' : '#6C5CE7';
+  const negative = amount < 0;
+  const color = negative ? '#E5484D' : isStar ? '#FF9F43' : isBonus ? '#E17055' : '#6C5CE7';
+  const icon = negative ? '↩' : isStar ? '⭐' : '⚡';
+  const sign = negative ? '−' : '+';
   const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [40, 0] });
 
   return (
     <Animated.View style={[styles.xpToast, { backgroundColor: color, opacity: anim, transform: [{ translateY }] }]}>
-      <Text style={styles.xpToastText}>{isStar ? '⭐' : '⚡'} +{Math.max(1, Math.round(amount))} XP</Text>
+      <Text style={styles.xpToastText}>{icon} {sign}{Math.max(1, Math.round(Math.abs(amount)))} XP</Text>
     </Animated.View>
   );
 }
@@ -139,9 +144,11 @@ export function GameOverlay() {
 
   useEffect(() => {
     const unsub = gameEvents.subscribe((r: AwardResult) => {
-      if (r.awarded > 0) {
+      if (r.awarded !== 0) {
         const id = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-        setXpToasts((prev) => [...prev, { id, amount: r.awarded, isBonus: r.isBonus, isStar: r.isStar }]);
+        // Tope de 3 carteles en pantalla: al spamear completar/descompletar se
+        // reciclan los viejos en vez de apilarse hasta llenar la pantalla.
+        setXpToasts((prev) => [...prev, { id, amount: r.awarded, isBonus: r.isBonus, isStar: r.isStar }].slice(-3));
       }
       if (r.newBadges.length > 0) {
         setBadgeQueue((prev) => [...prev, ...r.newBadges]);

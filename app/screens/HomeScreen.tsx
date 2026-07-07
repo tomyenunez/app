@@ -1,8 +1,8 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useRef } from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { AppText as Text } from '../components/shared/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useScrollToTop } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -37,6 +37,9 @@ export function HomeScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { handleScroll } = useTabBar();
+  // Tocar la casita con Home ya enfocado → scroll arriba de todo
+  const scrollRef = useRef<ScrollView>(null);
+  useScrollToTop(scrollRef);
   const { profile, level } = useGame();
   const { todos, add: addTodo, update: updateTodo, toggle: toggleTodo, remove: removeTodo, togglePin: togglePinTodo } = useTodos();
   const { familias, getFamilia } = useFamilias();
@@ -112,7 +115,7 @@ export function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" onScroll={handleScroll} scrollEventThrottle={16}>
+      <ScrollView ref={scrollRef} style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" onScroll={handleScroll} scrollEventThrottle={16}>
         {/* Header: menú · título · avatar */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.iconBtn} onPress={() => setMenuVisible(true)}>

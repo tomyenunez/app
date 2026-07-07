@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useTabBar } from '../context/TabBarContext';
 import { AppColors } from '../constants/colors';
+import { TabSwipe } from '../components/shared/TabSwipe';
 import { HomeScreen } from '../screens/HomeScreen';
 import { TodoScreen } from '../screens/TodoScreen';
 import { HabitosScreen } from '../screens/HabitosScreen';
@@ -25,6 +26,27 @@ const TAB_CONFIG = [
   { name: 'Agenda', icon: 'calendar-outline', accent: 'pink', Screen: AgendaScreen },
   { name: 'Stats', icon: 'bar-chart-outline', accent: 'violet', Screen: StatsScreen },
 ] as const;
+
+// Orden de las pestañas visibles para navegar deslizando (Home ↔ Plata ↔ Stats)
+const SWIPE_ORDER = ['Home', 'Plata', 'Stats'];
+
+// Envuelve las pantallas visibles con el gesto de swipe. Definido a nivel de
+// módulo para que los componentes sean estables (no se remontan por render).
+function withTabSwipe(Screen: React.ComponentType<any>, name: string): React.ComponentType<any> {
+  const idx = SWIPE_ORDER.indexOf(name);
+  if (idx === -1) return Screen;
+  const left = SWIPE_ORDER[idx - 1];
+  const right = SWIPE_ORDER[idx + 1];
+  return function SwipeableTabScreen(props: any) {
+    return (
+      <TabSwipe left={left} right={right}>
+        <Screen {...props} />
+      </TabSwipe>
+    );
+  };
+}
+
+const TAB_SCREENS = TAB_CONFIG.map((t) => ({ name: t.name, Component: withTabSwipe(t.Screen, t.name) }));
 
 const HIDDEN_TABS = ['Todo', 'Habitos', 'Agenda'];
 
@@ -78,8 +100,8 @@ export function AppNavigator() {
       screenOptions={{ headerShown: false }}
       tabBar={(props) => <FloatingTabBar {...props} />}
     >
-      {TAB_CONFIG.map(({ name, Screen }) => (
-        <Tab.Screen key={name} name={name} component={Screen} />
+      {TAB_SCREENS.map(({ name, Component }) => (
+        <Tab.Screen key={name} name={name} component={Component} />
       ))}
     </Tab.Navigator>
   );

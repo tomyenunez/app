@@ -198,8 +198,8 @@ export async function awardXPOnce(key: string, amount: number, reason: string, o
  * operación inversa de `awardXPOnce`, para cuando una acción que sumó puntos se
  * deshace (desmarcar hábito, descompletar tarea, borrar evento/movimiento).
  *
- * Emite un evento con `awarded` negativo: la UI lo usa para refrescar el total,
- * pero NO dispara toast ni efectos (el overlay solo reacciona a awarded > 0).
+ * Emite un evento con `awarded` negativo: la UI refresca el total y muestra un
+ * toast rojo de "−XP" (así el usuario ve que el XP realmente se restó).
  * Devuelve true si efectivamente revirtió (la key existía).
  */
 export async function reverseXPOnce(key: string, amount: number): Promise<boolean> {
