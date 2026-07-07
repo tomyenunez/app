@@ -12,6 +12,10 @@ interface TabBarCtx {
   // Para listas (DraggableFlatList) que exponen el offset directo en vez del evento.
   handleScrollOffset: (y: number) => void;
   show: () => void;
+  // Scroll-arriba al re-tocar el tab activo: cada pantalla registra su función
+  // y la barra la invoca. Devuelve el unregister (para el cleanup del effect).
+  registerScrollToTop: (route: string, fn: () => void) => () => void;
+  scrollToTop: (route: string) => void;
 }
 
 const Ctx = createContext<TabBarCtx | null>(null);
@@ -63,8 +67,18 @@ export function TabBarProvider({ children }: { children: React.ReactNode }) {
     handleScrollOffset(e.nativeEvent.contentOffset.y);
   }, [handleScrollOffset]);
 
+  // Registro de funciones de scroll-arriba por pantalla (Home/Plata/Stats)
+  const scrollFns = useRef(new Map<string, () => void>());
+  const registerScrollToTop = useCallback((route: string, fn: () => void) => {
+    scrollFns.current.set(route, fn);
+    return () => { scrollFns.current.delete(route); };
+  }, []);
+  const scrollToTop = useCallback((route: string) => {
+    scrollFns.current.get(route)?.();
+  }, []);
+
   return (
-    <Ctx.Provider value={{ translateY, handleScroll, handleScrollOffset, show }}>
+    <Ctx.Provider value={{ translateY, handleScroll, handleScrollOffset, show, registerScrollToTop, scrollToTop }}>
       {children}
     </Ctx.Provider>
   );

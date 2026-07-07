@@ -1,6 +1,5 @@
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, Alert, Modal, ScrollView, FlatList } from 'react-native';
-import { useScrollToTop } from '@react-navigation/native';
 import { AppText as Text } from '../components/shared/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
@@ -43,10 +42,13 @@ const DEFAULT_ORDER = ['gastos', 'deudas', 'ingresos', 'ahorros'];
 export function PresupuestoScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { handleScrollOffset } = useTabBar();
+  const { handleScrollOffset, registerScrollToTop } = useTabBar();
   // Tocar la billetera con Finanzas ya enfocado → scroll arriba de todo
   const listRef = useRef<FlatList<string>>(null);
-  useScrollToTop(listRef);
+  useEffect(
+    () => registerScrollToTop('Plata', () => listRef.current?.scrollToOffset({ offset: 0, animated: true })),
+    [registerScrollToTop]
+  );
   const { ingresos, gastos, saldo, ingresosList, gastosList, add, update, remove, togglePin, resetMes } = usePresupuesto();
   const deudas = useDeudas();
   const ahorros = useAhorros();

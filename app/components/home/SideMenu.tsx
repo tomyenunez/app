@@ -183,7 +183,7 @@ export function SideMenu({ visible, onClose, onOpenSocial }: Props) {
               </View>
 
               {/* Versión + nº de update por aire: para verificar qué corre el celu */}
-              <Text style={styles.versionText}>Dayxo v1.0.0 · OTA 1 🛰️</Text>
+              <Text style={styles.versionText}>Dayxo v1.0.1 🛰️</Text>
 
               {/* 🥚 "No deberías estar acá": franja invisible al pie del menú */}
               <TouchableOpacity
