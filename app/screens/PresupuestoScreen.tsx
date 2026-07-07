@@ -472,6 +472,10 @@ export function PresupuestoScreen() {
         // El tipo del ref difiere (FlatList de gesture-handler vs react-native)
         // pero en runtime es el mismo FlatList: el cast es seguro.
         ref={listRef as any}
+        // Deja pasar los swipes horizontales al pager (Home↔Plata↔Stats): sin esto,
+        // la lista captura todo movimiento y el deslizamiento entre tabs no anda.
+        // El reordenar (long-press + arrastrar) sigue funcionando igual.
+        activationDistance={20}
         data={visibleOrder}
         keyExtractor={(k) => k}
         renderItem={renderItem}
