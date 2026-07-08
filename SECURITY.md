@@ -71,18 +71,35 @@ sino en la ejecución, la marca, la comunidad de usuarios, el backend (que sí e
 privado) y la velocidad de iteración. Un clon puede copiar pantallas; no puede
 copiar tus usuarios ni tu ritmo.
 
+## Estado de la base (auditado 2026-07-07 con 0005) — ✅ BLINDADA
+
+Verificado policy por policy sobre las 19 tablas:
+- **RLS activo en todas** las tablas. Ninguna con datos queda expuesta.
+- **Tablas de dueño único** (todos, transactions, deudas, habitos, habit_done,
+  opciones_gasto, familias, game_state, notas, eventos, feedback): todas filtran
+  por `auth.uid() = user_id` en select/insert/update/delete. ✅
+- **profiles:** lectura solo del propio + de perfiles con los que tenés amistad
+  (la búsqueda por código va por RPC `SECURITY DEFINER`). friend_code NO queda
+  expuesto a cualquiera. ✅
+- **friendships:** solo participás si sos requester/addressee; solo el addressee
+  acepta. ✅
+- **Grupos** (groups, group_members, group_invites, group_activity) y
+  **shared_*:** acceso por **membresía** (`is_group_member` / `is_shared_member`),
+  settings/borrado solo `is_group_admin` / `created_by`, invitaciones solo entre
+  amigos. ✅
+- **20 funciones `SECURITY DEFINER`** con `search_path=public` fijo. ✅
+- **anon** sin permisos de datos (revocados los vestigiales). ✅
+
 ## Pendientes / a revisar
 
-- [ ] **Aplicar `0006_rls_hardening.sql`** (lo más importante — activa RLS).
-- [ ] Correr `0005_security_audit.sql` y **blindar las tablas de GRUPOS** según
-      el resultado (groups, group_members, group_invites, group_activity,
-      shared_*) — su RLS no se pudo escribir a ciegas.
-- [ ] Auditar las RPCs de grupos (`create_group`, `join_group_by_code`, etc.):
-      que tengan `search_path` fijo y validen membresía.
 - [ ] Configurar **rate limits de Auth** y CAPTCHA en el Dashboard.
 - [ ] Verificar **policies del bucket `avatars`** (escritura solo en la carpeta
       propia `{uid}/`).
-- [ ] Mover la anon key a EAS Environment Variables.
+- [ ] Mover la anon key a EAS Environment Variables (higiene; la key es pública).
+- [ ] (Opcional) `expo-secure-store` para cifrar el token de sesión en el device.
+- [ ] Decisión de producto, no bug: en `shared_expenses` cualquier miembro del
+      grupo puede borrar un gasto. Si se quiere restringir a quien lo creó o al
+      admin, ajustar esa policy.
 
 ## Reportar una vulnerabilidad
 Internamente: NO la subas en un commit público con el detalle. Avisá en privado
