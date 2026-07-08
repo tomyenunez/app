@@ -103,9 +103,16 @@ export function AuthPanel({ onDone, onModeChange }: AuthPanelProps) {
         <Text style={styles.note}>
           Tu cuenta y tu perfil están en la nube. El resto de tus datos se va a ir sincronizando.
         </Text>
-        <TouchableOpacity style={styles.outlineBtn} onPress={async () => { await signOut(); }}>
-          <Ionicons name="log-out-outline" size={18} color={colors.error} />
-          <Text style={[styles.outlineBtnText, { color: colors.error }]}>Cerrar sesión</Text>
+        {/* Cerrar sesión: tarjeta neutral (el rojo queda para lo destructivo) */}
+        <TouchableOpacity style={styles.actionCard} onPress={async () => { await signOut(); }} activeOpacity={0.8}>
+          <View style={styles.actionIcon}>
+            <Ionicons name="log-out-outline" size={18} color={colors.violet} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.actionTitle}>Cerrar sesión</Text>
+            <Text style={styles.actionSub}>Tus datos quedan guardados en la nube</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
         </TouchableOpacity>
 
         {/* Eliminar cuenta (requisito de Apple): tarjeta "zona de riesgo",
@@ -388,15 +395,22 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   loggedEmail: { fontSize: 16, fontFamily: 'Inter_700Bold', color: colors.textPrimary, marginTop: 4 },
   note: { fontSize: 12, fontFamily: 'Inter_400Regular', color: colors.textSecondary, lineHeight: 18, marginTop: 14 },
   code: { fontFamily: 'Inter_700Bold', color: colors.textPrimary },
-  outlineBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    borderRadius: 12, paddingVertical: 14, marginTop: 18,
-    borderWidth: 1, borderColor: colors.error + '55',
+  actionCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginTop: 18,
+    backgroundColor: colors.card, borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: colors.border,
   },
-  outlineBtnText: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
+  actionIcon: {
+    width: 36, height: 36, borderRadius: 18,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.violetLight,
+  },
+  actionTitle: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: colors.textPrimary },
+  actionSub: { fontSize: 11.5, fontFamily: 'Inter_400Regular', color: colors.textSecondary, marginTop: 2 },
   dangerCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    marginTop: 36,
+    marginTop: 12,
     backgroundColor: colors.card, borderRadius: 14, padding: 14,
     borderWidth: 1, borderColor: colors.error + '33',
   },
