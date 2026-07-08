@@ -325,16 +325,15 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     gap: 14,
     marginBottom: 16,
   },
+  // Sin el círculo blanco translúcido: la gema del rango se muestra sola,
+  // en grande (ocupa el espacio que antes tenía el círculo).
   profileAvatar: {
     width: 56,
     height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255,255,255,0.22)',
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
   },
-  profileRankImg: { width: 42, height: 42 },
+  profileRankImg: { width: 56, height: 56 },
   profileAvatarText: { fontSize: 22, color: '#fff' },
   profileName: {
     fontSize: 20,
