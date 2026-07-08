@@ -35,6 +35,7 @@ function toExpense(r: any): SharedExpense {
     paidBy: r.paid_by,
     splitBetween: r.split_between ?? [],
     fecha: r.fecha,
+    createdBy: r.created_by ?? undefined,
   };
 }
 

@@ -62,7 +62,14 @@ export function SharedGroupDetailScreen({ group, onBack, onAddExpense, onRemoveE
     ]);
   };
 
+  // Un gasto lo puede borrar quien lo cargó, o el dueño del grupo (moderación).
+  // Coincide con la policy RLS de shared_expenses: si no podés, ni ofrecemos el
+  // borrado (para no dar un tap que "no hace nada").
+  const canDeleteExpense = (e: SharedExpense) =>
+    (!!e.createdBy && e.createdBy === user?.id) || isCreator;
+
   const confirmDeleteExpense = (e: SharedExpense) => {
+    if (!canDeleteExpense(e)) return;
     Alert.alert('Borrar gasto', `¿Borrar "${e.desc}"?`, [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Borrar', style: 'destructive', onPress: () => onRemoveExpense(group.id, e.id) },
@@ -120,7 +127,13 @@ export function SharedGroupDetailScreen({ group, onBack, onAddExpense, onRemoveE
             <Text style={styles.empty}>Todavía no hay gastos. Agregá el primero 👇</Text>
           ) : (
             group.expenses.map((e) => (
-              <TouchableOpacity key={e.id} style={styles.expRow} activeOpacity={0.7} onLongPress={() => confirmDeleteExpense(e)} delayLongPress={300}>
+              <TouchableOpacity
+                key={e.id}
+                style={styles.expRow}
+                activeOpacity={0.7}
+                onLongPress={canDeleteExpense(e) ? () => confirmDeleteExpense(e) : undefined}
+                delayLongPress={300}
+              >
                 <View style={styles.expIcon}><Text style={{ fontSize: 18 }}>{group.emoji}</Text></View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.expDesc}>{e.desc}</Text>

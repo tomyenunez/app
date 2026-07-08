@@ -58,7 +58,7 @@ export function useGastosCompartidos() {
     // Optimista: aparece al instante con id provisorio, y el refresh trae el real
     const tempId = `tmp-${Date.now()}`;
     setGroups((prev) => prev.map((g) =>
-      g.id === groupId ? { ...g, expenses: [{ ...expense, id: tempId }, ...g.expenses] } : g,
+      g.id === groupId ? { ...g, expenses: [{ ...expense, id: tempId, createdBy: uid }, ...g.expenses] } : g,
     ));
     await addSharedExpense(groupId, uid, expense);
     await refresh();

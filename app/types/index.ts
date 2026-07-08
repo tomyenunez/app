@@ -117,6 +117,7 @@ export interface SharedExpense {
   paidBy: string;          // id del miembro que pagó
   splitBetween: string[];  // ids de miembros entre los que se divide
   fecha: string;           // "YYYY-M-D"
+  createdBy?: string;      // userId de quien cargó el gasto (solo él o el dueño del grupo lo borra)
 }
 
 export interface SharedGroup {

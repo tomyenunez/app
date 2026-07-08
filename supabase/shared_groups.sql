@@ -99,9 +99,15 @@ drop policy if exists shared_expenses_insert on public.shared_expenses;
 create policy shared_expenses_insert on public.shared_expenses for insert
   with check (is_shared_member(group_id) and created_by = auth.uid());
 
+-- Borrar un gasto: solo quien lo cargó (created_by), o el creador del grupo
+-- (como moderador — igual puede borrar el grupo entero). El resto de los
+-- miembros ya no puede borrar gastos ajenos.
 drop policy if exists shared_expenses_delete on public.shared_expenses;
 create policy shared_expenses_delete on public.shared_expenses for delete
-  using (is_shared_member(group_id));
+  using (
+    created_by = auth.uid()
+    or exists (select 1 from public.shared_groups g where g.id = group_id and g.created_by = auth.uid())
+  );
 
 -- ---------- RPCs ----------
 
