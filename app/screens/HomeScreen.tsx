@@ -322,18 +322,18 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   profileTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 8,
     marginBottom: 16,
   },
   // Sin el círculo blanco translúcido: la gema del rango se muestra sola,
   // en grande (ocupa el espacio que antes tenía el círculo).
   profileAvatar: {
-    width: 56,
-    height: 56,
+    width: 64,
+    height: 64,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  profileRankImg: { width: 56, height: 56 },
+  profileRankImg: { width: 64, height: 64 },
   profileAvatarText: { fontSize: 22, color: '#fff' },
   profileName: {
     fontSize: 20,
