@@ -206,17 +206,21 @@ export function SideMenu({ visible, onClose, onOpenSocial }: Props) {
               <View style={{ width: 36 }} />
             </View>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24, paddingTop: 6 }}>
-              {/* TODO temporal: botones de prueba para testear rangos. Sacar antes de release. */}
-              <View style={styles.debugRow}>
-                <TouchableOpacity style={styles.debugBtn} activeOpacity={0.85} onPress={() => testAward(50)}>
-                  <Ionicons name="flask" size={15} color={colors.violet} />
-                  <Text style={styles.debugBtnText}>+50 XP</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.debugBtn} activeOpacity={0.85} onPress={() => testAward(500)}>
-                  <Ionicons name="flask" size={15} color={colors.violet} />
-                  <Text style={styles.debugBtnText}>+500 XP</Text>
-                </TouchableOpacity>
-              </View>
+              {/* Botones de prueba de XP: SOLO en desarrollo (__DEV__). En los
+                  builds de TestFlight/App Store no existen — a Apple los botones
+                  de debug le suenan a "app incompleta" y son motivo de rechazo. */}
+              {__DEV__ && (
+                <View style={styles.debugRow}>
+                  <TouchableOpacity style={styles.debugBtn} activeOpacity={0.85} onPress={() => testAward(50)}>
+                    <Ionicons name="flask" size={15} color={colors.violet} />
+                    <Text style={styles.debugBtnText}>+50 XP</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.debugBtn} activeOpacity={0.85} onPress={() => testAward(500)}>
+                    <Ionicons name="flask" size={15} color={colors.violet} />
+                    <Text style={styles.debugBtnText}>+500 XP</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
               <MissionsSection />
             </ScrollView>
           </View>

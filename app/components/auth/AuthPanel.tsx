@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { AppText as Text } from '../shared/AppText';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,7 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
 import { Dayxo } from '../../constants/dayxo';
 import { useAuth } from '../../context/AuthContext';
-import { isSupabaseConfigured } from '../../services/supabase';
+import { isSupabaseConfigured, supabase } from '../../services/supabase';
 
 interface AuthPanelProps {
   onDone: () => void;
@@ -33,8 +33,43 @@ export function AuthPanel({ onDone, onModeChange }: AuthPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const reset = () => { setError(null); setInfo(null); };
+
+  // Borrado de cuenta (requisito de Apple 5.1.1(v)): doble confirmación y
+  // llamada a la RPC delete_own_account (borra datos + cuenta en el servidor).
+  const doDeleteAccount = async () => {
+    setDeleting(true);
+    const { error: err } = await supabase.rpc('delete_own_account');
+    setDeleting(false);
+    if (err) {
+      Alert.alert('No se pudo eliminar', 'Probá de nuevo en unos segundos. Si sigue fallando, escribinos desde Menú → Sugerencias.');
+      return;
+    }
+    await signOut(); // la cuenta ya no existe; esto limpia la sesión local
+  };
+
+  const confirmDeleteAccount = () => {
+    Alert.alert(
+      'Eliminar cuenta',
+      'Se van a borrar tu cuenta y TODOS tus datos: tareas, hábitos, finanzas, notas, XP y logros. Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Continuar', style: 'destructive',
+          onPress: () => Alert.alert(
+            '¿Estás seguro?',
+            'Última confirmación: tu cuenta se elimina para siempre.',
+            [
+              { text: 'No, volver', style: 'cancel' },
+              { text: 'Sí, eliminar todo', style: 'destructive', onPress: doDeleteAccount },
+            ],
+          ),
+        },
+      ],
+    );
+  };
 
   // Acento de la pantalla: registro = naranja (energía), login = violeta (calma)
   const accent = mode === 'signup' ? Dayxo.orange : Dayxo.purple;
@@ -71,6 +106,13 @@ export function AuthPanel({ onDone, onModeChange }: AuthPanelProps) {
         <TouchableOpacity style={styles.outlineBtn} onPress={async () => { await signOut(); }}>
           <Ionicons name="log-out-outline" size={18} color={colors.error} />
           <Text style={[styles.outlineBtnText, { color: colors.error }]}>Cerrar sesión</Text>
+        </TouchableOpacity>
+
+        {/* Eliminar cuenta (requisito de Apple para apps con registro) */}
+        <TouchableOpacity style={styles.deleteLink} onPress={confirmDeleteAccount} disabled={deleting}>
+          {deleting
+            ? <ActivityIndicator size="small" color={colors.textTertiary} />
+            : <Text style={styles.deleteLinkText}>Eliminar cuenta y todos mis datos</Text>}
         </TouchableOpacity>
       </View>
     );
@@ -339,4 +381,9 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     borderWidth: 1, borderColor: colors.error + '55',
   },
   outlineBtnText: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
+  deleteLink: { alignItems: 'center', paddingVertical: 16 },
+  deleteLinkText: {
+    fontSize: 12.5, fontFamily: 'Inter_500Medium', color: colors.textTertiary,
+    textDecorationLine: 'underline',
+  },
 });
