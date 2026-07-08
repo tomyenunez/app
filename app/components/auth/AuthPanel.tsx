@@ -108,11 +108,24 @@ export function AuthPanel({ onDone, onModeChange }: AuthPanelProps) {
           <Text style={[styles.outlineBtnText, { color: colors.error }]}>Cerrar sesión</Text>
         </TouchableOpacity>
 
-        {/* Eliminar cuenta (requisito de Apple para apps con registro) */}
-        <TouchableOpacity style={styles.deleteLink} onPress={confirmDeleteAccount} disabled={deleting}>
-          {deleting
-            ? <ActivityIndicator size="small" color={colors.textTertiary} />
-            : <Text style={styles.deleteLinkText}>Eliminar cuenta y todos mis datos</Text>}
+        {/* Eliminar cuenta (requisito de Apple): tarjeta "zona de riesgo",
+            bien separada del logout para evitar toques accidentales. */}
+        <TouchableOpacity
+          style={styles.dangerCard}
+          onPress={confirmDeleteAccount}
+          disabled={deleting}
+          activeOpacity={0.8}
+        >
+          <View style={styles.dangerIcon}>
+            {deleting
+              ? <ActivityIndicator size="small" color={colors.error} />
+              : <Ionicons name="trash-outline" size={18} color={colors.error} />}
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.dangerTitle}>Eliminar cuenta</Text>
+            <Text style={styles.dangerSub}>Borra tu cuenta y todos tus datos para siempre</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
         </TouchableOpacity>
       </View>
     );
@@ -381,9 +394,17 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     borderWidth: 1, borderColor: colors.error + '55',
   },
   outlineBtnText: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
-  deleteLink: { alignItems: 'center', paddingVertical: 16 },
-  deleteLinkText: {
-    fontSize: 12.5, fontFamily: 'Inter_500Medium', color: colors.textTertiary,
-    textDecorationLine: 'underline',
+  dangerCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginTop: 36,
+    backgroundColor: colors.card, borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: colors.error + '33',
   },
+  dangerIcon: {
+    width: 36, height: 36, borderRadius: 18,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.error + '18',
+  },
+  dangerTitle: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: colors.error },
+  dangerSub: { fontSize: 11.5, fontFamily: 'Inter_400Regular', color: colors.textSecondary, marginTop: 2 },
 });
