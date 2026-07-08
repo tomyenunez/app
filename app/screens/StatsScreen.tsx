@@ -762,12 +762,7 @@ export function StatsScreen() {
       <Modal visible={logrosVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setLogrosVisible(false)}>
         <SafeAreaView style={styles.safe} edges={['top']}>
           <View style={styles.modalHandleWrap}><View style={styles.modalHandle} /></View>
-          <View style={styles.lmHeader}>
-            <Text style={styles.lmTitle}>Logros</Text>
-            <TouchableOpacity onPress={() => setLogrosVisible(false)}>
-              <Ionicons name="close" size={24} color={colors.textPrimary} />
-            </TouchableOpacity>
-          </View>
+          <ModalHeader title="Logros" onClose={() => setLogrosVisible(false)} />
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 14, paddingBottom: 40 }}>
             <LogrosSection />
           </ScrollView>
@@ -850,11 +845,6 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
 
   modalHandleWrap: { alignItems: 'center', paddingTop: 10, paddingBottom: 6 },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border },
-  lmHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border,
-  },
-  lmTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
 
   section: {
     backgroundColor: colors.card,
