@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
+import { validateAmount } from '../utils/validation';
 
 // Mapeo entre la fila de la tabla `transactions` y el tipo Transaction de la app
 function fromRow(r: any): Transaction {
@@ -70,11 +71,15 @@ export function usePresupuesto() {
     fecha?: Date,
   ) => {
     if (!userId) return;
+    // Defensa en profundidad: nunca dejar que un monto inválido (NaN/Infinity/
+    // negativo) llegue a la nube. Lo refuerza el CHECK de la tabla (constraints).
+    const amount = validateAmount(monto);
+    if (!amount.ok) return;
     const d = fecha ?? new Date();
     const next: Transaction = {
       id: Date.now().toString(),
       desc,
-      monto,
+      monto: amount.value,
       tipo,
       fecha: dateKey(d),
       fechaStr: format(d, "d 'de' MMMM", { locale: es }),
@@ -96,6 +101,8 @@ export function usePresupuesto() {
   ) => {
     const t = txs.find((x) => x.id === id);
     if (!t) return;
+    const amount = validateAmount(monto);
+    if (!amount.ok) return;
     let base = fecha;
     if (!base) {
       const [y, m, dd] = t.fecha.split('-').map(Number);
@@ -104,7 +111,7 @@ export function usePresupuesto() {
     const next: Transaction = {
       ...t,
       desc,
-      monto,
+      monto: amount.value,
       fecha: dateKey(base),
       fechaStr: format(base, "d 'de' MMMM", { locale: es }),
     };

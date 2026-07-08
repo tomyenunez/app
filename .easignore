@@ -1,0 +1,7 @@
+# Archivos que NO tienen que viajar al servidor de build ni al bundle:
+# SQL, documentación de seguridad y scripts de dev. No son parte de la app.
+supabase/
+scripts/
+*.md
+!README.md
+.env.example

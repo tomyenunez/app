@@ -1,6 +1,12 @@
 import { supabase } from './supabase';
 import { weekXP } from './groups';
 
+// Los ids de usuario son UUIDs (de la sesión o de una RPC). Validamos el formato
+// antes de interpolarlos en filtros .or() de PostgREST: aunque hoy vienen de
+// fuentes confiables, esto evita que un id malformado rompa o tuerza el filtro.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (id: unknown): id is string => typeof id === 'string' && UUID_RE.test(id);
+
 // Datos públicos de otro usuario (lo que se muestra en Social)
 export interface PublicUser {
   id: string;
@@ -42,6 +48,7 @@ export async function findByCode(code: string): Promise<PublicUser | null> {
 
 // Buscar el vínculo existente entre dos usuarios (en cualquier dirección)
 async function existingFriendship(uid: string, otherId: string) {
+  if (!isUuid(uid) || !isUuid(otherId)) return null;
   const { data } = await supabase
     .from('friendships')
     .select('id, requester_id, addressee_id, status')
@@ -113,6 +120,7 @@ export async function getFriendProfile(friendId: string): Promise<FriendProfile 
 // Trae todos mis vínculos y los clasifica, con el perfil del otro
 export async function listFriends(uid: string): Promise<FriendsData> {
   const empty: FriendsData = { friends: [], incoming: [], outgoing: [] };
+  if (!isUuid(uid)) return empty;
   const { data: rows, error } = await supabase
     .from('friendships')
     .select('id, requester_id, addressee_id, status')
