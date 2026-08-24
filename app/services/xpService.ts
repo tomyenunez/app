@@ -26,13 +26,14 @@ export const gameEvents = {
 interface AwardOpts {
   isBonus?: boolean;
   isStar?: boolean;
+  fecha?: string; // día al que pertenece el XP (marca retroactiva); default: hoy
   stats?: Partial<BadgeStats>; // pistas del caller (hábito nocturno, perfecto, etc.)
 }
 
-// Suma XP del día y devuelve el total del día y de la semana
-async function bumpDailyXP(amount: number): Promise<{ today: number; week: number }> {
+// Suma XP al bucket de `fecha` (default hoy) y devuelve el total de ese día y de la semana
+async function bumpDailyXP(amount: number, fecha?: string): Promise<{ dayTotal: number; week: number }> {
   const daily = await getXpDaily();
-  const tk = todayKey();
+  const tk = fecha ?? todayKey();
   daily[tk] = (daily[tk] ?? 0) + amount;
   await saveXpDaily(daily);
 
@@ -42,7 +43,7 @@ async function bumpDailyXP(amount: number): Promise<{ today: number; week: numbe
     const [y, m, d] = key.split('-').map(Number);
     if (new Date(y, m - 1, d) >= weekStart) week += xp;
   });
-  return { today: daily[tk], week };
+  return { dayTotal: daily[tk], week };
 }
 
 // Momento de arranque de la app (para triggers tipo "nota a los 30s de abrir")
@@ -134,12 +135,12 @@ export async function awardXP(amount: number, reason: string, opts: AwardOpts = 
   const newLevel = getUserLevel(newTotal);
   const leveledUp = newLevel.level > prevLevel.level;
 
-  const { today, week } = await bumpDailyXP(amount);
+  const { dayTotal, week } = await bumpDailyXP(amount, opts.fecha);
 
   // Récords (mejor día / mejor semana)
   const records = await getRecords();
   let newWeekRecord = false;
-  if (today > records.bestDayXP) records.bestDayXP = today;
+  if (dayTotal > records.bestDayXP) records.bestDayXP = dayTotal;
   if (week > records.bestWeekXP) {
     // Solo cuenta como "nuevo récord" si ya había un récord previo distinto de 0
     if (records.bestWeekXP > 0 && week > records.bestWeekXP) newWeekRecord = true;
@@ -187,38 +188,44 @@ export async function awardXP(amount: number, reason: string, opts: AwardOpts = 
 export async function awardXPOnce(key: string, amount: number, reason: string, opts: AwardOpts = {}): Promise<void> {
   const claims = await getXpClaims();
   if (claims[key]) return;
-  claims[key] = true;
+  claims[key] = amount; // guarda el monto real: la reversión resta exactamente esto
   await saveXpClaims(claims);
   await awardXP(amount, reason, opts);
 }
 
 /**
  * Revierte un award puntual (anti XP-fantasma): si la `key` estaba reclamada,
- * la libera y resta ese XP del total y del día en curso (nunca baja de 0). Es la
+ * la libera y resta ese XP del total y del día `fecha` (default hoy; nunca baja de 0). Es la
  * operación inversa de `awardXPOnce`, para cuando una acción que sumó puntos se
  * deshace (desmarcar hábito, descompletar tarea, borrar evento/movimiento).
  *
  * Emite un evento con `awarded` negativo: la UI refresca el total y muestra un
  * toast rojo de "−XP" (así el usuario ve que el XP realmente se restó).
- * Devuelve true si efectivamente revirtió (la key existía).
+ * Devuelve el XP revertido (el guardado en el claim, o `amount` para claims
+ * viejos que solo tienen `true`), o null si nunca se otorgó.
  */
-export async function reverseXPOnce(key: string, amount: number): Promise<boolean> {
+export async function reverseXPOnce(key: string, amount: number, fecha?: string): Promise<number | null> {
   const claims = await getXpClaims();
-  if (!claims[key]) return false; // nunca se otorgó (o ya se revirtió): no-op
+  const claim = claims[key];
+  if (!claim) return null; // nunca se otorgó (o ya se revirtió): no-op
+  const reverted = typeof claim === 'number' ? claim : amount;
   delete claims[key];
   await saveXpClaims(claims);
 
   const prevTotal = await getXpTotal();
-  const newTotal = Math.max(0, prevTotal - amount);
+  const newTotal = Math.max(0, prevTotal - reverted);
   await saveXpTotal(newTotal);
 
   const daily = await getXpDaily();
-  const tk = todayKey();
-  daily[tk] = Math.max(0, (daily[tk] ?? 0) - amount);
+  const tk = fecha ?? todayKey();
+  const rest = (daily[tk] ?? 0) - reverted;
+  // si el día queda en 0, se borra la clave: un día sin XP no cuenta como "día activo"
+  if (rest > 0) daily[tk] = rest;
+  else delete daily[tk];
   await saveXpDaily(daily);
 
   gameEvents.emit({
-    awarded: -amount,
+    awarded: -reverted,
     reason: 'Acción deshecha',
     isBonus: false,
     isStar: false,
@@ -226,7 +233,7 @@ export async function reverseXPOnce(key: string, amount: number): Promise<boolea
     leveledUp: false,
     newBadges: [],
   });
-  return true;
+  return reverted;
 }
 
 // Incrementadores de récords (totales históricos)

@@ -17,22 +17,22 @@ interface Props {
   onUpdate: (id: string, name: string, days: number[], recordatorio?: HabitReminder) => Promise<void> | void;
   onRemove: (id: string) => Promise<void> | void;
   onTogglePin: (id: string) => Promise<void> | void;
-  onToggleToday: (id: string) => Promise<void> | void;
-  isDoneToday: (id: string) => boolean;
+  onToggleDay: (id: string, date: Date) => Promise<void> | void;
   isDoneOnDate: (id: string, date: Date) => boolean;
+  habitStreak: (habito: Habito) => number;
   weekStats: (habito: Habito) => { applies: number; done: number; bonus: number };
 }
 
 export function HabitosSection({
-  habitos, onAdd, onUpdate, onRemove, onTogglePin, onToggleToday, isDoneToday, isDoneOnDate, weekStats,
+  habitos, onAdd, onUpdate, onRemove, onTogglePin, onToggleDay, isDoneOnDate, habitStreak, weekStats,
 }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editHabit, setEditHabit] = useState<Habito | null>(null);
 
-  const handleToggleToday = async (id: string) => {
-    await onToggleToday(id);
+  const handleToggleDay = async (id: string, date: Date) => {
+    await onToggleDay(id, date);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
@@ -71,10 +71,10 @@ export function HabitosSection({
           >
             <HabitCard
               habito={habito}
-              onToggleToday={() => handleToggleToday(habito.id)}
+              onToggleDay={(date) => handleToggleDay(habito.id, date)}
               onEdit={() => setEditHabit(habito)}
-              isDoneToday={isDoneToday(habito.id)}
               isDoneOnDate={isDoneOnDate}
+              streak={habitStreak(habito)}
               weekStats={weekStats(habito)}
               embedded
               style={styles.cardNoMargin}

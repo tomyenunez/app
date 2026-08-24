@@ -20,7 +20,7 @@ export function HabitosScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { handleScroll } = useTabBar();
-  const { habitos, todayHabits, completadosHoy, bonusHoy, add, update, remove, toggleToday, isDoneToday, isDoneOnDate, weekStats } = useHabitos();
+  const { habitos, todayHabits, completadosHoy, bonusHoy, add, update, remove, toggleOnDate, isDoneOnDate, habitStreak, weekStats } = useHabitos();
   const [name, setName] = useState('');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [editHabit, setEditHabit] = useState<Habito | null>(null);
@@ -37,8 +37,8 @@ export function HabitosScreen() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  const handleToggleToday = async (id: string) => {
-    await toggleToday(id);
+  const handleToggleDay = async (id: string, date: Date) => {
+    await toggleOnDate(id, date);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
@@ -104,10 +104,10 @@ export function HabitosScreen() {
             <SwipeableRow onDelete={() => remove(item.id)} containerStyle={styles.habitSwipe}>
               <HabitCard
                 habito={item}
-                onToggleToday={() => handleToggleToday(item.id)}
+                onToggleDay={(date) => handleToggleDay(item.id, date)}
                 onEdit={() => setEditHabit(item)}
-                isDoneToday={isDoneToday(item.id)}
                 isDoneOnDate={isDoneOnDate}
+                streak={habitStreak(item)}
                 weekStats={weekStats(item)}
                 embedded
                 style={styles.habitCardNoMargin}

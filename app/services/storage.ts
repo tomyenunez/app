@@ -52,7 +52,8 @@ import { PersonalRecords as PR } from '../types/game';
 interface GameState {
   xpTotal: number;
   xpDaily: Record<string, number>;
-  xpClaims: Record<string, boolean>;
+  // Valor: el XP que otorgó ese claim (los viejos son `true`, sin monto)
+  xpClaims: Record<string, boolean | number>;
   badges: Record<string, string>;
   records: PR;
   streak: number;
@@ -336,8 +337,8 @@ export async function getXpTotal(): Promise<number> { return (await loadGame()).
 export async function saveXpTotal(n: number): Promise<void> { (await loadGame()).xpTotal = n; scheduleGameSave(); }
 export async function getXpDaily(): Promise<Record<string, number>> { return { ...(await loadGame()).xpDaily }; }
 export async function saveXpDaily(d: Record<string, number>): Promise<void> { (await loadGame()).xpDaily = d; scheduleGameSave(); }
-export async function getXpClaims(): Promise<Record<string, boolean>> { return { ...(await loadGame()).xpClaims }; }
-export async function saveXpClaims(c: Record<string, boolean>): Promise<void> { (await loadGame()).xpClaims = c; scheduleGameSave(); }
+export async function getXpClaims(): Promise<Record<string, boolean | number>> { return { ...(await loadGame()).xpClaims }; }
+export async function saveXpClaims(c: Record<string, boolean | number>): Promise<void> { (await loadGame()).xpClaims = c; scheduleGameSave(); }
 export async function getBadges(): Promise<Record<string, string>> { return { ...(await loadGame()).badges }; }
 export async function saveBadges(b: Record<string, string>): Promise<void> { (await loadGame()).badges = b; scheduleGameSave(); }
 export async function getRecords(): Promise<PersonalRecords> { return { ...(await loadGame()).records }; }

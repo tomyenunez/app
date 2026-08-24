@@ -48,8 +48,8 @@ export function HomeScreen() {
   const { familias, getFamilia } = useFamilias();
   const {
     habitos, habitDone, todayHabits, completadosHoy, bonusHoy,
-    add: addHabito, update: updateHabito, remove: removeHabito, togglePin: togglePinHabito, toggleToday,
-    isDoneToday, isDoneOnDate, weekStats,
+    add: addHabito, update: updateHabito, remove: removeHabito, togglePin: togglePinHabito, toggleOnDate,
+    isDoneOnDate, habitStreak, weekStats,
   } = useHabitos();
   const { hasEvents, eventosForDay, add: addEvento, remove: removeEvento } = useAgenda();
   const { notas, draft: notaDraft, setDraft: setNotaDraft, saveDraft: saveNotaDraft, clearDraft: clearNotaDraft, update: updateNota, remove: removeNota, togglePin: togglePinNota } = useNotas();
@@ -204,9 +204,9 @@ export function HomeScreen() {
           onUpdate={updateHabito}
           onRemove={removeHabito}
           onTogglePin={togglePinHabito}
-          onToggleToday={toggleToday}
-          isDoneToday={isDoneToday}
+          onToggleDay={toggleOnDate}
           isDoneOnDate={isDoneOnDate}
+          habitStreak={habitStreak}
           weekStats={weekStats}
         />
 

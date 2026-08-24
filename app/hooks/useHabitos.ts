@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { Habito, HabitReminder } from '../types';
-import { todayKey, todayIdx, weekDays, dateKey } from '../utils/dateUtils';
+import { todayKey, todayIdx, weekDays, dateKey, isSameDay, isPast } from '../utils/dateUtils';
 import { awardXPOnce, incrementHabitRecord, decrementHabitRecord, reverseXPOnce, weeklyStarsCount, unlockBadge } from '../services/xpService';
 import { scheduleHabitReminders, cancelHabitReminders } from '../services/notificationService';
 import { XP_VALUES } from '../constants/xpValues';
@@ -26,6 +26,24 @@ function toRow(h: Habito, userId: string) {
     pinned: !!h.pinned,
     recordatorio: h.recordatorio ?? null,
   };
+}
+
+// Racha de un hábito: días marcados consecutivos hacia atrás. Los días que no
+// tocaban y quedaron vacíos no la cortan; rellenar un día olvidado la recupera.
+// Si hoy todavía no lo marcaste, hoy tampoco la corta (gracia hasta fin del día).
+function streakFromMap(done: Record<string, boolean>, habito: Habito): number {
+  let racha = 0;
+  const d = new Date();
+  if (!done[`${dateKey(d)}-${habito.id}`]) d.setDate(d.getDate() - 1);
+  for (let i = 0; i < 730; i++) {
+    if (done[`${dateKey(d)}-${habito.id}`]) {
+      racha++;
+    } else if (habito.days.length === 0 || habito.days.includes((d.getDay() + 6) % 7)) {
+      break; // día que tocaba y quedó vacío
+    }
+    d.setDate(d.getDate() - 1);
+  }
+  return racha;
 }
 
 export function useHabitos() {
@@ -99,11 +117,14 @@ export function useHabitos() {
     if (error) console.warn('[Dayxo habitos] pin:', error.message);
   }, [habitos]);
 
-  // Marca/desmarca el hábito para HOY
-  const toggleToday = useCallback(async (habitId: string) => {
+  // Marca/desmarca el hábito para una fecha (hoy o un día pasado que te olvidaste de marcar)
+  const toggleOnDate = useCallback(async (habitId: string, date: Date) => {
     if (!userId) return;
-    const fecha = todayKey();
+    const esHoy = isSameDay(date, new Date());
+    if (!esHoy && !isPast(date)) return; // el futuro no se marca
+    const fecha = dateKey(date);
     const key = `${fecha}-${habitId}`;
+    const dayIdx = (date.getDay() + 6) % 7;
     const wasDone = !!habitDone[key];
     const updated = { ...habitDone, [key]: !wasDone };
     setHabitDone(updated);
@@ -115,22 +136,24 @@ export function useHabitos() {
       if (error) console.warn('[Dayxo habitos] marcar:', error.message);
 
       const habito = habitos.find((h) => h.id === habitId);
-      const aplicaHoy = habito?.days.includes(todayIdx()) ?? false;
-      const isStar = !aplicaHoy; // día que no tocaba → estrella dorada
+      const aplicaEseDia = habito?.days.includes(dayIdx) ?? false;
+      const isStar = !aplicaEseDia; // día que no tocaba → estrella dorada
       const hour = new Date().getHours();
       const stars = await weeklyStarsCount(updated, habitos);
       incrementHabitRecord(isStar);
       awardXPOnce(
         `habit-${key}`,
         isStar ? XP_VALUES.COMPLETE_HABIT_EXTRA_DAY : XP_VALUES.COMPLETE_HABIT,
-        isStar ? 'Hábito extra ⭐' : 'Hábito completado',
+        isStar ? 'Hábito extra ⭐' : esHoy ? 'Hábito completado' : 'Hábito recuperado 💪',
         {
           isStar,
           isBonus: isStar,
+          fecha, // el XP cae en el día que corresponde, no en el de hoy
           stats: {
             weeklyStars: stars,
-            completedAfter23: hour >= 23,
-            completedBefore7: hour < 7,
+            // pistas de horario: solo valen si lo marcás en el día
+            completedAfter23: esHoy && hour >= 23,
+            completedBefore7: esHoy && hour < 7,
           },
         }
       );
@@ -142,14 +165,9 @@ export function useHabitos() {
       const vecesEste = Object.keys(updated).filter((k) => updated[k] && k.endsWith(`-${habitId}`)).length;
       if (vecesEste >= 10) unlockBadge('ritual_diario');
 
-      // "Sin romper cadena": este hábito marcado 7 días seguidos (hoy inclusive)
-      let cadena = true;
-      for (let i = 0; i < 7; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        if (!updated[`${dateKey(d)}-${habitId}`]) { cadena = false; break; }
-      }
-      if (cadena) unlockBadge('sin_romper_cadena');
+      // "Sin romper cadena": racha de 7 días marcados (misma cuenta que ve el usuario
+      // en el chip 🔥, así el logro y el chip nunca se contradicen)
+      if (habito && streakFromMap(updated, habito) >= 7) unlockBadge('sin_romper_cadena');
 
       // "Full semana": es domingo y toda la semana planificada quedó cumplida
       if (todayIdx() === 6 && habitos.some((h) => h.days.length > 0)) {
@@ -172,14 +190,24 @@ export function useHabitos() {
       if (error) console.warn('[Dayxo habitos] desmarcar:', error.message);
 
       const habito = habitos.find((h) => h.id === habitId);
-      const isStar = !(habito?.days.includes(todayIdx()) ?? false); // mismo criterio que al marcar
-      const reverted = await reverseXPOnce(
-        `habit-${key}`,
-        isStar ? XP_VALUES.COMPLETE_HABIT_EXTRA_DAY : XP_VALUES.COMPLETE_HABIT,
-      );
-      if (reverted) await decrementHabitRecord(isStar);
+      // fallback para claims viejos sin monto guardado: mismo criterio que al marcar
+      const fallback = (habito?.days.includes(dayIdx) ?? false)
+        ? XP_VALUES.COMPLETE_HABIT
+        : XP_VALUES.COMPLETE_HABIT_EXTRA_DAY;
+      const reverted = await reverseXPOnce(`habit-${key}`, fallback, fecha);
+      // el monto revertido dice si la marca original fue estrella (aunque después
+      // hayan editado los días del hábito)
+      if (reverted !== null) {
+        await decrementHabitRecord(reverted === XP_VALUES.COMPLETE_HABIT_EXTRA_DAY);
+      }
     }
   }, [habitDone, habitos, userId]);
+
+  // Racha del hábito para la UI (chip "N 🔥" de la tarjeta)
+  const habitStreak = useCallback(
+    (habito: Habito) => streakFromMap(habitDone, habito),
+    [habitDone]
+  );
 
   const isDoneToday = useCallback((habitId: string) => {
     return !!habitDone[`${todayKey()}-${habitId}`];
@@ -235,9 +263,10 @@ export function useHabitos() {
     update,
     remove,
     togglePin,
-    toggleToday,
+    toggleOnDate,
     isDoneToday,
     isDoneOnDate,
+    habitStreak,
     weekStats,
   };
 }

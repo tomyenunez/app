@@ -1,20 +1,20 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, TextStyle } from 'react-native';
 import { AppText as Text } from '../shared/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
 import { Habito } from '../../types';
-import { weekDays, isSameDay } from '../../utils/dateUtils';
+import { weekDays, isSameDay, isPast } from '../../utils/dateUtils';
 
 const DAY_NAMES = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
 export const BONUS_COLOR = '#FF9F43';
 
 interface Props {
   habito: Habito;
-  onToggleToday: () => void;
-  isDoneToday: boolean;
+  onToggleDay: (date: Date) => void;
   isDoneOnDate: (id: string, date: Date) => boolean;
+  streak: number;
   weekStats: { applies: number; done: number; bonus: number };
   embedded?: boolean;
   onTogglePin?: () => void;
@@ -23,11 +23,18 @@ interface Props {
 }
 
 export function HabitCard({
-  habito, onToggleToday, isDoneToday, isDoneOnDate, weekStats, embedded, onTogglePin, onEdit, style,
+  habito, onToggleDay, isDoneOnDate, streak, weekStats, embedded, onTogglePin, onEdit, style,
 }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const weekDaysList = weekDays();
+  // ¿Te olvidaste de marcar algo la semana pasada? El pager retrocede una semana
+  const [prevWeek, setPrevWeek] = useState(false);
+  const weekDaysList = weekDays().map((d) => {
+    if (!prevWeek) return d;
+    const p = new Date(d);
+    p.setDate(p.getDate() - 7);
+    return p;
+  });
   const pct = weekStats.applies > 0 ? weekStats.done / weekStats.applies : 0;
   const appliesLabels = habito.days.map((d) => DAY_NAMES[d]).join(' · ');
 
@@ -40,8 +47,13 @@ export function HabitCard({
           <Text style={styles.habitDaysLabel}>{appliesLabels}</Text>
         </TouchableOpacity>
         <View style={styles.habitRight}>
+          {streak > 0 && (
+            <View style={styles.rachaBadge}>
+              <Text style={styles.rachaText}>{streak} 🔥</Text>
+            </View>
+          )}
           <View style={styles.streakBadge}>
-            <Text style={styles.streakText}>🔥 {weekStats.done}/{weekStats.applies}</Text>
+            <Text style={styles.streakText}>✓ {weekStats.done}/{weekStats.applies}</Text>
           </View>
           {weekStats.bonus > 0 && (
             <View style={styles.bonusBadge}>
@@ -61,18 +73,42 @@ export function HabitCard({
         <View style={[styles.progressFill, { width: `${Math.min(pct, 1) * 100}%` }]} />
       </View>
 
+      {/* Pager de semana: permite recuperar días olvidados de la semana pasada */}
+      <View style={styles.weekNav}>
+        <TouchableOpacity
+          onPress={() => setPrevWeek(true)}
+          disabled={prevWeek}
+          hitSlop={{ top: 8, bottom: 8, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel="Ver semana pasada"
+        >
+          <Ionicons name="chevron-back" size={13} color={prevWeek ? 'transparent' : colors.textSecondary} />
+        </TouchableOpacity>
+        <Text style={styles.weekNavLabel}>{prevWeek ? 'SEMANA PASADA' : 'ESTA SEMANA'}</Text>
+        <TouchableOpacity
+          onPress={() => setPrevWeek(false)}
+          disabled={!prevWeek}
+          hitSlop={{ top: 8, bottom: 8, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel="Volver a esta semana"
+        >
+          <Ionicons name="chevron-forward" size={13} color={prevWeek ? colors.textSecondary : 'transparent'} />
+        </TouchableOpacity>
+      </View>
+
       {/* Days row */}
       <View style={styles.daysRow}>
         {weekDaysList.map((day, i) => {
           const dayI = (day.getDay() + 6) % 7;
           const applies = habito.days.includes(dayI);
           const isToday = isSameDay(day, new Date());
-          const done = isToday ? isDoneToday : isDoneOnDate(habito.id, day);
+          const done = isDoneOnDate(habito.id, day);
 
           const circleStyle: StyleProp<ViewStyle>[] = [styles.dayCircle];
           const textStyle: StyleProp<TextStyle>[] = [styles.dayCircleText];
-          // HOY siempre se puede tocar: si no aplica, cuenta como bonus
-          const tappable = isToday;
+          // HOY y los días pasados se pueden tocar (¿te olvidaste de marcar? tocá y
+          // recuperás el día); el futuro no. Si no aplica, cuenta como bonus.
+          const tappable = isToday || isPast(day);
           let content: string = day.getDate().toString();
 
           if (applies) {
@@ -83,6 +119,10 @@ export function HabitCard({
               circleStyle.push(styles.dayDone);
               textStyle.push(styles.dayDoneText);
               content = '✓';
+            } else if (isPast(day)) {
+              // día que tocaba y quedó vacío: punteado = "tocá para recuperarlo"
+              circleStyle.push(styles.dayMissed);
+              textStyle.push(styles.dayMissedText);
             } else {
               circleStyle.push(styles.dayPending);
               textStyle.push(styles.dayPendingText);
@@ -105,10 +145,15 @@ export function HabitCard({
           return (
             <View key={i} style={styles.dayCol}>
               <TouchableOpacity
-                onPress={tappable ? onToggleToday : undefined}
+                onPress={tappable ? () => onToggleDay(day) : undefined}
                 style={circleStyle}
                 activeOpacity={tappable ? 0.7 : 1}
                 disabled={!tappable}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: !tappable, checked: done }}
+                accessibilityLabel={`${isToday ? 'Hoy' : DAY_NAMES[dayI]} ${day.getDate()}, ${
+                  done ? (applies ? 'completado' : 'bonus completado') : applies ? 'pendiente' : 'día no programado'
+                }`}
               >
                 <Text style={textStyle}>{content}</Text>
               </TouchableOpacity>
@@ -142,6 +187,14 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   habitName: { fontSize: 15, fontFamily: 'Inter_600SemiBold', color: colors.textPrimary },
   habitDaysLabel: { fontSize: 11, fontFamily: 'Inter_400Regular', color: colors.textSecondary, marginTop: 2 },
   habitRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  // Racha: días marcados consecutivos (número + fueguito)
+  rachaBadge: {
+    backgroundColor: colors.orange,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  rachaText: { fontSize: 12, fontFamily: 'Inter_700Bold', color: '#fff' },
   streakBadge: {
     backgroundColor: colors.orangeLight,
     borderRadius: 8,
@@ -164,6 +217,19 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     overflow: 'hidden',
   },
   progressFill: { height: 4, backgroundColor: colors.orange, borderRadius: 2 },
+  weekNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  weekNavLabel: {
+    fontSize: 9,
+    fontFamily: 'Inter_600SemiBold',
+    color: colors.textSecondary,
+    letterSpacing: 0.5,
+  },
   daysRow: { flexDirection: 'row', justifyContent: 'space-between' },
   dayCol: { alignItems: 'center', gap: 4 },
   dayCircle: {
@@ -191,6 +257,9 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   dayDoneText: { color: '#fff', fontFamily: 'Inter_700Bold' },
   dayPending: { borderWidth: 1.5, borderColor: colors.orange, opacity: 0.75 },
   dayPendingText: { color: colors.orange },
+  // Día pasado que tocaba y quedó sin marcar: tappable para recuperarlo
+  dayMissed: { borderWidth: 1.5, borderColor: colors.orange, borderStyle: 'dashed' },
+  dayMissedText: { color: colors.orange },
   // Bonus: hábito hecho un día que no tocaba — dorado
   dayBonusPending: {
     borderWidth: 2,
