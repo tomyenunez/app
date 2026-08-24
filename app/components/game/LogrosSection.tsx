@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Modal, Pressable } from 'react-native';
 import { AppText as Text } from '../shared/AppText';
 import { useTheme } from '../../context/ThemeContext';
 import { AppColors } from '../../constants/colors';
@@ -81,25 +81,37 @@ export function LogrosSection() {
         );
       })}
 
-      {sel ? (
-        <View style={[styles.detail, { borderColor: (selHidden ? colors.border : sel.color) + '55' }]}>
-          <Text style={styles.detailTitle}>
-            {selUnlocked ? sel.icon : selHidden ? '❓' : '🔒'} {selHidden ? '???' : sel.name}
-          </Text>
-          <Text style={[styles.detailRarity, { color: selHidden ? colors.textSecondary : sel.color }]}>
-            {selHidden ? 'Secreto' : RARITY_LABEL[sel.rarity]}
-          </Text>
-          <Text style={styles.detailDesc}>
-            {selUnlocked
-              ? `✅ ${sel.description}.`
-              : selHidden
-                ? 'Es un secreto. Lo vas a saber cuando lo encuentres 🤫'
-                : `Cómo conseguirlo: ${sel.description}.`}
-          </Text>
-        </View>
-      ) : (
+      {!sel && (
         <Text style={styles.hint}>Tocá un logro para ver cómo conseguirlo</Text>
       )}
+
+      <Modal
+        visible={!!sel}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelected(null)}
+      >
+        <Pressable style={styles.overlay} onPress={() => setSelected(null)}>
+          <Pressable style={[styles.detail, { borderColor: (selHidden ? colors.border : sel?.color) + '55' }]} onPress={() => {}}>
+            <Text style={styles.detailTitle}>
+              {selUnlocked ? sel?.icon : selHidden ? '❓' : '🔒'} {selHidden ? '???' : sel?.name}
+            </Text>
+            <Text style={[styles.detailRarity, { color: selHidden ? colors.textSecondary : sel?.color }]}>
+              {selHidden ? 'Secreto' : sel ? RARITY_LABEL[sel.rarity] : ''}
+            </Text>
+            <Text style={styles.detailDesc}>
+              {selUnlocked
+                ? `✅ ${sel?.description}.`
+                : selHidden
+                  ? 'Es un secreto. Lo vas a saber cuando lo encuentres 🤫'
+                  : `Cómo conseguirlo: ${sel?.description}.`}
+            </Text>
+            <TouchableOpacity style={styles.closeBtn} onPress={() => setSelected(null)} activeOpacity={0.8}>
+              <Text style={styles.closeBtnText}>Cerrar</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -134,12 +146,26 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   iconLocked: { opacity: 0.5 },
   name: { fontSize: 11, fontFamily: 'Inter_600SemiBold', marginTop: 4, textAlign: 'center' },
   rarity: { fontSize: 9, fontFamily: 'Inter_500Medium', marginTop: 1 },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
   detail: {
     backgroundColor: colors.card,
-    borderRadius: 12, borderWidth: 1, padding: 14, marginTop: 14,
+    borderRadius: 16, borderWidth: 1, padding: 18,
+    width: '100%', maxWidth: 360,
   },
-  detailTitle: { fontSize: 15, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
-  detailRarity: { fontSize: 11, fontFamily: 'Inter_600SemiBold', marginTop: 2 },
-  detailDesc: { fontSize: 13, fontFamily: 'Inter_500Medium', color: colors.textSecondary, marginTop: 8, lineHeight: 18 },
+  detailTitle: { fontSize: 17, fontFamily: 'Inter_700Bold', color: colors.textPrimary },
+  detailRarity: { fontSize: 12, fontFamily: 'Inter_600SemiBold', marginTop: 2 },
+  detailDesc: { fontSize: 14, fontFamily: 'Inter_500Medium', color: colors.textSecondary, marginTop: 10, lineHeight: 19 },
+  closeBtn: {
+    marginTop: 16, alignSelf: 'flex-end',
+    paddingVertical: 8, paddingHorizontal: 16,
+    backgroundColor: colors.grayVeryLight, borderRadius: 10,
+  },
+  closeBtnText: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: colors.textPrimary },
   hint: { fontSize: 12, fontFamily: 'Inter_400Regular', color: colors.textSecondary, textAlign: 'center', marginTop: 16 },
 });
